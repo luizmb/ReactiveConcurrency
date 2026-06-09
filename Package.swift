@@ -7,24 +7,40 @@ let package = Package(
         .macOS(.v15),
         .iOS(.v18),
         .tvOS(.v18),
-        .watchOS(.v11)
+        .watchOS(.v11),
+        .visionOS(.v2),
     ],
     products: [
-        .library(name: "LongLiveCombine", targets: ["LongLiveCombine"])
+        .library(name: "ReactiveConcurrency", targets: ["ReactiveConcurrency"]),
+        .library(name: "ReactiveConcurrencyOperators", targets: ["ReactiveConcurrencyOperators"]),
+        .library(name: "ReactiveConcurrencyTransformers", targets: ["ReactiveConcurrencyTransformers"]),
     ],
     dependencies: [
         .package(path: "../FP")
     ],
     targets: [
         .target(
-            name: "LongLiveCombine",
+            name: "ReactiveConcurrency",
+            dependencies: []
+        ),
+        .target(
+            name: "ReactiveConcurrencyOperators",
             dependencies: [
-                .product(name: "CoreFP", package: "FP")
+                "ReactiveConcurrency",
+                .product(name: "CoreFP", package: "FP"),
+                .product(name: "CoreFPOperators", package: "FP"),
+            ]
+        ),
+        .target(
+            name: "ReactiveConcurrencyTransformers",
+            dependencies: [
+                "ReactiveConcurrency",
+                .product(name: "DataStructure", package: "FP"),
             ]
         ),
         .testTarget(
             name: "LongLiveCombineTests",
-            dependencies: ["LongLiveCombine"]
+            dependencies: ["ReactiveConcurrency"]
         )
     ]
 )

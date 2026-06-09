@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import LongLiveCombine
+@testable import ReactiveConcurrency
 
 // Thread-safe value collector for use in @Sendable sink closures.
 final class Collector<T: Sendable>: @unchecked Sendable {
@@ -88,6 +88,43 @@ final class _AtomicCounter: @unchecked Sendable {
         try? await Task.sleep(nanoseconds: 10_000_000)
 
         #expect(values.values == [1, 2])
+    }
+
+    // Cancellation must NOT invoke the completion handler — Combine's contract.
+    @Test func cancellationDoesNotCallCompletion() async {
+        enum E: Error, Equatable, Sendable { case boom }
+        let completions = Collector<Subscribers.Completion<E>>()
+        let subject = PassthroughSubject<Int, E>()
+
+        let cancellable = subject.eraseToPublisher().sink(
+            receiveCompletion: { completions.append($0) },
+            receiveValue: { _ in }
+        )
+        subject.send(1)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        cancellable.cancel()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        #expect(completions.values.isEmpty)
+    }
+
+    // Dropping the AnyCancellable token tears down the subscription.
+    // The guard !Task.isCancelled check in the loop prevents buffered values from
+    // being delivered to a pre-cancelled Task (cancelled before it ran its first iteration).
+    @Test func droppedCancellableStopsDelivery() async {
+        let values = Collector<Int>()
+        let subject = PassthroughSubject<Int, Never>()
+
+        do {
+            let cancellable = subject.eraseToPublisher().sink { values.append($0) }
+            _ = cancellable  // keep alive until here
+        }
+        // deinit fires, task.cancel() called before the Task has run
+
+        subject.send(1)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        #expect(values.values.isEmpty)
     }
 
     @Test func failPublisherDeliversFailure() async {
