@@ -194,6 +194,58 @@ import Testing
     }
 }
 
+@Suite struct ReplaceEmptyTests {
+    @Test func replaceEmptyEmitsDefaultWhenStreamIsEmpty() async {
+        var result: [Int] = []
+        for await r in Publisher<Int, Never>.empty().replaceEmpty(with: 42)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result == [42])
+    }
+
+    @Test func replaceEmptyPassesThroughWhenNotEmpty() async {
+        var result: [Int] = []
+        for await r in Publisher<Int, Never>.sequence(1...3).replaceEmpty(with: 99)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result == [1, 2, 3])
+    }
+}
+
+@Suite struct KeyPathMapTests {
+    struct Point: Sendable { let x: Int; let y: Int }
+
+    @Test func mapSingleKeyPath() async {
+        var result: [Int] = []
+        let points = [Point(x: 1, y: 10), Point(x: 2, y: 20)]
+        for await r in Publisher<Point, Never>.sequence(points).map(\.x)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result == [1, 2])
+    }
+
+    @Test func mapTwoKeyPaths() async {
+        var result: [(Int, Int)] = []
+        let points = [Point(x: 1, y: 10), Point(x: 2, y: 20)]
+        for await r in Publisher<Point, Never>.sequence(points).map(\.x, \.y)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result.map(\.0) == [1, 2])
+        #expect(result.map(\.1) == [10, 20])
+    }
+
+    @Test func mapThreeKeyPaths() async {
+        struct Triple: Sendable { let a: Int; let b: Int; let c: Int }
+        var result: [(Int, Int, Int)] = []
+        let items = [Triple(a: 1, b: 2, c: 3)]
+        for await r in Publisher<Triple, Never>.sequence(items).map(\.a, \.b, \.c)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result.count == 1)
+        #expect(result[0].0 == 1 && result[0].1 == 2 && result[0].2 == 3)
+    }
+}
+
 @Suite struct CountCollectTests {
     @Test func countEmitsTotalCount() async {
         var result: [Int] = []

@@ -234,6 +234,24 @@ extension Publisher {
         _extremum(isLess: { areInIncreasingOrder($1, $0) })
     }
 
+    // Emits `output` if the upstream completes without having produced any values.
+    public func replaceEmpty(with output: Output) -> Publisher<Output, Failure> {
+        _operator { raw, upstream in
+            var emitted = false
+            for await result in upstream {
+                switch result {
+                case .success(let v):
+                    emitted = true
+                    if case .terminated = raw.yield(.success(v)) { return }
+                case .failure(let e):
+                    _ = raw.yield(.failure(e)); raw.finish(); return
+                }
+            }
+            if !emitted { _ = raw.yield(.success(output)) }
+            raw.finish()
+        }
+    }
+
     private func _extremum(
         isLess: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {

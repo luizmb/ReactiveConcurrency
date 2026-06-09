@@ -57,6 +57,29 @@ extension Publisher {
     }
 }
 
+// MARK: - KeyPath map overloads
+
+extension Publisher {
+    public func map<T: Sendable>(_ keyPath: KeyPath<Output, T> & Sendable) -> Publisher<T, Failure> {
+        map { $0[keyPath: keyPath] }
+    }
+
+    public func map<T: Sendable, U: Sendable>(
+        _ kp1: KeyPath<Output, T> & Sendable,
+        _ kp2: KeyPath<Output, U> & Sendable
+    ) -> Publisher<(T, U), Failure> {
+        map { ($0[keyPath: kp1], $0[keyPath: kp2]) }
+    }
+
+    public func map<T: Sendable, U: Sendable, V: Sendable>(
+        _ kp1: KeyPath<Output, T> & Sendable,
+        _ kp2: KeyPath<Output, U> & Sendable,
+        _ kp3: KeyPath<Output, V> & Sendable
+    ) -> Publisher<(T, U, V), Failure> {
+        map { ($0[keyPath: kp1], $0[keyPath: kp2], $0[keyPath: kp3]) }
+    }
+}
+
 // MARK: - setFailureType / replaceNil
 
 extension Publisher where Failure == Never {
