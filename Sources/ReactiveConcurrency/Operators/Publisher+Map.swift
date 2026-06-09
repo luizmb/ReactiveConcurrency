@@ -110,8 +110,12 @@ extension Publisher {
     }
 }
 
-// tryMap — sole exception to the non-throwing closure rule.
-// Uses Swift typed throws to preserve the error type rather than erasing to any Error.
+// MARK: - tryMap
+
+// Throwing variants use Swift typed throws so the error type is preserved.
+// Result-returning variants are the non-throwing equivalent — useful when the
+// transform already produces a Result (e.g. a decoder) rather than throwing.
+
 extension Publisher where Failure == Never {
     public func tryMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) throws(E) -> T
@@ -121,6 +125,21 @@ extension Publisher where Failure == Never {
                 if case .success(let value) = result {
                     let mapped = try transform(value)
                     continuation.yield(mapped)
+                }
+            }
+        }
+    }
+
+    public func tryMap<T: Sendable, E: Error>(
+        _ transform: @escaping @Sendable (Output) -> Result<T, E>
+    ) -> Publisher<T, E> {
+        Publisher<T, E> { continuation in
+            for await result in self._stream {
+                if case .success(let value) = result {
+                    switch transform(value) {
+                    case .success(let mapped): continuation.yield(mapped)
+                    case .failure(let error): throw error
+                    }
                 }
             }
         }
@@ -143,30 +162,49 @@ extension Publisher {
             }
         }
     }
+
+    public func tryMap<T: Sendable>(
+        _ transform: @escaping @Sendable (Output) -> Result<T, Failure>
+    ) -> Publisher<T, Failure> {
+        Publisher<T, Failure> { continuation in
+            for await result in self._stream {
+                switch result {
+                case .success(let value):
+                    switch transform(value) {
+                    case .success(let mapped): continuation.yield(mapped)
+                    case .failure(let error): throw error
+                    }
+                case .failure(let error):
+                    throw error
+                }
+            }
+        }
+    }
 }
 
 // MARK: - encode / decode
+
+extension Publisher where Failure == Never {
+    public func encode<E: Error>(
+        encoder: @escaping @Sendable (Output) -> Result<Data, E>
+    ) -> Publisher<Data, E> {
+        tryMap(encoder)
+    }
+}
 
 extension Publisher {
     public func encode(
         encoder: @escaping @Sendable (Output) -> Result<Data, Failure>
     ) -> Publisher<Data, Failure> {
-        _operator { raw, upstream in
-            for await result in upstream {
-                switch result {
-                case .success(let v):
-                    switch encoder(v) {
-                    case .success(let data):
-                        if case .terminated = raw.yield(.success(data)) { return }
-                    case .failure(let e):
-                        _ = raw.yield(.failure(e)); raw.finish(); return
-                    }
-                case .failure(let e):
-                    _ = raw.yield(.failure(e)); raw.finish(); return
-                }
-            }
-            raw.finish()
-        }
+        tryMap(encoder)
+    }
+}
+
+extension Publisher where Output == Data, Failure == Never {
+    public func decode<T: Sendable, E: Error>(
+        decoder: @escaping @Sendable (Data) -> Result<T, E>
+    ) -> Publisher<T, E> {
+        tryMap(decoder)
     }
 }
 
@@ -174,22 +212,7 @@ extension Publisher where Output == Data {
     public func decode<T: Sendable>(
         decoder: @escaping @Sendable (Data) -> Result<T, Failure>
     ) -> Publisher<T, Failure> {
-        _operator { raw, upstream in
-            for await result in upstream {
-                switch result {
-                case .success(let data):
-                    switch decoder(data) {
-                    case .success(let v):
-                        if case .terminated = raw.yield(.success(v)) { return }
-                    case .failure(let e):
-                        _ = raw.yield(.failure(e)); raw.finish(); return
-                    }
-                case .failure(let e):
-                    _ = raw.yield(.failure(e)); raw.finish(); return
-                }
-            }
-            raw.finish()
-        }
+        tryMap(decoder)
     }
 }
 

@@ -298,14 +298,12 @@ import Testing
     enum CodecError: Error, Equatable { case encodingFailed; case decodingFailed }
 
     @Test func encodeTransformsValuesToData() async {
-        // Encode ints as big-endian 4-byte Data
         let encoder: @Sendable (Int) -> Result<Data, CodecError> = { n in
             var value = Int32(n).bigEndian
             return .success(Data(bytes: &value, count: 4))
         }
         var result: [Data] = []
         for await r in Publisher<Int, Never>.sequence([1, 2, 3])
-            .setFailureType(to: CodecError.self)
             .encode(encoder: encoder)._stream {
             if case .success(let v) = r { result.append(v) }
         }
@@ -317,7 +315,6 @@ import Testing
         let encoder: @Sendable (Int) -> Result<Data, CodecError> = { _ in .failure(.encodingFailed) }
         var result: [CodecError] = []
         for await r in Publisher<Int, Never>.sequence([1])
-            .setFailureType(to: CodecError.self)
             .encode(encoder: encoder)._stream {
             if case .failure(let e) = r { result.append(e) }
         }
@@ -330,12 +327,10 @@ import Testing
             let value = data.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
             return .success(Int(value))
         }
-        var encoded: [Data] = []
         var value1 = Int32(42).bigEndian
-        encoded.append(Data(bytes: &value1, count: 4))
+        let encoded = [Data(bytes: &value1, count: 4)]
         var result: [Int] = []
         for await r in Publisher<Data, Never>.sequence(encoded)
-            .setFailureType(to: CodecError.self)
             .decode(decoder: decoder)._stream {
             if case .success(let v) = r { result.append(v) }
         }
@@ -351,12 +346,28 @@ import Testing
         }
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence([10, 20, 30])
-            .setFailureType(to: CodecError.self)
             .encode(encoder: encoder)
             .decode(decoder: decoder)._stream {
             if case .success(let v) = r { result.append(v) }
         }
         #expect(result == [10, 20, 30])
+    }
+
+    @Test func tryMapResultIntroducesErrorOnNeverPublisher() async {
+        let stream = Publisher<Int, Never>.sequence([1, -1, 2])
+            .tryMap { n -> Result<Int, CodecError> in
+                n < 0 ? .failure(.encodingFailed) : .success(n * 10)
+            }._stream
+        var values: [Int] = []
+        var errors: [CodecError] = []
+        for await r in stream {
+            switch r {
+            case .success(let v): values.append(v)
+            case .failure(let e): errors.append(e)
+            }
+        }
+        #expect(values == [10])
+        #expect(errors == [.encodingFailed])
     }
 }
 
