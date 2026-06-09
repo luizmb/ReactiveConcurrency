@@ -137,6 +137,74 @@ extension Publisher {
     }
 }
 
+// MARK: - collect(every:clock:)
+
+extension Publisher {
+    /// Groups values into arrays, flushing at the end of each time window.
+    /// A partial window is flushed when the upstream completes.
+    public func collect<C: Clock>(every interval: C.Duration, clock: C) -> Publisher<[Output], Failure> {
+        let selfFactory = _stream.factory
+        return Publisher<[Output], Failure>(DeferredStream {
+            let upstream = selfFactory()
+            return AsyncStream<Result<[Output], Failure>> { raw in
+                let task = Task {
+                    let upstreamBox = _StreamBox<Result<Output, Failure>>(upstream)
+
+                    let (timerStream, timerCont) = AsyncStream<Void>.makeStream()
+                    let timerTask = Task {
+                        var next = clock.now.advanced(by: interval)
+                        while !Task.isCancelled {
+                            try? await clock.sleep(until: next, tolerance: nil)
+                            guard !Task.isCancelled else { return }
+                            timerCont.yield(())
+                            next = next.advanced(by: interval)
+                        }
+                    }
+                    defer { timerTask.cancel(); timerCont.finish() }
+                    let timerBox = _StreamBox<Void>(timerStream)
+
+                    var bucket: [Output] = []
+                    typealias _Ev = _CollectEvent<Output, Failure>
+                    await withTaskGroup(of: _Ev.self) { group in
+                        group.addTask { if let r = await upstreamBox.next() { .value(r) } else { .upstreamDone } }
+                        group.addTask { (await timerBox.next()) != nil ? .tick : .timerDone }
+
+                        loop: while let event = await group.next() {
+                            switch event {
+                            case .tick:
+                                if !bucket.isEmpty {
+                                    if case .terminated = raw.yield(.success(bucket)) { return }
+                                    bucket = []
+                                }
+                                group.addTask { (await timerBox.next()) != nil ? .tick : .timerDone }
+                            case .value(.success(let v)):
+                                bucket.append(v)
+                                group.addTask { if let r = await upstreamBox.next() { .value(r) } else { .upstreamDone } }
+                            case .value(.failure(let e)):
+                                _ = raw.yield(.failure(e)); raw.finish(); return
+                            case .upstreamDone, .timerDone:
+                                break loop
+                            }
+                        }
+                    }
+                    if !bucket.isEmpty { _ = raw.yield(.success(bucket)) }
+                    raw.finish()
+                }
+                raw.onTermination = { _ in task.cancel() }
+            }
+        })
+    }
+}
+
+private enum _CollectEvent<V: Sendable, E: Error>: Sendable {
+    case tick
+    case value(Result<V, E>)
+    case upstreamDone
+    case timerDone
+}
+
+// MARK: - timeout
+
 extension Publisher where Failure: Error {
     // Emits a failure if no value arrives within `interval` of subscription or the last value.
     public func timeout<C: Clock>(
