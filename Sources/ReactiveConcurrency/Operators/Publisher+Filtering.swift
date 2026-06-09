@@ -213,11 +213,11 @@ extension Publisher {
 
 extension Publisher where Output: Comparable {
     public func min() -> Publisher<Output, Failure> {
-        _extremum(isLess: <)
+        _extremum(isLess: { @Sendable a, b in a < b })
     }
 
     public func max() -> Publisher<Output, Failure> {
-        _extremum(isLess: >)
+        _extremum(isLess: { @Sendable a, b in a > b })
     }
 }
 

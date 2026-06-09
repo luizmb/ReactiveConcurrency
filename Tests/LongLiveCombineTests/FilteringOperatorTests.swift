@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import ReactiveConcurrency
 
@@ -290,6 +291,72 @@ import Testing
             if case .success(let v) = r { result.append(v) }
         }
         #expect(result == [1, 0, 3, 0, 5])
+    }
+}
+
+@Suite struct EncodeDecodeTests {
+    enum CodecError: Error, Equatable { case encodingFailed; case decodingFailed }
+
+    @Test func encodeTransformsValuesToData() async {
+        // Encode ints as big-endian 4-byte Data
+        let encoder: @Sendable (Int) -> Result<Data, CodecError> = { n in
+            var value = Int32(n).bigEndian
+            return .success(Data(bytes: &value, count: 4))
+        }
+        var result: [Data] = []
+        for await r in Publisher<Int, Never>.sequence([1, 2, 3])
+            .setFailureType(to: CodecError.self)
+            .encode(encoder: encoder)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result.count == 3)
+        #expect(result[0] == Data([0, 0, 0, 1]))
+    }
+
+    @Test func encodePropagatesEncoderFailure() async {
+        let encoder: @Sendable (Int) -> Result<Data, CodecError> = { _ in .failure(.encodingFailed) }
+        var result: [CodecError] = []
+        for await r in Publisher<Int, Never>.sequence([1])
+            .setFailureType(to: CodecError.self)
+            .encode(encoder: encoder)._stream {
+            if case .failure(let e) = r { result.append(e) }
+        }
+        #expect(result == [.encodingFailed])
+    }
+
+    @Test func decodeTransformsDataToValues() async {
+        let decoder: @Sendable (Data) -> Result<Int, CodecError> = { data in
+            guard data.count == 4 else { return .failure(.decodingFailed) }
+            let value = data.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+            return .success(Int(value))
+        }
+        var encoded: [Data] = []
+        var value1 = Int32(42).bigEndian
+        encoded.append(Data(bytes: &value1, count: 4))
+        var result: [Int] = []
+        for await r in Publisher<Data, Never>.sequence(encoded)
+            .setFailureType(to: CodecError.self)
+            .decode(decoder: decoder)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result == [42])
+    }
+
+    @Test func decodeRoundTrips() async {
+        let encoder: @Sendable (Int) -> Result<Data, CodecError> = { n in
+            var v = Int32(n).bigEndian; return .success(Data(bytes: &v, count: 4))
+        }
+        let decoder: @Sendable (Data) -> Result<Int, CodecError> = { d in
+            .success(Int(d.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }))
+        }
+        var result: [Int] = []
+        for await r in Publisher<Int, Never>.sequence([10, 20, 30])
+            .setFailureType(to: CodecError.self)
+            .encode(encoder: encoder)
+            .decode(decoder: decoder)._stream {
+            if case .success(let v) = r { result.append(v) }
+        }
+        #expect(result == [10, 20, 30])
     }
 }
 

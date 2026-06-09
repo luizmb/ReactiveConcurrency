@@ -1,3 +1,5 @@
+import Foundation
+
 extension Publisher {
     public func map<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> T
@@ -139,6 +141,54 @@ extension Publisher {
                     throw error
                 }
             }
+        }
+    }
+}
+
+// MARK: - encode / decode
+
+extension Publisher {
+    public func encode(
+        encoder: @escaping @Sendable (Output) -> Result<Data, Failure>
+    ) -> Publisher<Data, Failure> {
+        _operator { raw, upstream in
+            for await result in upstream {
+                switch result {
+                case .success(let v):
+                    switch encoder(v) {
+                    case .success(let data):
+                        if case .terminated = raw.yield(.success(data)) { return }
+                    case .failure(let e):
+                        _ = raw.yield(.failure(e)); raw.finish(); return
+                    }
+                case .failure(let e):
+                    _ = raw.yield(.failure(e)); raw.finish(); return
+                }
+            }
+            raw.finish()
+        }
+    }
+}
+
+extension Publisher where Output == Data {
+    public func decode<T: Sendable>(
+        decoder: @escaping @Sendable (Data) -> Result<T, Failure>
+    ) -> Publisher<T, Failure> {
+        _operator { raw, upstream in
+            for await result in upstream {
+                switch result {
+                case .success(let data):
+                    switch decoder(data) {
+                    case .success(let v):
+                        if case .terminated = raw.yield(.success(v)) { return }
+                    case .failure(let e):
+                        _ = raw.yield(.failure(e)); raw.finish(); return
+                    }
+                case .failure(let e):
+                    _ = raw.yield(.failure(e)); raw.finish(); return
+                }
+            }
+            raw.finish()
         }
     }
 }
