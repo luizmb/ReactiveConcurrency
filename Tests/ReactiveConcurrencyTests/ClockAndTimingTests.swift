@@ -1,5 +1,12 @@
+import Hourglass
 import Testing
 @testable import ReactiveConcurrency
+
+// Yields enough times for tasks spawned inside other tasks to register their state.
+// 12 yields is the safe margin under concurrent Swift Testing parallel execution.
+private func settle() async {
+    for _ in 0..<12 { await Task.yield() }
+}
 
 // MARK: - ImmediateClock
 
@@ -38,18 +45,18 @@ import Testing
 
     @Test func sleepSuspendsUntilAdvanced() async {
         let clock = TestClock()
-        let awoke = _AtomicCounter()
+        let awoke = AtomicCounter()
 
         let task = Task {
             try? await clock.sleep(until: clock.now.advanced(by: .seconds(1)), tolerance: nil)
             awoke.increment()
         }
 
-        await Task.yield()
+        await clock.waitForSleepers()
         #expect(awoke.current == 0)
 
         await clock.advance(by: .seconds(1))
-        await Task.yield()
+        await settle()
         #expect(awoke.current == 1)
         task.cancel()
     }
@@ -67,9 +74,9 @@ import Testing
             order.append(2)
         }
 
-        await Task.yield()
+        await clock.waitForSleepers(count: 2)
         await clock.advance(by: .seconds(2))
-        await Task.yield()
+        await settle()
 
         #expect(order.values == [1, 2])
         t1.cancel(); t2.cancel()
@@ -97,11 +104,13 @@ import Testing
             .timer(every: .seconds(1), clock: clock)
             .sink { values.append($0) }
 
-        await Task.yield()
+        await clock.waitForSleepers()
         await clock.advance(by: .seconds(1))
+        await clock.waitForSleepers()
         await clock.advance(by: .seconds(1))
+        await clock.waitForSleepers()
         await clock.advance(by: .seconds(1))
-        await Task.yield()
+        await settle()
         sub.cancel()
 
         #expect(values.values.count == 3)
@@ -119,12 +128,13 @@ import Testing
             .delay(for: .seconds(1), clock: clock)
             .sink { values.append($0) }
 
+        await settle()
         subject.send(1)
-        await Task.yield()
+        await clock.waitForSleepers()
         #expect(values.values.isEmpty)
 
         await clock.advance(by: .seconds(1))
-        await Task.yield()
+        await settle()
         #expect(values.values == [1])
 
         sub.cancel()
@@ -142,14 +152,14 @@ import Testing
             .debounce(for: .milliseconds(300), clock: clock)
             .sink { values.append($0) }
 
-        subject.send(1)
-        subject.send(2)
-        subject.send(3)
-        await Task.yield()
+        await settle()
+        subject.send(1); subject.send(2); subject.send(3)
+        await settle()
+        await clock.waitForSleepers()
         #expect(values.values.isEmpty)
 
         await clock.advance(by: .milliseconds(300))
-        await Task.yield()
+        await settle()
         #expect(values.values == [3])
 
         sub.cancel()
@@ -163,17 +173,18 @@ import Testing
             .debounce(for: .milliseconds(300), clock: clock)
             .sink { values.append($0) }
 
+        await settle()
         subject.send(1)
-        await Task.yield()
+        await clock.waitForSleepers()
         await clock.advance(by: .milliseconds(200))
-        await Task.yield()
-        // Still within window — no emit yet
+        await settle()
         #expect(values.values.isEmpty)
 
         subject.send(2)
-        await Task.yield()
+        await settle()
+        await clock.waitForSleepers()
         await clock.advance(by: .milliseconds(300))
-        await Task.yield()
+        await settle()
         #expect(values.values == [2])
 
         sub.cancel()
@@ -191,15 +202,16 @@ import Testing
             .collect(every: .seconds(1), clock: clock)
             .sink { windows.append($0) }
 
+        await settle()
         subject.send(1); subject.send(2)
-        await Task.yield()
+        await settle()
         await clock.advance(by: .seconds(1))
-        await Task.yield()
+        await settle()
 
         subject.send(3)
-        await Task.yield()
+        await settle()
         await clock.advance(by: .seconds(1))
-        await Task.yield()
+        await settle()
 
         #expect(windows.values == [[1, 2], [3]])
         sub.cancel()
@@ -213,7 +225,6 @@ import Testing
             ._stream {
             if case .success(let v) = r { result.append(v) }
         }
-        // Stream completes before any window fires — partial flush
         #expect(result == [[1, 2, 3]])
     }
 
@@ -225,28 +236,27 @@ import Testing
             .collect(every: .seconds(1), clock: clock)
             .sink { windows.append($0) }
 
-        await Task.yield()
-        await clock.advance(by: .seconds(1)) // empty window — no flush
-        await Task.yield()
+        await clock.waitForSleepers()
+        await clock.advance(by: .seconds(1))
+        await settle()
+        #expect(windows.values.isEmpty)
 
         subject.send(1)
-        await Task.yield()
+        await settle()
         await clock.advance(by: .seconds(1))
-        await Task.yield()
-
+        await settle()
         #expect(windows.values == [[1]])
+
         sub.cancel()
     }
 
     @Test func collectWithImmediateClockFlushesEachValueInItsOwnWindow() async {
-        // ImmediateClock fires window immediately — each value lands in its own window
         var result: [[Int]] = []
         for await r in Publisher<Int, Never>.sequence(1...3)
             .collect(every: .seconds(1), clock: ImmediateClock())
             ._stream {
             if case .success(let v) = r { result.append(v) }
         }
-        // Each window fires before the next value arrives since sleep is instant
         #expect(!result.isEmpty)
         #expect(result.flatMap { $0 }.sorted() == [1, 2, 3])
     }

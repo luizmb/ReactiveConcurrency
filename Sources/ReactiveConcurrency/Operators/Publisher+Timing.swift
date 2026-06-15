@@ -160,7 +160,6 @@ extension Publisher {
                             next = next.advanced(by: interval)
                         }
                     }
-                    defer { timerTask.cancel(); timerCont.finish() }
                     let timerBox = _StreamBox<Void>(timerStream)
 
                     var bucket: [Output] = []
@@ -181,12 +180,17 @@ extension Publisher {
                                 bucket.append(v)
                                 group.addTask { if let r = await upstreamBox.next() { .value(r) } else { .upstreamDone } }
                             case .value(.failure(let e)):
+                                timerTask.cancel(); timerCont.finish()
                                 _ = raw.yield(.failure(e)); raw.finish(); return
-                            case .upstreamDone, .timerDone:
+                            case .upstreamDone:
+                                timerTask.cancel(); timerCont.finish()
+                                break loop
+                            case .timerDone:
                                 break loop
                             }
                         }
                     }
+                    timerTask.cancel(); timerCont.finish()
                     if !bucket.isEmpty { _ = raw.yield(.success(bucket)) }
                     raw.finish()
                 }

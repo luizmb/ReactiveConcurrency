@@ -11,7 +11,7 @@ final class Collector<T: Sendable>: @unchecked Sendable {
 }
 
 // Thread-safe monotonic counter for use in @Sendable closures.
-final class _AtomicCounter: @unchecked Sendable {
+final class AtomicCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var _value = 0
     var current: Int { lock.withLock { _value } }

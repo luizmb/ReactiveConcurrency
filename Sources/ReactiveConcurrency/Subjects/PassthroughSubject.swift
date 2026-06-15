@@ -1,4 +1,4 @@
-public final class PassthroughSubject<Output: Sendable, Failure: Error>: Sendable {
+public final class PassthroughSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: _SubjectCore<Output, Failure>
 
     public init() {

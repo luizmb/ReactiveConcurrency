@@ -1,0 +1,11 @@
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
+import CoreFPOperators
+
+// (<|>) :: DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>>
+public func <|> <A: Sendable, E: Error & Sendable>(
+    _ lhs: DeferredTask<Result<A, E>>,
+    _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
+) -> DeferredTask<Result<A, E>> {
+    altDeferredTaskResult(lhs, rhs())
+}

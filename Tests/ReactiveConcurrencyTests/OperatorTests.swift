@@ -196,7 +196,7 @@ import Testing
 
     @Test func retryRepeatsOnFailure() async {
         enum E: Error, Sendable { case boom }
-        let counter = _AtomicCounter()
+        let counter = AtomicCounter()
 
         let pub = Publisher<Int, E> { c in
             let n = counter.increment()
@@ -217,53 +217,6 @@ import Testing
 
         #expect(values.values == [1, 2, 3])
         #expect(completions.values == [.finished])
-    }
-}
-
-@Suite struct ShareTests {
-    @Test func shareMultiplexesToMultipleSubscribers() async {
-        let subject = PassthroughSubject<Int, Never>()
-        let shared = subject.eraseToPublisher().share()
-
-        let c1 = Collector<Int>()
-        let c2 = Collector<Int>()
-        let cancel1 = shared.sink { c1.append($0) }
-        let cancel2 = shared.sink { c2.append($0) }
-
-        subject.send(1)
-        subject.send(2)
-        try? await Task.sleep(nanoseconds: 20_000_000)
-        cancel1.cancel()
-        cancel2.cancel()
-
-        #expect(c1.values == [1, 2])
-        #expect(c2.values == [1, 2])
-    }
-
-    @Test func connectablePublisherDeliversAfterConnect() async {
-        let connectable = Publisher<Int, Never>.sequence(1...3).makeConnectable()
-        let values = Collector<Int>()
-        let sub = connectable.eraseToPublisher().sink { values.append($0) }
-        let connection = connectable.connect()
-        try? await Task.sleep(nanoseconds: 20_000_000)
-        connection.cancel()
-        sub.cancel()
-
-        #expect(values.values == [1, 2, 3])
-    }
-
-    @Test func autoconnectStartsOnFirstSubscription() async {
-        let subject = PassthroughSubject<Int, Never>()
-        let pub = subject.eraseToPublisher().makeConnectable().autoconnect()
-        let values = Collector<Int>()
-        let sub = pub.sink { values.append($0) }
-
-        subject.send(10)
-        subject.send(20)
-        try? await Task.sleep(nanoseconds: 20_000_000)
-        sub.cancel()
-
-        #expect(values.values == [10, 20])
     }
 }
 

@@ -1,6 +1,6 @@
 import Synchronization
 
-public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Sendable {
+public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: _CurrentValueCore<Output, Failure>
 
     public init(_ value: Output) {
