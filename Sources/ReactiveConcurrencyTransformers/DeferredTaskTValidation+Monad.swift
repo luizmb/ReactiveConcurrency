@@ -1,6 +1,6 @@
-import ReactiveConcurrency
 import CoreFP
 import DataStructure
+import ReactiveConcurrency
 
 // DeferredTaskTValidation: outer = DeferredTask, inner = Validation
 // Type: DeferredTask<Validation<E, A>>

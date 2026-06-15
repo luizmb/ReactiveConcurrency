@@ -1,6 +1,42 @@
 {
-  "originHash" : "e6a27a2222896f81e47b4e89aa83c0fdfa7f3f3c9d9d78dff4a72cd1790ffc3a",
+  "originHash" : "4bae82a3b7a1084ce1969d3f3e08185994593c1c26c3fd6ca1d7f6ef42753ba8",
   "pins" : [
+    {
+      "identity" : "fp",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/luizmb/FP.git",
+      "state" : {
+        "revision" : "fe049b5f09218153072d24613aa5ce8acde26a16",
+        "version" : "1.10.0"
+      }
+    },
+    {
+      "identity" : "hourglass",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/luizmb/Hourglass.git",
+      "state" : {
+        "revision" : "d5bac7925499c47433cbe313d407b08064428549",
+        "version" : "0.2.1"
+      }
+    },
+    {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-plugin",
+      "state" : {
+        "revision" : "647c708be89f834fa6a6d4945442793a77ddf5b6",
+        "version" : "1.5.0"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
+      }
+    },
     {
       "identity" : "swift-syntax",
       "kind" : "remoteSourceControl",

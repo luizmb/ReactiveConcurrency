@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 @Suite struct ShareTests {
     @Test func shareDeliversToBothSubscribers() async {

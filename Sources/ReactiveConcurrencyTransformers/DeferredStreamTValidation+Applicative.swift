@@ -1,6 +1,6 @@
-import ReactiveConcurrency
 import CoreFP
 import DataStructure
+import ReactiveConcurrency
 
 // DeferredStreamTValidation: outer = DeferredStream, inner = Validation
 // Type: DeferredStream<Validation<E, A>>

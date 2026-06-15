@@ -1,6 +1,6 @@
+import CoreFPOperators
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
-import CoreFPOperators
 
 // (<*>) :: DeferredStream<(a->b)?> -> DeferredStream<a?> -> DeferredStream<b?>
 public func <*> <A: Sendable, B: Sendable>(

@@ -1,8 +1,8 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFP
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (>>-) :: DeferredStream<Validation<e,a>> -> (a -> DeferredStream<Validation<e,b>>) -> DeferredStream<Validation<e,b>>
 public func >>- <E: Semigroup & Sendable, A: Sendable, B: Sendable>(

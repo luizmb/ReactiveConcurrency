@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import CoreFPOperators
+import ReactiveConcurrency
 
 // (>>-) :: ZIOKleisli<i, env, a, e> -> (a -> ZIOKleisli<i, env, b, e>) -> ZIOKleisli<i, env, b, e>
 public func >>- <I: Sendable, Env: Sendable, A: Sendable, B: Sendable, E: Error & Sendable>(

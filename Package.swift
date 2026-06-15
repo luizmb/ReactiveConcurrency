@@ -16,8 +16,9 @@ let package = Package(
         .library(name: "ReactiveConcurrencyTransformers", targets: ["ReactiveConcurrencyTransformers"]),
     ],
     dependencies: [
-        .package(path: "../FP"),
-        .package(path: "../Hourglass"),
+        .package(url: "https://github.com/luizmb/FP.git", from: "1.10.0"),
+        .package(url: "https://github.com/luizmb/Hourglass.git", from: "0.2.1"),
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.0"),
     ],
     targets: [
         .target(
@@ -46,6 +47,8 @@ let package = Package(
             name: "ReactiveConcurrencyTests",
             dependencies: [
                 "ReactiveConcurrency",
+                "ReactiveConcurrencyOperators",
+                .product(name: "CoreFPOperators", package: "FP"),
                 .product(name: "Hourglass", package: "Hourglass"),
             ]
         )

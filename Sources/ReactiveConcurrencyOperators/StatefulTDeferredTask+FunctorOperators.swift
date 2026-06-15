@@ -1,7 +1,7 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> Stateful<s, DeferredTask<a>> -> Stateful<s, DeferredTask<b>>
 public func <£^> <S, A: Sendable, B: Sendable>(

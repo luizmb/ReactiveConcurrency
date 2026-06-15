@@ -41,7 +41,7 @@ final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
     private struct _State {
         var current: Output
         var subscribers: [Int: Cont] = [:]
-        var completion: Subscribers.Completion<Failure>? = nil
+        var completion: Subscribers.Completion<Failure>?
         var nextID: Int = 0
     }
     private let _state: Locked<_State>

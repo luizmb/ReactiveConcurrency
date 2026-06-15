@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 @Suite struct FilteringOperatorTests {
     // MARK: first / last
@@ -153,7 +153,7 @@ import Testing
 
     @Test func allSatisfyFalseWhenOneFails() async {
         var result: [Bool] = []
-        for await r in Publisher<Int, Never>.sequence(1...5).allSatisfy({ $0 % 2 == 0 })._stream {
+        for await r in Publisher<Int, Never>.sequence(1...5).allSatisfy({ $0.isMultiple(of: 2) })._stream {
             if case .success(let v) = r { result.append(v) }
         }
         #expect(result == [false])
@@ -432,7 +432,7 @@ import Testing
         for await r in Publisher<Int, Never>.sequence(1...4)
             .tryCompactMap { v throws(TestError) -> String? in
                 if v == 2 { throw TestError.bad }
-                return v % 2 == 0 ? nil : "\(v)"
+                return v.isMultiple(of: 2) ? nil : "\(v)"
             }._stream {
             switch r {
             case .success(let v): result.append(v)

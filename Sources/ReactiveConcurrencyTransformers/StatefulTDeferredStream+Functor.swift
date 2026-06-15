@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import DataStructure
+import ReactiveConcurrency
 
 // StatefulTDeferredStream: outer = Stateful, inner = DeferredStream
 // Type: Stateful<S, DeferredStream<A>>

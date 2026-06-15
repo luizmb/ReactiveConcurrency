@@ -22,7 +22,7 @@ private final class SharedState<Output: Sendable, Failure: Error>: Sendable {
 
     private struct _State {
         var refCount: Int = 0
-        var upstreamTask: Task<Void, Never>? = nil
+        var upstreamTask: Task<Void, Never>?
     }
     private let _state = Locked(_State())
 
@@ -69,7 +69,7 @@ private final class SharedState<Output: Sendable, Failure: Error>: Sendable {
 
 // Holds the AnyCancellable from connect() as a shared reference so it outlives
 // any individual subscriber's onTermination closure.
-private final class AutoconnectState<Output: Sendable, Failure: Error>: Sendable {
+private final class AutoconnectState: Sendable {
     private let _connection: Locked<AnyCancellable?> = Locked(nil)
 
     func connectOnce(_ connect: @Sendable () -> AnyCancellable) {
@@ -118,7 +118,7 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     // Connects automatically on first subscription; stays connected until the source completes.
     // Unlike share(), subscribers cancelling does not disconnect the upstream.
     public func autoconnect() -> Publisher<Output, Failure> {
-        let state = AutoconnectState<Output, Failure>()
+        let state = AutoconnectState()
         let core = _core
         let connectable = self
         return Publisher<Output, Failure>(DeferredStream {

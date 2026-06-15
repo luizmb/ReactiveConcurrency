@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import CoreFPOperators
+import ReactiveConcurrency
 
 // (<*>) :: ZIO<env, (a -> b), e> -> ZIO<env, a, e> -> ZIO<env, b, e>
 public func <*> <Env: Sendable, A: Sendable, B: Sendable, E: Error & Sendable>(

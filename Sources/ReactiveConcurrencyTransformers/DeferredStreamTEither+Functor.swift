@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import DataStructure
+import ReactiveConcurrency
 
 // DeferredStreamTEither: outer = DeferredStream, inner = Either
 // Type: DeferredStream<Either<L, A>>  — Haskell: ExceptT l DeferredStream

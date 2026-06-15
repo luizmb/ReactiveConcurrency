@@ -1,6 +1,6 @@
 import Hourglass
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 // Yields enough times for tasks spawned inside other tasks to register their state.
 // 12 yields is the safe margin under concurrent Swift Testing parallel execution.

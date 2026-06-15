@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import DataStructure
+import ReactiveConcurrency
 
 // ReaderTDeferredStream: outer = Reader, inner = DeferredStream
 // Type: Reader<Env, DeferredStream<A>>

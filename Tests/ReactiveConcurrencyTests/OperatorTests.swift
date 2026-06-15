@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 @Suite struct SequenceOperatorTests {
     @Test func scanAccumulates() async {
@@ -142,7 +142,7 @@ import Testing
         let completions = Collector<Subscribers.Completion<E>>()
 
         let failing: Publisher<Int, E> = Publisher { c in c.fail(.boom) }
-        let other: Publisher<Int, E> = Publisher<Int, E>.just(1).mapError { $0 }
+        let other = Publisher<Int, E>.just(1).mapError { $0 }
 
         let cancellable = failing
             .combineLatest(other)
@@ -296,7 +296,7 @@ import Testing
 
     @Test func tryLastWhereReturnsLastMatch() async {
         let stream = Publisher<Int, Never>.sequence(1...5)
-            .tryLast(where: { v throws(TestError) in v % 2 == 0 })._stream
+            .tryLast(where: { v throws(TestError) in v.isMultiple(of: 2) })._stream
         var result: [Int] = []
         for await r in stream {
             if case .success(let v) = r { result.append(v) }
