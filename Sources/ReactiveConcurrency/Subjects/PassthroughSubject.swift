@@ -1,8 +1,8 @@
 public final class PassthroughSubject<Output: Sendable, Failure: Error>: Subject {
-    private let _core: _SubjectCore<Output, Failure>
+    private let _core: SubjectCore<Output, Failure>
 
     public init() {
-        _core = _SubjectCore()
+        _core = SubjectCore()
     }
 
     // Synchronous — matches Combine's guarantee: values sent after sink() returns

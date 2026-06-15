@@ -16,7 +16,7 @@ extension Publisher {
                         bufferingPolicy: .bufferingNewest(maxPublishers)
                     )
                     for _ in 0..<maxPublishers { slotsCont.yield(()) }
-                    let slotsBox = _StreamBox<Void>(slots)
+                    let slotsBox = StreamBox<Void>(slots)
 
                     await withTaskCancellationHandler {
                         await withTaskGroup(of: Void.self) { group in

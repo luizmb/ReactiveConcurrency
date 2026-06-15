@@ -1,5 +1,3 @@
-import Synchronization
-
 // MARK: - share()
 
 extension Publisher {
@@ -7,7 +5,7 @@ extension Publisher {
     // The upstream subscription starts with the first subscriber and is torn down
     // when the last subscriber cancels. Subsequent re-subscriptions restart upstream.
     public func share() -> Publisher<Output, Failure> {
-        let shared = _SharedState(upstream: self)
+        let shared = SharedState(upstream: self)
         return Publisher<Output, Failure>(DeferredStream {
             let (id, stream) = shared.subscribe()
             return AsyncStream<Result<Output, Failure>> { raw in
@@ -18,19 +16,19 @@ extension Publisher {
     }
 }
 
-private final class _SharedState<Output: Sendable, Failure: Error>: Sendable {
+private final class SharedState<Output: Sendable, Failure: Error>: Sendable {
     private let _upstream: Publisher<Output, Failure>
-    private let _core: _SubjectCore<Output, Failure>
+    private let _core: SubjectCore<Output, Failure>
 
     private struct _State {
         var refCount: Int = 0
         var upstreamTask: Task<Void, Never>? = nil
     }
-    private let _state = Mutex(_State())
+    private let _state = Locked(_State())
 
     init(upstream: Publisher<Output, Failure>) {
         _upstream = upstream
-        _core = _SubjectCore()
+        _core = SubjectCore()
     }
 
     func subscribe() -> (Int, AsyncStream<Result<Output, Failure>>) {
@@ -71,8 +69,8 @@ private final class _SharedState<Output: Sendable, Failure: Error>: Sendable {
 
 // Holds the AnyCancellable from connect() as a shared reference so it outlives
 // any individual subscriber's onTermination closure.
-private final class _AutoconnectState<Output: Sendable, Failure: Error>: Sendable {
-    private let _connection: Mutex<AnyCancellable?> = Mutex(nil)
+private final class AutoconnectState<Output: Sendable, Failure: Error>: Sendable {
+    private let _connection: Locked<AnyCancellable?> = Locked(nil)
 
     func connectOnce(_ connect: @Sendable () -> AnyCancellable) {
         _connection.withLock { conn in
@@ -92,11 +90,11 @@ extension Publisher {
 
 public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     private let _upstream: Publisher<Output, Failure>
-    private let _core: _SubjectCore<Output, Failure>
+    private let _core: SubjectCore<Output, Failure>
 
     init(upstream: Publisher<Output, Failure>) {
         _upstream = upstream
-        _core = _SubjectCore()
+        _core = SubjectCore()
     }
 
     // Starts the upstream and fans values to all current and future subscribers.
@@ -120,7 +118,7 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     // Connects automatically on first subscription; stays connected until the source completes.
     // Unlike share(), subscribers cancelling does not disconnect the upstream.
     public func autoconnect() -> Publisher<Output, Failure> {
-        let state = _AutoconnectState<Output, Failure>()
+        let state = AutoconnectState<Output, Failure>()
         let core = _core
         let connectable = self
         return Publisher<Output, Failure>(DeferredStream {

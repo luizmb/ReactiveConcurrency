@@ -88,6 +88,8 @@ extension Publisher {
         }
 
         // Async sequence: cooperative cancellation ends the for-await automatically.
+        // AsyncSequence.Failure is macOS 15+ / iOS 18+; gate accordingly.
+        @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
         public func yieldAll<S: AsyncSequence & Sendable>(_ sequence: S) async
             where S.Element == Output, S.Failure == Never {
             for await value in sequence {

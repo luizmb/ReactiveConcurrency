@@ -150,10 +150,10 @@ extension Publisher {
         let selfFactory = _stream.factory
         let otherFactory = other._stream.factory
         return Publisher<(Output, B), Failure>(DeferredStream {
-            // _StreamBox is required here: the FIFO task-group pattern shares one iterator
+            // StreamBox is required here: the FIFO task-group pattern shares one iterator
             // across successive @Sendable child closures — exactly one child calls next() at a time.
-            let selfBox = _StreamBox<Result<Output, Failure>>(selfFactory())
-            let otherBox = _StreamBox<Result<B, Failure>>(otherFactory())
+            let selfBox = StreamBox<Result<Output, Failure>>(selfFactory())
+            let otherBox = StreamBox<Result<B, Failure>>(otherFactory())
             return AsyncStream<Result<(Output, B), Failure>> { raw in
                 let task = Task {
                     var latestA: Output? = nil

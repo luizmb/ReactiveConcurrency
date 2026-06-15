@@ -1,12 +1,10 @@
-import Synchronization
-
 public protocol Cancellable: Sendable {
     func cancel()
 }
 
 public final class AnyCancellable: Cancellable, Hashable {
     private let _cancel: @Sendable () -> Void
-    private let _executed = Mutex(false)
+    private let _executed = Locked(false)
 
     public init(_ cancel: @escaping @Sendable () -> Void) {
         _cancel = cancel

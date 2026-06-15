@@ -1,10 +1,8 @@
-import Synchronization
-
 public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subject {
-    private let _core: _CurrentValueCore<Output, Failure>
+    private let _core: CurrentValueCore<Output, Failure>
 
     public init(_ value: Output) {
-        _core = _CurrentValueCore(value)
+        _core = CurrentValueCore(value)
     }
 
     public var value: Output { _core.currentValue }
@@ -37,7 +35,7 @@ public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subjec
     }
 }
 
-final class _CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
+final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
     private typealias Cont = AsyncStream<Result<Output, Failure>>.Continuation
 
     private struct _State {
@@ -46,10 +44,10 @@ final class _CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
         var completion: Subscribers.Completion<Failure>? = nil
         var nextID: Int = 0
     }
-    private let _state: Mutex<_State>
+    private let _state: Locked<_State>
 
     init(_ initial: Output) {
-        _state = Mutex(_State(current: initial))
+        _state = Locked(_State(current: initial))
     }
 
     var currentValue: Output { _state.withLock { $0.current } }

@@ -1,9 +1,7 @@
-import Synchronization
-
-// Thread-safe hot-subject core. Uses Mutex rather than an actor so that
+// Thread-safe hot-subject core. Uses Locked rather than an actor so that
 // subscribe() and send() are synchronous — matching Combine's guarantee that
 // values sent after sink() returns are always delivered to that subscriber.
-final class _SubjectCore<Output: Sendable, Failure: Error>: Sendable {
+final class SubjectCore<Output: Sendable, Failure: Error>: Sendable {
     private typealias Cont = AsyncStream<Result<Output, Failure>>.Continuation
 
     private struct _State {
@@ -11,7 +9,7 @@ final class _SubjectCore<Output: Sendable, Failure: Error>: Sendable {
         var completion: Subscribers.Completion<Failure>? = nil
         var nextID: Int = 0
     }
-    private let _state = Mutex(_State())
+    private let _state = Locked(_State())
 
     func subscribe() -> (id: Int, stream: AsyncStream<Result<Output, Failure>>) {
         _state.withLock { state in

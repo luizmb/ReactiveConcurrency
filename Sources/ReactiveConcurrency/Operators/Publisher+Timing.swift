@@ -148,7 +148,7 @@ extension Publisher {
             let upstream = selfFactory()
             return AsyncStream<Result<[Output], Failure>> { raw in
                 let task = Task {
-                    let upstreamBox = _StreamBox<Result<Output, Failure>>(upstream)
+                    let upstreamBox = StreamBox<Result<Output, Failure>>(upstream)
 
                     let (timerStream, timerCont) = AsyncStream<Void>.makeStream()
                     let timerTask = Task {
@@ -160,10 +160,10 @@ extension Publisher {
                             next = next.advanced(by: interval)
                         }
                     }
-                    let timerBox = _StreamBox<Void>(timerStream)
+                    let timerBox = StreamBox<Void>(timerStream)
 
                     var bucket: [Output] = []
-                    typealias _Ev = _CollectEvent<Output, Failure>
+                    typealias _Ev = CollectEvent<Output, Failure>
                     await withTaskGroup(of: _Ev.self) { group in
                         group.addTask { if let r = await upstreamBox.next() { .value(r) } else { .upstreamDone } }
                         group.addTask { (await timerBox.next()) != nil ? .tick : .timerDone }
@@ -200,7 +200,7 @@ extension Publisher {
     }
 }
 
-private enum _CollectEvent<V: Sendable, E: Error>: Sendable {
+private enum CollectEvent<V: Sendable, E: Error>: Sendable {
     case tick
     case value(Result<V, E>)
     case upstreamDone
