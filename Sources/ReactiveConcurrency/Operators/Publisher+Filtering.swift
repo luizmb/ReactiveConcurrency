@@ -76,8 +76,6 @@ extension Publisher {
     }
 
     public func dropFirst(_ count: Int = 1) -> Publisher<Output, Failure> {
-        // `count` is an Int parameter, not a collection — empty_count is a false positive here.
-        // swiftlint:disable:next empty_count
         guard count > 0 else { return self }
         return _operator { raw, upstream in
             var dropped = 0
