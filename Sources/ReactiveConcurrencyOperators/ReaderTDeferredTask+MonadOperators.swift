@@ -1,7 +1,7 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (>>-) :: Reader<env, DeferredTask<a>> -> (a -> Reader<env, DeferredTask<b>>) -> Reader<env, DeferredTask<b>>
 public func >>- <Env: Sendable, A: Sendable, B: Sendable>(

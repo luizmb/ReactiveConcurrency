@@ -1,7 +1,7 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> DeferredStream<Either<l,a>> -> DeferredStream<Either<l,b>>
 public func <£^> <L: Sendable, A: Sendable, B: Sendable>(

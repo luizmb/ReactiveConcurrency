@@ -365,7 +365,7 @@ extension Publisher where Failure == Never {
         by predicate: @escaping @Sendable (Output, Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         _tryOperator { downstream, upstream in
-            var last: Output? = nil
+            var last: Output?
             for await result in upstream {
                 if case .success(let v) = result {
                     do throws(E) {
@@ -435,7 +435,7 @@ extension Publisher {
         by predicate: @escaping @Sendable (Output, Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { downstream, upstream in
-            var last: Output? = nil
+            var last: Output?
             for await result in upstream {
                 switch result {
                 case .success(let v):
@@ -473,8 +473,7 @@ extension Publisher {
                             if case .terminated = raw.yield(.success(v)) { return }
                         case .failure(let e):
                             let outcome: Result<Publisher<Output, E>, E> = {
-                                do throws(E) { return .success(try handler(e)) }
-                                catch { return .failure(error) }
+                                do throws(E) { return .success(try handler(e)) } catch { return .failure(error) }
                             }()
                             switch outcome {
                             case .success(let recovery):

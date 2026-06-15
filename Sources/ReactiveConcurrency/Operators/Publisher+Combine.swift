@@ -144,6 +144,7 @@ extension Publisher {
 // MARK: - combineLatest
 
 extension Publisher {
+    // swiftlint:disable:next cyclomatic_complexity
     public func combineLatest<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
@@ -156,8 +157,8 @@ extension Publisher {
             let otherBox = StreamBox<Result<B, Failure>>(otherFactory())
             return AsyncStream<Result<(Output, B), Failure>> { raw in
                 let task = Task {
-                    var latestA: Output? = nil
-                    var latestB: B? = nil
+                    var latestA: Output?
+                    var latestB: B?
 
                     // Serialised interleaving: one pending task per publisher.
                     // Processing one value at a time in completion (arrival) order

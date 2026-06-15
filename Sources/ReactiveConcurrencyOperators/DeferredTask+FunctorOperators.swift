@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import CoreFPOperators
+import ReactiveConcurrency
 
 // (<£>) :: (a -> b) -> DeferredTask a -> DeferredTask b
 public func <£> <A: Sendable, B: Sendable>(

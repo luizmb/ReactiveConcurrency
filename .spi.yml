@@ -1,0 +1,13 @@
+version: 1
+builder:
+  configs:
+    - platform: macosSpm
+      documentation_targets:
+        - ReactiveConcurrency
+        - ReactiveConcurrencyOperators
+        - ReactiveConcurrencyTransformers
+    - platform: ios
+    - platform: tvos
+    - platform: watchos
+    - platform: visionos
+    - platform: linux

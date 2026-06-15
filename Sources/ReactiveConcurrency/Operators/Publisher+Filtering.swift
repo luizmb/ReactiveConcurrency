@@ -21,7 +21,7 @@ extension Publisher {
 
     public func last() -> Publisher<Output, Failure> {
         _operator { raw, upstream in
-            var lastValue: Output? = nil
+            var lastValue: Output?
             for await result in upstream {
                 switch result {
                 case .success(let v): lastValue = v
@@ -162,7 +162,7 @@ extension Publisher {
         by predicate: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
-            var last: Output? = nil
+            var last: Output?
             for await result in upstream {
                 switch result {
                 case .success(let v):
@@ -256,7 +256,7 @@ extension Publisher {
         isLess: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
-            var best: Output? = nil
+            var best: Output?
             for await result in upstream {
                 switch result {
                 case .success(let v):

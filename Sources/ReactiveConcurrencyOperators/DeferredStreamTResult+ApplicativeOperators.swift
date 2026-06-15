@@ -1,6 +1,6 @@
+import CoreFPOperators
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
-import CoreFPOperators
 
 // (<*>) :: DeferredStream<Result<a->b,e>> -> DeferredStream<Result<a,e>> -> DeferredStream<Result<b,e>>
 public func <*> <A: Sendable, B: Sendable, E: Error & Sendable>(

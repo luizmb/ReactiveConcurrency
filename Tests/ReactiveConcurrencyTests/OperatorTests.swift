@@ -1,6 +1,27 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
+
+// Sendable pair so combineLatest tuples can be collected and projected in assertions.
+private struct Pair: Sendable {
+    let first: Int
+    let second: Int
+}
+
+// Lets pending consumer Tasks register/run before we send into a hot subject.
+private func settle() async {
+    for _ in 0..<20 { await Task.yield() }
+}
+
+// Polls a condition instead of sleeping a fixed amount — merge/combineLatest deliver via
+// async Tasks that can be scheduled late on CI runners, making fixed sleeps flaky.
+private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
+    for _ in 0..<(timeoutMs / 2) {
+        if condition() { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 2_000_000)
+    }
+}
 
 @Suite struct SequenceOperatorTests {
     @Test func scanAccumulates() async {
@@ -86,14 +107,15 @@ import Testing
             .map { "\($0.0)\($0.1)" }
             .sink { values.append($0) }
 
-        subject1.send(1)                                         // → latestA=1, no b yet
-        try? await Task.sleep(nanoseconds: 10_000_000)           // let Task start and suspend on otherBox
-        subject2.send("a")                                       // → latestB="a", emit (1,"a")
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        subject1.send(2)                                         // → latestA=2, emit (2,"a")
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        subject2.send("b")                                       // → latestB="b", emit (2,"b")
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
+        subject1.send(1)                          // → latestA=1, no b yet
+        await settle()
+        subject2.send("a")                        // → latestB="a", emit (1,"a")
+        await poll { values.values.count >= 1 }
+        subject1.send(2)                          // → latestA=2, emit (2,"a")
+        await poll { values.values.count >= 2 }
+        subject2.send("b")                        // → latestB="b", emit (2,"b")
+        await poll { values.values.count >= 3 }
         cancellable.cancel()
 
         #expect(values.values == ["1a", "2a", "2b"])
@@ -120,19 +142,31 @@ import Testing
     // One source closes after emitting → combineLatest continues pairing with the last
     // known value from the finished source until the other source also closes.
     @Test func combineLatestContinuesAfterOneSourceFinishes() async {
-        var result: [(Int, Int)] = []
+        // a emits 1 then finishes; b then emits 10, 20, 30. combineLatest must keep pairing
+        // with a's last value (1) after a has finished. Driven via subjects so the
+        // interleaving is controlled — feeding two cold publishers concurrently would race.
+        let a = PassthroughSubject<Int, Never>()
+        let b = PassthroughSubject<Int, Never>()
+        let result = Collector<Pair>()
+        let sub = a.eraseToPublisher()
+            .combineLatest(b.eraseToPublisher())
+            .map { Pair(first: $0.0, second: $0.1) }
+            .sink { result.append($0) }
 
-        // a emits [1], then finishes. b emits [10, 20, 30], then finishes.
-        // Expected: (1,10), (1,20), (1,30)
-        let a = Publisher<Int, Never>.just(1)
-        let b = Publisher<Int, Never>.sequence([10, 20, 30])
+        await settle()
+        a.send(1)
+        a.send(completion: .finished)
+        await settle()
+        b.send(10)
+        await poll { result.values.count >= 1 }
+        b.send(20)
+        await poll { result.values.count >= 2 }
+        b.send(30)
+        await poll { result.values.count >= 3 }
+        sub.cancel()
 
-        for await r in a.combineLatest(b)._stream {
-            if case .success(let v) = r { result.append(v) }
-        }
-
-        #expect(result.map(\.0) == [1, 1, 1])
-        #expect(result.map(\.1) == [10, 20, 30])
+        #expect(result.values.map(\.first) == [1, 1, 1])
+        #expect(result.values.map(\.second) == [10, 20, 30])
     }
 
     // Error from either source propagates and terminates the sequence.
@@ -142,7 +176,7 @@ import Testing
         let completions = Collector<Subscribers.Completion<E>>()
 
         let failing: Publisher<Int, E> = Publisher { c in c.fail(.boom) }
-        let other: Publisher<Int, E> = Publisher<Int, E>.just(1).mapError { $0 }
+        let other = Publisher<Int, E>.just(1).mapError { $0 }
 
         let cancellable = failing
             .combineLatest(other)
@@ -296,7 +330,7 @@ import Testing
 
     @Test func tryLastWhereReturnsLastMatch() async {
         let stream = Publisher<Int, Never>.sequence(1...5)
-            .tryLast(where: { v throws(TestError) in v % 2 == 0 })._stream
+            .tryLast(where: { v throws(TestError) in v.isMultiple(of: 2) })._stream
         var result: [Int] = []
         for await r in stream {
             if case .success(let v) = r { result.append(v) }

@@ -42,7 +42,8 @@ extension Publisher {
                             let msg = message()
                             assertionFailure(
                                 msg.isEmpty ? "assertNoFailure received: \(e)" : "\(msg): \(e)",
-                                file: file, line: line
+                                file: file,
+                                line: line
                             )
                             raw.finish(); return
                         }

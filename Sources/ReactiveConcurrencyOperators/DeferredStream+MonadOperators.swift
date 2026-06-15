@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import CoreFPOperators
+import ReactiveConcurrency
 
 // (>>-) :: DeferredStream a -> (a -> DeferredStream b) -> DeferredStream b
 public func >>- <A: Sendable, B: Sendable>(

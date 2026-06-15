@@ -1,0 +1,10 @@
+retain_public: true
+disable_unused_import_analysis: true
+retain_files:
+  - Tests/**
+
+targets:
+  - ReactiveConcurrency
+  - ReactiveConcurrencyOperators
+  - ReactiveConcurrencyTransformers
+  - ReactiveConcurrencyTests

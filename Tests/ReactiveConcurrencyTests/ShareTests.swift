@@ -1,6 +1,22 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
+
+// Lets pending Tasks (upstream subscription registration, pump start-up) run before we
+// send into a hot subject. Yields generously to stay deterministic under parallel CI load.
+private func settle() async {
+    for _ in 0..<20 { await Task.yield() }
+}
+
+// Polls a condition instead of sleeping a fixed amount: the upstream→core pump is async and
+// can be scheduled late on slower runners (e.g. Linux CI), so a fixed sleep is flaky.
+private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
+    for _ in 0..<(timeoutMs / 2) {
+        if condition() { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 2_000_000)
+    }
+}
 
 @Suite struct ShareTests {
     @Test func shareDeliversToBothSubscribers() async {
@@ -11,8 +27,9 @@ import Testing
 
         let c1 = shared.sink { v1.append($0) }
         let c2 = shared.sink { v2.append($0) }
+        await settle()
         subject.send(1); subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { v1.values.count >= 2 && v2.values.count >= 2 }
         c1.cancel(); c2.cancel()
 
         #expect(v1.values == [1, 2])
@@ -31,7 +48,7 @@ import Testing
 
         let c1 = shared.sink { _ in }
         let c2 = shared.sink { _ in }
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { subscriptionCount.current >= 1 }
 
         #expect(subscriptionCount.current == 1)
         c1.cancel(); c2.cancel()
@@ -45,11 +62,12 @@ import Testing
 
         let c1 = shared.sink { v1.append($0) }
         let c2 = shared.sink { v2.append($0) }
+        await settle()
         subject.send(1)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { v1.values.count >= 1 && v2.values.count >= 1 }
         c1.cancel()
         subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { v2.values.count >= 2 }
         c2.cancel()
 
         #expect(v1.values == [1])
@@ -64,8 +82,9 @@ import Testing
 
         let s1 = shared.sink(receiveCompletion: { c1.append($0) }, receiveValue: { _ in })
         let s2 = shared.sink(receiveCompletion: { c2.append($0) }, receiveValue: { _ in })
+        await settle()
         subject.send(completion: .finished)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { !c1.values.isEmpty && !c2.values.isEmpty }
         s1.cancel(); s2.cancel()
 
         #expect(c1.values == [.finished])
@@ -83,12 +102,12 @@ import Testing
         let shared = upstream.share()
 
         let c1 = shared.sink { _ in }
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { subscriptionCount.current >= 1 }
         c1.cancel()
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
 
         let c2 = shared.sink { _ in }
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { subscriptionCount.current >= 2 }
         c2.cancel()
 
         #expect(subscriptionCount.current == 2)
@@ -104,8 +123,9 @@ import Testing
 
         let c = connectable.eraseToPublisher().sink { values.append($0) }
         let connection = connectable.connect()
+        await settle()
         subject.send(1); subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { values.values.count >= 2 }
         c.cancel(); connection.cancel()
 
         #expect(values.values == [1, 2])
@@ -118,11 +138,12 @@ import Testing
 
         let c = connectable.eraseToPublisher().sink { values.append($0) }
         let connection = connectable.connect()
+        await settle()
         subject.send(1)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { values.values.count >= 1 }
         connection.cancel()
         subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
         c.cancel()
 
         #expect(values.values == [1])
@@ -137,8 +158,9 @@ import Testing
         let c1 = connectable.eraseToPublisher().sink { v1.append($0) }
         let c2 = connectable.eraseToPublisher().sink { v2.append($0) }
         let connection = connectable.connect()
+        await settle()
         subject.send(1); subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { v1.values.count >= 2 && v2.values.count >= 2 }
         c1.cancel(); c2.cancel(); connection.cancel()
 
         #expect(v1.values == [1, 2])
@@ -151,8 +173,9 @@ import Testing
         let values = Collector<Int>()
 
         let c = pub.sink { values.append($0) }
+        await settle()
         subject.send(1); subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll { values.values.count >= 2 }
         c.cancel()
 
         #expect(values.values == [1, 2])
@@ -170,10 +193,10 @@ import Testing
 
         let c1 = pub.sink { _ in }
         let c2 = pub.sink { _ in }
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        c1.cancel(); c2.cancel()
+        await poll { subscriptionCount.current >= 1 }
 
         #expect(subscriptionCount.current == 1)
+        c1.cancel(); c2.cancel()
         _ = subject
     }
 }

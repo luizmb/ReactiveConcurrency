@@ -1,11 +1,33 @@
 import Hourglass
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 // Yields enough times for tasks spawned inside other tasks to register their state.
 // 12 yields is the safe margin under concurrent Swift Testing parallel execution.
 private func settle() async {
     for _ in 0..<12 { await Task.yield() }
+}
+
+// Polls a condition rather than relying on a fixed number of yields: after a TestClock
+// advance, the timer-driven flush is processed on a separate Task that can be scheduled
+// late on slower runners (e.g. Linux CI).
+private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
+    for _ in 0..<(timeoutMs / 2) {
+        if condition() { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 2_000_000)
+    }
+}
+
+// Consumption barrier for collect(every:): its flush timer sleeps independently of value
+// consumption, so waitForSleepers() does NOT gate it (unlike delay/debounce). Used only
+// while the clock has not advanced — no tick can fire yet — so this purely waits for already
+// sent values to be drained into the operator's bucket before we advance to trigger a flush.
+private func drainSentValues() async {
+    for _ in 0..<60 {
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 1_000_000)
+    }
 }
 
 // MARK: - ImmediateClock
@@ -56,7 +78,7 @@ private func settle() async {
         #expect(awoke.current == 0)
 
         await clock.advance(by: .seconds(1))
-        await settle()
+        await poll { awoke.current >= 1 }
         #expect(awoke.current == 1)
         task.cancel()
     }
@@ -76,7 +98,7 @@ private func settle() async {
 
         await clock.waitForSleepers(count: 2)
         await clock.advance(by: .seconds(2))
-        await settle()
+        await poll { order.values.count >= 2 }
 
         #expect(order.values == [1, 2])
         t1.cancel(); t2.cancel()
@@ -110,10 +132,9 @@ private func settle() async {
         await clock.advance(by: .seconds(1))
         await clock.waitForSleepers()
         await clock.advance(by: .seconds(1))
-        await settle()
-        sub.cancel()
-
+        await poll { values.values.count >= 3 }
         #expect(values.values.count == 3)
+        sub.cancel()
     }
 }
 
@@ -134,7 +155,7 @@ private func settle() async {
         #expect(values.values.isEmpty)
 
         await clock.advance(by: .seconds(1))
-        await settle()
+        await poll { values.values.count >= 1 }
         #expect(values.values == [1])
 
         sub.cancel()
@@ -154,12 +175,12 @@ private func settle() async {
 
         await settle()
         subject.send(1); subject.send(2); subject.send(3)
-        await settle()
+        await drainSentValues()
         await clock.waitForSleepers()
         #expect(values.values.isEmpty)
 
         await clock.advance(by: .milliseconds(300))
-        await settle()
+        await poll { values.values.count >= 1 }
         #expect(values.values == [3])
 
         sub.cancel()
@@ -175,16 +196,15 @@ private func settle() async {
 
         await settle()
         subject.send(1)
-        await clock.waitForSleepers()
+        await drainSentValues()
         await clock.advance(by: .milliseconds(200))
         await settle()
         #expect(values.values.isEmpty)
 
         subject.send(2)
-        await settle()
-        await clock.waitForSleepers()
+        await drainSentValues()
         await clock.advance(by: .milliseconds(300))
-        await settle()
+        await poll { values.values.count >= 1 }
         #expect(values.values == [2])
 
         sub.cancel()
@@ -204,14 +224,14 @@ private func settle() async {
 
         await settle()
         subject.send(1); subject.send(2)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
-        await settle()
+        await poll { windows.values.count >= 1 }
 
         subject.send(3)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
-        await settle()
+        await poll { windows.values.count >= 2 }
 
         #expect(windows.values == [[1, 2], [3]])
         sub.cancel()
@@ -242,9 +262,9 @@ private func settle() async {
         #expect(windows.values.isEmpty)
 
         subject.send(1)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
-        await settle()
+        await poll { windows.values.count >= 1 }
         #expect(windows.values == [[1]])
 
         sub.cancel()

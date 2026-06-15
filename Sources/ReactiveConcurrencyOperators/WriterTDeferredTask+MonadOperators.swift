@@ -1,8 +1,8 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFP
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (>>-) :: Writer<w, DeferredTask<a>> -> (a -> Writer<w, DeferredTask<b>>) -> Writer<w, DeferredTask<b>>
 public func >>- <W: Monoid, A: Sendable, B: Sendable>(

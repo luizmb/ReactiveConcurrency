@@ -1,6 +1,6 @@
-import ReactiveConcurrency
 import CoreFP
 import DataStructure
+import ReactiveConcurrency
 
 // WriterTDeferredStream: outer = Writer, inner = DeferredStream
 // Type: Writer<W, DeferredStream<A>>

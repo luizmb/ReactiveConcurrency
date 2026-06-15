@@ -1,5 +1,5 @@
-import ReactiveConcurrency
 import DataStructure
+import ReactiveConcurrency
 
 // DeferredTaskTEither: outer = DeferredTask, inner = Either
 // Type: DeferredTask<Either<L, A>>

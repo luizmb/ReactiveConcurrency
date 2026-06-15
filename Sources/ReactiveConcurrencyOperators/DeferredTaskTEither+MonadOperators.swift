@@ -1,7 +1,7 @@
-import ReactiveConcurrency
-import ReactiveConcurrencyTransformers
 import CoreFPOperators
 import DataStructure
+import ReactiveConcurrency
+import ReactiveConcurrencyTransformers
 
 // (>>-) :: DeferredTask<Either<l,a>> -> (a -> DeferredTask<Either<l,b>>) -> DeferredTask<Either<l,b>>
 public func >>- <L: Sendable, A: Sendable, B: Sendable>(

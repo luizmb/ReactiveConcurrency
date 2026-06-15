@@ -72,7 +72,7 @@ extension Publisher {
             return AsyncStream<Result<Output, Failure>> { raw in
                 let task = Task {
                     var windowStart = clock.now
-                    var latestValue: Output? = nil
+                    var latestValue: Output?
                     var hasEmittedInWindow = false
 
                     for await result in upstream {
@@ -140,6 +140,7 @@ extension Publisher {
 // MARK: - collect(every:clock:)
 
 extension Publisher {
+    // swiftlint:disable cyclomatic_complexity
     /// Groups values into arrays, flushing at the end of each time window.
     /// A partial window is flushed when the upstream completes.
     public func collect<C: Clock>(every interval: C.Duration, clock: C) -> Publisher<[Output], Failure> {
@@ -198,6 +199,7 @@ extension Publisher {
             }
         })
     }
+    // swiftlint:enable cyclomatic_complexity
 }
 
 private enum CollectEvent<V: Sendable, E: Error>: Sendable {

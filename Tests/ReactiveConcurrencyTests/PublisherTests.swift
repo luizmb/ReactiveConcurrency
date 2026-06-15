@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import ReactiveConcurrency
+import Testing
 
 // Thread-safe value collector for use in @Sendable sink closures.
 final class Collector<T: Sendable>: @unchecked Sendable {
@@ -169,7 +169,7 @@ extension Subscribers.Completion: Equatable where Failure: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
         case (.finished, .finished): true
-        case (.failure(let l), .failure(let r)): l == r
+        case let (.failure(l), .failure(r)): l == r
         default: false
         }
     }
