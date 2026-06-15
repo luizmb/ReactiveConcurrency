@@ -120,28 +120,36 @@ extension Publisher where Failure == Never {
     public func tryMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) throws(E) -> T
     ) -> Publisher<T, E> {
-        Publisher<T, E> { continuation in
-            for await result in self._stream {
+        _tryOperator { downstream, upstream in
+            for await result in upstream {
                 if case .success(let value) = result {
-                    let mapped = try transform(value)
-                    continuation.yield(mapped)
+                    do throws(E) {
+                        let mapped = try transform(value)
+                        if case .terminated = downstream.yield(.success(mapped)) { return }
+                    } catch {
+                        _ = downstream.yield(.failure(error)); downstream.finish(); return
+                    }
                 }
             }
+            downstream.finish()
         }
     }
 
     public func tryMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) -> Result<T, E>
     ) -> Publisher<T, E> {
-        Publisher<T, E> { continuation in
-            for await result in self._stream {
+        _tryOperator { downstream, upstream in
+            for await result in upstream {
                 if case .success(let value) = result {
                     switch transform(value) {
-                    case .success(let mapped): continuation.yield(mapped)
-                    case .failure(let error): throw error
+                    case .success(let mapped):
+                        if case .terminated = downstream.yield(.success(mapped)) { return }
+                    case .failure(let e):
+                        _ = downstream.yield(.failure(e)); downstream.finish(); return
                     }
                 }
             }
+            downstream.finish()
         }
     }
 }
@@ -150,34 +158,42 @@ extension Publisher {
     public func tryMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) throws(Failure) -> T
     ) -> Publisher<T, Failure> {
-        Publisher<T, Failure> { continuation in
-            for await result in self._stream {
+        _operator { downstream, upstream in
+            for await result in upstream {
                 switch result {
                 case .success(let value):
-                    let mapped = try transform(value)
-                    continuation.yield(mapped)
-                case .failure(let error):
-                    throw error
+                    do throws(Failure) {
+                        let mapped = try transform(value)
+                        if case .terminated = downstream.yield(.success(mapped)) { return }
+                    } catch {
+                        _ = downstream.yield(.failure(error)); downstream.finish(); return
+                    }
+                case .failure(let e):
+                    _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
+            downstream.finish()
         }
     }
 
     public func tryMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> Result<T, Failure>
     ) -> Publisher<T, Failure> {
-        Publisher<T, Failure> { continuation in
-            for await result in self._stream {
+        _operator { downstream, upstream in
+            for await result in upstream {
                 switch result {
                 case .success(let value):
                     switch transform(value) {
-                    case .success(let mapped): continuation.yield(mapped)
-                    case .failure(let error): throw error
+                    case .success(let mapped):
+                        if case .terminated = downstream.yield(.success(mapped)) { return }
+                    case .failure(let e):
+                        _ = downstream.yield(.failure(e)); downstream.finish(); return
                     }
-                case .failure(let error):
-                    throw error
+                case .failure(let e):
+                    _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
+            downstream.finish()
         }
     }
 }
@@ -232,6 +248,26 @@ extension Publisher {
         return Publisher<T, Failure>(DeferredStream {
             let upstream = selfFactory()
             return AsyncStream<Result<T, Failure>> { downstream in
+                let task = Task { await body(downstream, upstream) }
+                downstream.onTermination = { _ in task.cancel() }
+            }
+        })
+    }
+}
+
+// Variant for operators that introduce a new error type E from an infallible upstream.
+// The body is non-throwing; typed errors are captured via do throws(E) { } catch { } inside.
+extension Publisher where Failure == Never {
+    func _tryOperator<T: Sendable, E: Error>(
+        _ body: @escaping @Sendable (
+            AsyncStream<Result<T, E>>.Continuation,
+            AsyncStream<Result<Output, Never>>
+        ) async -> Void
+    ) -> Publisher<T, E> {
+        let selfFactory = _stream.factory
+        return Publisher<T, E>(DeferredStream {
+            let upstream = selfFactory()
+            return AsyncStream<Result<T, E>> { downstream in
                 let task = Task { await body(downstream, upstream) }
                 downstream.onTermination = { _ in task.cancel() }
             }

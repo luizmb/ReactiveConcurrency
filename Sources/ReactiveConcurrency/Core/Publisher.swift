@@ -18,27 +18,35 @@ public struct Publisher<Output: Sendable, Failure: Error>: Sendable {
     // High-level init for custom publishers.
     //
     // - The body runs in a Task when a subscriber attaches.
-    // - CancellationError from `try Task.checkCancellation()` or any `try await` resolves
-    //   to graceful .finished — it never surfaces as .failure to subscribers.
-    // - Throwing `Failure` resolves to .failure(error).
-    // - Returning normally resolves to .finished.
-    public init(_ body: @escaping @Sendable (Continuation) async throws -> Void) {
+    // - body is throws(Failure): only Failure can be thrown — CancellationError is not
+    //   expressible, so no cast or guard is needed in the catch block.
+    // - Throwing Failure resolves to .failure(error); returning normally resolves to .finished.
+    // - Cancellation is handled by the onCancel handler (raw.finish()), not by throwing.
+    public init(_ body: @escaping @Sendable (Continuation) async throws(Failure) -> Void) {
         _stream = DeferredStream {
             let (stream, raw) = AsyncStream<Result<Output, Failure>>.makeStream()
             let cont = Continuation(raw)
             let task = Task {
-                await withTaskCancellationHandler {
-                    do {
+                // withTaskCancellationHandler uses untyped rethrows, so we can't let
+                // throws(Failure) propagate through it directly. Wrap the outcome in
+                // Result<Void, Failure> inside the non-throwing operation closure, then
+                // call .get() outside — Result.get() is throws(Failure) in Swift 6.
+                let outcome: Result<Void, Failure> = await withTaskCancellationHandler {
+                    do throws(Failure) {
                         try await body(cont)
+                        return .success(())
                     } catch {
-                        if !(error is CancellationError), let failure = error as? Failure {
-                            raw.yield(.failure(failure))
-                        }
+                        return .failure(error)
                     }
-                    raw.finish()
                 } onCancel: {
                     raw.finish()
                 }
+                do throws(Failure) {
+                    try outcome.get()
+                } catch {
+                    raw.yield(.failure(error))
+                }
+                raw.finish()
             }
             raw.onTermination = { _ in task.cancel() }
             return stream
