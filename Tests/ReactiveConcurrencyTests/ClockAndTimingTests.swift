@@ -19,6 +19,17 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
+// Consumption barrier for collect(every:): its flush timer sleeps independently of value
+// consumption, so waitForSleepers() does NOT gate it (unlike delay/debounce). Used only
+// while the clock has not advanced — no tick can fire yet — so this purely waits for already
+// sent values to be drained into the operator's bucket before we advance to trigger a flush.
+private func drainSentValues() async {
+    for _ in 0..<60 {
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 1_000_000)
+    }
+}
+
 // MARK: - ImmediateClock
 
 @Suite struct ImmediateClockTests {
@@ -164,7 +175,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 
         await settle()
         subject.send(1); subject.send(2); subject.send(3)
-        await settle()
+        await drainSentValues()
         await clock.waitForSleepers()
         #expect(values.values.isEmpty)
 
@@ -185,14 +196,13 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 
         await settle()
         subject.send(1)
-        await clock.waitForSleepers()
+        await drainSentValues()
         await clock.advance(by: .milliseconds(200))
         await settle()
         #expect(values.values.isEmpty)
 
         subject.send(2)
-        await settle()
-        await clock.waitForSleepers()
+        await drainSentValues()
         await clock.advance(by: .milliseconds(300))
         await poll { values.values.count >= 1 }
         #expect(values.values == [2])
@@ -214,12 +224,12 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 
         await settle()
         subject.send(1); subject.send(2)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
         await poll { windows.values.count >= 1 }
 
         subject.send(3)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
         await poll { windows.values.count >= 2 }
 
@@ -252,7 +262,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         #expect(windows.values.isEmpty)
 
         subject.send(1)
-        await settle()
+        await drainSentValues()
         await clock.advance(by: .seconds(1))
         await poll { windows.values.count >= 1 }
         #expect(windows.values == [[1]])
