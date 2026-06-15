@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/luizmb/Hourglass.git",
       "state" : {
-        "revision" : "d5bac7925499c47433cbe313d407b08064428549",
-        "version" : "0.2.1"
+        "revision" : "cae0501f6c06303275eb280bde62a5adbfdf41fd",
+        "version" : "0.3.0"
       }
     },
     {
