@@ -83,6 +83,7 @@ identifier_name:
     - _stream            # internal backing storage of Publisher
     - _operator          # internal operator-builder helper
     - _tryOperator       # internal operator-builder helper (typed-throws variant)
+    - _timed             # internal value-timing bridge to Hourglass operators
 
 type_name:
   min_length: 1
