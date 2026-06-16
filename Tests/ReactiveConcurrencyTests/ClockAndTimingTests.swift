@@ -281,3 +281,110 @@ private func drainSentValues() async {
         #expect(result.flatMap { $0 }.sorted() == [1, 2, 3])
     }
 }
+
+// MARK: - timeout
+
+private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
+
+@Suite struct TimeoutOperatorTests {
+    @Test func timeoutFiresWhenNoValueArrives() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, TimeoutTestError>()
+        let values = Collector<Int>()
+        let failures = Collector<TimeoutTestError>()
+
+        let sub = subject.eraseToPublisher()
+            .timeout(.seconds(1), clock: clock, error: .timedOut)
+            .sink(
+                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveValue: { values.append($0) }
+            )
+
+        await settle()
+        await clock.waitForSleepers()          // timeout's internal deadline armed
+        await clock.advance(by: .seconds(1))   // no value arrived → fire
+        await poll { !failures.values.isEmpty }
+        #expect(values.values.isEmpty)
+        #expect(failures.values == [.timedOut])
+
+        sub.cancel()
+    }
+
+    @Test func timeoutForwardsValuesThenFiresAfterSilence() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, TimeoutTestError>()
+        let values = Collector<Int>()
+        let failures = Collector<TimeoutTestError>()
+
+        let sub = subject.eraseToPublisher()
+            .timeout(.seconds(1), clock: clock, error: .timedOut)
+            .sink(
+                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveValue: { values.append($0) }
+            )
+
+        await settle()
+        subject.send(1)
+        await poll { values.values.count >= 1 }   // forwarded; deadline re-armed
+        #expect(failures.values.isEmpty)
+
+        await clock.waitForSleepers()
+        await clock.advance(by: .seconds(1))       // now silent past the window → fire
+        await poll { !failures.values.isEmpty }
+        #expect(values.values == [1])
+        #expect(failures.values == [.timedOut])
+
+        sub.cancel()
+    }
+
+    @Test func timeoutDoesNotFireWhenUpstreamCompletesInTime() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, TimeoutTestError>()
+        let values = Collector<Int>()
+        let failures = Collector<TimeoutTestError>()
+        let finished = AtomicCounter()
+
+        let sub = subject.eraseToPublisher()
+            .timeout(.seconds(1), clock: clock, error: .timedOut)
+            .sink(
+                receiveCompletion: {
+                    switch $0 {
+                    case .finished: finished.increment()
+                    case .failure(let e): failures.append(e)
+                    }
+                },
+                receiveValue: { values.append($0) }
+            )
+
+        await settle()
+        subject.send(1)
+        await poll { values.values.count >= 1 }
+        subject.send(completion: .finished)
+        await poll { finished.current >= 1 }
+        #expect(values.values == [1])
+        #expect(failures.values.isEmpty)
+        #expect(finished.current == 1)
+
+        sub.cancel()
+    }
+
+    @Test func upstreamFailurePreemptsTimeout() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, TimeoutTestError>()
+        let failures = Collector<TimeoutTestError>()
+
+        let sub = subject.eraseToPublisher()
+            .timeout(.seconds(1), clock: clock, error: .timedOut)
+            .sink(
+                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveValue: { _ in }
+            )
+
+        await settle()
+        subject.send(completion: .failure(.upstreamBoom))
+        await poll { !failures.values.isEmpty }
+        #expect(failures.values == [.upstreamBoom])   // upstream error, not the timeout error
+
+        sub.cancel()
+    }
+}
