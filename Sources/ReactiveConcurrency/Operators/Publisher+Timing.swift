@@ -105,43 +105,50 @@ extension Publisher {
 // MARK: - timeout
 
 extension Publisher where Failure: Error {
-    // Emits `error` if no value arrives within `interval` of subscription or the last value.
-    // No Hourglass equivalent exists (timeout injects into the failure channel), so it is timed
-    // directly off the clock; `try?` on clock.sleep only absorbs cancellation, which is then
-    // re-checked via Task.isCancelled — no real error is swallowed.
+    /// Fails with `error` if no value arrives within `interval` of subscription or the last value.
+    ///
+    /// Bridges Hourglass's `AsyncStream.timeout`, which carries the timeout as a typed
+    /// `Result<Output, Failure>` value (never a thrown `any Error`). The success channel feeds
+    /// the Hourglass operator; an upstream failure preempts the timer and terminates immediately.
     public func timeout<C: Clock & Sendable>(
         _ interval: C.Instant.Duration,
         clock: C,
-        error: Failure
+        error: @autoclosure @escaping @Sendable () -> Failure
     ) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {
             let upstream = selfFactory()
-            return AsyncStream<Result<Output, Failure>> { raw in
-                let task = Task {
-                    @Sendable func armTimer() -> Task<Void, Never> {
-                        Task {
-                            try? await clock.sleep(until: clock.now.advanced(by: interval), tolerance: nil)
-                            guard !Task.isCancelled else { return }
-                            _ = raw.yield(.failure(error))
-                            raw.finish()
-                        }
+            return AsyncStream<Result<Output, Failure>> { downstream in
+                let (values, valuesContinuation) = AsyncStream<Output>.makeStream()
+
+                // Hourglass timeout over the success channel emits Result directly downstream.
+                let consumer = Task {
+                    for await result in values.timeout(interval, clock: clock, error: error) {
+                        if case .terminated = downstream.yield(result) { return }
+                        if case .failure = result { downstream.finish(); return }
                     }
-                    var timerTask = armTimer()
-                    defer { timerTask.cancel() }
+                    downstream.finish()
+                }
+                let producer = Task {
                     for await result in upstream {
-                        timerTask.cancel()
                         switch result {
                         case .success(let value):
-                            if case .terminated = raw.yield(.success(value)) { return }
-                            timerTask = armTimer()
-                        case .failure(let error):
-                            _ = raw.yield(.failure(error)); raw.finish(); return
+                            valuesContinuation.yield(value)
+                        case .failure(let upstreamError):
+                            consumer.cancel()
+                            valuesContinuation.finish()
+                            _ = downstream.yield(.failure(upstreamError))
+                            downstream.finish()
+                            return
                         }
                     }
-                    raw.finish()
+                    valuesContinuation.finish()
                 }
-                raw.onTermination = { _ in task.cancel() }
+                downstream.onTermination = { _ in
+                    producer.cancel()
+                    consumer.cancel()
+                    valuesContinuation.finish()
+                }
             }
         })
     }
