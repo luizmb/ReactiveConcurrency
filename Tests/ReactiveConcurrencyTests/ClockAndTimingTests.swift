@@ -388,3 +388,39 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
         sub.cancel()
     }
 }
+
+// MARK: - collect(every:orCount:)
+
+@Suite struct CollectByTimeOrCountPublisherTests {
+    @Test func flushesByCountBeforeTime() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, Never>()
+        let windows = Collector<[Int]>()
+        let sub = subject.eraseToPublisher()
+            .collect(every: .seconds(10), orCount: 3, clock: clock)
+            .sink { windows.append($0) }
+
+        await settle()
+        subject.send(1); subject.send(2); subject.send(3)  // count reached — flush without advancing
+        await poll { windows.values.count >= 1 }
+        #expect(windows.values == [[1, 2, 3]])
+        sub.cancel()
+    }
+
+    @Test func flushesByTimeWhenCountNotReached() async {
+        let clock = TestClock()
+        let subject = PassthroughSubject<Int, Never>()
+        let windows = Collector<[Int]>()
+        let sub = subject.eraseToPublisher()
+            .collect(every: .seconds(1), orCount: 5, clock: clock)
+            .sink { windows.append($0) }
+
+        await settle()
+        subject.send(1); subject.send(2)
+        await drainSentValues()
+        await clock.advance(by: .seconds(1))
+        await poll { windows.values.count >= 1 }
+        #expect(windows.values == [[1, 2]])
+        sub.cancel()
+    }
+}
