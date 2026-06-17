@@ -46,7 +46,7 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test --no-parallel 2>&1
+        run: swift test 2>&1
 
       - name: Periphery
         run: mint run periphery scan
@@ -61,4 +61,22 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test --no-parallel 2>&1
+        run: swift test 2>&1
+
+  test-android:
+    name: Build & Test (Android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # Cross-compiles the package with the Swift Android SDK and runs the test suite on an
+      # Android emulator (the action provisions and boots it). The action runs the on-device
+      # binary as both XCTest and swift-testing, and the XCTest pass rejects swift test's
+      # --no-parallel, so serial execution can't be forced; android-cores gives the emulator
+      # extra CPUs to reduce Swift Testing parallel-task starvation. Requires the Android-
+      # compatible FP (>= 1.11.2, Float80 guard) which Package.swift now floors.
+      - name: Test Swift Package on Android
+        uses: skiptools/swift-android-action@v2
+        with:
+          android-cores: 4
+          free-disk-space: true

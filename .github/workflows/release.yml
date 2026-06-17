@@ -55,7 +55,7 @@ jobs:
         run: swift build --build-tests
 
       - name: Test
-        run: swift test --no-parallel
+        run: swift test
 
       - name: Periphery
         run: mint run periphery scan
@@ -80,7 +80,7 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test --no-parallel 2>&1
+        run: swift test 2>&1
 
   rc-build-xcframework:
     name: RC - Build XCFramework
