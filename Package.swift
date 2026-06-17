@@ -50,7 +50,11 @@ let package = Package(
             dependencies: [
                 "ReactiveConcurrency",
                 "ReactiveConcurrencyOperators",
+                "ReactiveConcurrencyTransformers",
+                .product(name: "CoreFP", package: "FP"),
                 .product(name: "CoreFPOperators", package: "FP"),
+                .product(name: "DataStructure", package: "FP"),
+                .product(name: "DataStructureOperators", package: "FP"),
                 .product(name: "Hourglass", package: "Hourglass"),
             ]
         )

@@ -62,4 +62,13 @@ public extension DeferredStream {
     ) -> @Sendable (Element) -> DeferredStream<C> {
         { @Sendable a in f(a).flatMap(g) }
     }
+
+    // kleisliBack :: (b -> DeferredStream c) -> (a -> DeferredStream b) -> (a -> DeferredStream c)
+    // Reverse Kleisli composition: f first, then g.
+    static func kleisliBack<X: Sendable, B: Sendable>(
+        _ g: @escaping @Sendable (Element) -> DeferredStream<B>,
+        _ f: @escaping @Sendable (X) -> DeferredStream<Element>
+    ) -> @Sendable (X) -> DeferredStream<B> {
+        { @Sendable x in f(x).flatMap(g) }
+    }
 }

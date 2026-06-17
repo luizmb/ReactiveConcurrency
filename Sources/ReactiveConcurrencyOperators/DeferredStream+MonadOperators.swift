@@ -24,3 +24,11 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable>(
 ) -> @Sendable (A) -> DeferredStream<C> {
     DeferredStream<A>.kleisli(f, g)
 }
+
+// (<=<) :: (b -> DeferredStream c) -> (a -> DeferredStream b) -> (a -> DeferredStream c)
+public func <=< <A: Sendable, B: Sendable, C: Sendable>(
+    _ g: @escaping @Sendable (B) -> DeferredStream<C>,
+    _ f: @escaping @Sendable (A) -> DeferredStream<B>
+) -> @Sendable (A) -> DeferredStream<C> {
+    DeferredStream<B>.kleisliBack(g, f)
+}

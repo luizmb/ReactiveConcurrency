@@ -28,4 +28,13 @@ public extension DeferredTask {
     ) -> @Sendable (Success) -> DeferredTask<C> {
         { @Sendable a in f(a).flatMap(g) }
     }
+
+    // kleisliBack :: (b -> DeferredTask c) -> (a -> DeferredTask b) -> (a -> DeferredTask c)
+    // Reverse Kleisli composition: f first, then g.
+    static func kleisliBack<X: Sendable, B: Sendable>(
+        _ g: @escaping @Sendable (Success) -> DeferredTask<B>,
+        _ f: @escaping @Sendable (X) -> DeferredTask<Success>
+    ) -> @Sendable (X) -> DeferredTask<B> {
+        { @Sendable x in f(x).flatMap(g) }
+    }
 }

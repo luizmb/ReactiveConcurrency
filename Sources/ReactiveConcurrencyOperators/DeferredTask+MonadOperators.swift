@@ -24,3 +24,11 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable>(
 ) -> @Sendable (A) -> DeferredTask<C> {
     DeferredTask<A>.kleisli(f, g)
 }
+
+// (<=<) :: (b -> DeferredTask c) -> (a -> DeferredTask b) -> (a -> DeferredTask c)
+public func <=< <A: Sendable, B: Sendable, C: Sendable>(
+    _ g: @escaping @Sendable (B) -> DeferredTask<C>,
+    _ f: @escaping @Sendable (A) -> DeferredTask<B>
+) -> @Sendable (A) -> DeferredTask<C> {
+    DeferredTask<B>.kleisliBack(g, f)
+}

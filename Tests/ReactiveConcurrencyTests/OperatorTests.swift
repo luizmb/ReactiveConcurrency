@@ -300,10 +300,13 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .combineLatest(b.eraseToPublisher()) { x, y in "\(x)-\(y)" }
             .sink { values.append($0) }
 
-        a.send(1)
-        b.send(2)
-        a.send(3)
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await settle()
+        a.send(1)                                 // latestA=1, no emit yet (b unseen)
+        await settle()
+        b.send(2)                                 // emit "1-2"
+        await poll { values.values.count >= 1 }
+        a.send(3)                                 // emit "3-2"
+        await poll { values.values.count >= 2 }
         sub.cancel()
 
         #expect(values.values == ["1-2", "3-2"])
