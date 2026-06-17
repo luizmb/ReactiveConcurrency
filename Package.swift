@@ -16,7 +16,7 @@ let package = Package(
         .library(name: "ReactiveConcurrencyTransformers", targets: ["ReactiveConcurrencyTransformers"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/luizmb/FP.git", from: "1.10.0"),
+        .package(url: "https://github.com/luizmb/FP.git", from: "1.11.0"),
         .package(url: "https://github.com/luizmb/Hourglass.git", from: "0.4.0"),
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.0"),
     ],
