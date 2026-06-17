@@ -37,15 +37,19 @@ final class SubjectCore<Output: Sendable, Failure: Error>: Sendable {
     }
 
     func send(_ value: Output) {
-        _state.withLock { state in
-            guard state.completion == nil else { return }
+        let droppedAfterCompletion = _state.withLock { state -> Bool in
+            guard state.completion == nil else { return true }
             for cont in state.subscribers.values { cont.yield(Result.success(value)) }
+            return false
+        }
+        if droppedAfterCompletion {
+            Diagnostics.warn("send(_:) called on a subject that has already completed — value dropped.")
         }
     }
 
     func complete(_ c: Subscribers.Completion<Failure>) {
-        _state.withLock { state in
-            guard state.completion == nil else { return }
+        let ignoredAfterCompletion = _state.withLock { state -> Bool in
+            guard state.completion == nil else { return true }
             state.completion = c
             switch c {
             case .finished:
@@ -54,6 +58,10 @@ final class SubjectCore<Output: Sendable, Failure: Error>: Sendable {
                 state.subscribers.values.forEach { $0.yield(Result.failure(e)); $0.finish() }
             }
             state.subscribers.removeAll()
+            return false
+        }
+        if ignoredAfterCompletion {
+            Diagnostics.warn("send(completion:) called on a subject that has already completed — ignored.")
         }
     }
 }
