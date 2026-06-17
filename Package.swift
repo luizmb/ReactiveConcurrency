@@ -57,6 +57,13 @@ let package = Package(
                 .product(name: "DataStructureOperators", package: "FP"),
                 .product(name: "Hourglass", package: "Hourglass"),
             ]
-        )
+        ),
+        .executableTarget(
+            name: "Benchmarks",
+            dependencies: [
+                "ReactiveConcurrency",
+                .product(name: "Hourglass", package: "Hourglass"),
+            ]
+        ),
     ]
 )
