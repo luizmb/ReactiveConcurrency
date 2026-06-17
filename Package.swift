@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/luizmb/FP.git", from: "1.11.0"),
-        .package(url: "https://github.com/luizmb/Hourglass.git", from: "0.4.0"),
+        .package(url: "https://github.com/luizmb/Hourglass.git", from: "0.6.0"),
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.0"),
     ],
     targets: [

@@ -52,6 +52,17 @@ extension Publisher {
     ) -> Publisher<[Output], Failure> {
         _timed { $0.collect(every: interval, clock: clock) }
     }
+
+    /// Groups values into arrays, flushing when the time window elapses OR the buffer reaches
+    /// `count`, whichever comes first; each flush resets the window. A partial window is flushed
+    /// when the upstream completes.
+    public func collect<C: Clock & Sendable>(
+        every interval: C.Instant.Duration,
+        orCount count: Int,
+        clock: C
+    ) -> Publisher<[Output], Failure> {
+        _timed { $0.collect(every: interval, orCount: count, clock: clock) }
+    }
 }
 
 // MARK: - value-timing bridge
