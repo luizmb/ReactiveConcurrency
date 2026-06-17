@@ -83,34 +83,50 @@ private final class AutoconnectState: Sendable {
 // MARK: - makeConnectable() / ConnectablePublisher
 
 extension Publisher {
+    /// A connectable publisher that fans the upstream out through an internal `PassthroughSubject`.
     public func makeConnectable() -> ConnectablePublisher<Output, Failure> {
-        ConnectablePublisher(upstream: self)
+        ConnectablePublisher(upstream: self, subject: PassthroughSubject<Output, Failure>().eraseToAnySubject())
+    }
+
+    /// Multicasts the upstream through the given subject. The subject's semantics drive fan-out —
+    /// e.g. a `CurrentValueSubject` replays the latest value to late subscribers.
+    public func multicast<S: Subject>(
+        subject: S
+    ) -> ConnectablePublisher<Output, Failure> where S.Output == Output, S.Failure == Failure {
+        ConnectablePublisher(upstream: self, subject: subject.eraseToAnySubject())
+    }
+
+    /// Multicasts the upstream through a subject created by `createSubject`.
+    public func multicast<S: Subject>(
+        _ createSubject: @Sendable () -> S
+    ) -> ConnectablePublisher<Output, Failure> where S.Output == Output, S.Failure == Failure {
+        ConnectablePublisher(upstream: self, subject: createSubject().eraseToAnySubject())
     }
 }
 
 public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     private let _upstream: Publisher<Output, Failure>
-    private let _core: SubjectCore<Output, Failure>
+    private let _subject: AnySubject<Output, Failure>
 
-    init(upstream: Publisher<Output, Failure>) {
+    init(upstream: Publisher<Output, Failure>, subject: AnySubject<Output, Failure>) {
         _upstream = upstream
-        _core = SubjectCore()
+        _subject = subject
     }
 
-    // Starts the upstream and fans values to all current and future subscribers.
+    // Starts the upstream and fans values into the subject (and thus to all subscribers).
     // Returns a cancellable that disconnects when cancelled.
     @discardableResult
     public func connect() -> AnyCancellable {
         let upstream = _upstream._stream.factory()
-        let core = _core
+        let subject = _subject
         let task = Task {
             for await result in upstream {
                 switch result {
-                case .success(let v): core.send(v)
-                case .failure(let e): core.complete(.failure(e)); return
+                case .success(let v): subject.send(v)
+                case .failure(let e): subject.send(completion: .failure(e)); return
                 }
             }
-            core.complete(.finished)
+            subject.send(completion: .finished)
         }
         return AnyCancellable { task.cancel() }
     }
@@ -119,16 +135,15 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     // Unlike share(), subscribers cancelling does not disconnect the upstream.
     public func autoconnect() -> Publisher<Output, Failure> {
         let state = AutoconnectState()
-        let core = _core
         let connectable = self
+        let subject = _subject
         return Publisher<Output, Failure>(DeferredStream {
             state.connectOnce { connectable.connect() }
-            let (id, stream) = core.subscribe()
+            let downstream = subject.eraseToPublisher()._stream.factory()
             return AsyncStream<Result<Output, Failure>> { raw in
-                let t = Task { for await result in stream { raw.yield(result) }; raw.finish() }
+                let t = Task { for await result in downstream { raw.yield(result) }; raw.finish() }
                 raw.onTermination = { [state] _ in
                     t.cancel()
-                    core.unsubscribe(id)
                     _ = state  // keep connection alive as long as any subscriber is alive
                 }
             }
@@ -136,13 +151,6 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     }
 
     public func eraseToPublisher() -> Publisher<Output, Failure> {
-        let core = _core
-        return Publisher<Output, Failure>(DeferredStream {
-            let (id, stream) = core.subscribe()
-            return AsyncStream<Result<Output, Failure>> { raw in
-                let t = Task { for await result in stream { raw.yield(result) }; raw.finish() }
-                raw.onTermination = { _ in t.cancel(); core.unsubscribe(id) }
-            }
-        })
+        _subject.eraseToPublisher()
     }
 }
