@@ -71,7 +71,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let a = Publisher<Int, Never>.sequence([1, 3])
         let b = Publisher<Int, Never>.sequence([2, 4])
         let cancellable = a.merge(with: b).sink { values.append($0) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll { values.values.count == 4 }
         cancellable.cancel()
         #expect(values.values.sorted() == [1, 2, 3, 4])
     }
@@ -133,7 +133,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .combineLatest(infinite.eraseToPublisher())
             .sink(receiveCompletion: { completions.append($0) }, receiveValue: { _ in })
 
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll { completions.values.count == 1 }
         cancellable.cancel()
 
         #expect(completions.values == [.finished])
@@ -182,7 +182,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .combineLatest(other)
             .sink(receiveCompletion: { completions.append($0) }, receiveValue: { values.append($0) })
 
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll { completions.values.count == 1 }
         cancellable.cancel()
 
         #expect(values.values.isEmpty)
@@ -204,7 +204,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let cancellable = pub
             .catch { _ in Publisher<Int, Never>.just(99) }
             .sink(receiveCompletion: { completions.append($0) }, receiveValue: { values.append($0) })
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll { values.values.count == 2 && completions.values.count == 1 }
         cancellable.cancel()
 
         #expect(values.values == [1, 99])
@@ -222,7 +222,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 
         let cancellable = pub.replaceError(with: 0)
             .sink { values.append($0) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll { values.values.count == 2 }
         cancellable.cancel()
 
         #expect(values.values == [1, 0])
@@ -246,7 +246,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let completions = Collector<Subscribers.Completion<E>>()
         let cancellable = pub.retry(2)
             .sink(receiveCompletion: { completions.append($0) }, receiveValue: { values.append($0) })
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await poll { values.values.count == 3 && completions.values.count == 1 }
         cancellable.cancel()
 
         #expect(values.values == [1, 2, 3])

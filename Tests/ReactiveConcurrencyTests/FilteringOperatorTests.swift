@@ -2,6 +2,16 @@ import Foundation
 @testable import ReactiveConcurrency
 import Testing
 
+// Polls a condition instead of a fixed sleep — values/completions arrive on a consumer Task that
+// can be scheduled late under parallel execution on a constrained CPU, making fixed sleeps flaky.
+private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
+    for _ in 0..<(timeoutMs / 2) {
+        if condition() { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 2_000_000)
+    }
+}
+
 @Suite struct FilteringOperatorTests {
     // MARK: first / last
 
@@ -479,7 +489,7 @@ import Testing
             )
         subject.send(1)
         subject.send(completion: .failure(.bad))
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await poll(until: { result.values.count == 3 })
         cancellable.cancel()
         #expect(result.values == [1, 99, 100])
     }

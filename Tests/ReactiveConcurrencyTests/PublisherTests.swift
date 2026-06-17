@@ -2,6 +2,22 @@ import Foundation
 @testable import ReactiveConcurrency
 import Testing
 
+// Polls a condition instead of a fixed sleep — values/completions arrive on a consumer Task that
+// can be scheduled late under parallel execution on a constrained CPU, making fixed sleeps flaky.
+private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
+    for _ in 0..<(timeoutMs / 2) {
+        if condition() { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 2_000_000)
+    }
+}
+
+// Yields repeatedly so already-scheduled consumer Tasks drain, when we expect NO further delivery
+// (e.g. after cancellation) and therefore have no count to poll for.
+private func settle() async {
+    for _ in 0..<20 { await Task.yield() }
+}
+
 // Thread-safe value collector for use in @Sendable sink closures.
 final class Collector<T: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
@@ -28,7 +44,7 @@ final class AtomicCounter: @unchecked Sendable {
             receiveCompletion: { completions.append($0) },
             receiveValue: { values.append($0) }
         )
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll(until: { values.values.count == 1 && completions.values.count == 1 })
         cancellable.cancel()
 
         #expect(values.values == [42])
@@ -43,7 +59,7 @@ final class AtomicCounter: @unchecked Sendable {
             receiveCompletion: { completions.append($0) },
             receiveValue: { values.append($0) }
         )
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll(until: { completions.values.count == 1 })
         cancellable.cancel()
 
         #expect(values.values.isEmpty)
@@ -82,10 +98,10 @@ final class AtomicCounter: @unchecked Sendable {
 
         subject.send(1)
         subject.send(2)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll(until: { values.values.count == 2 })
         cancellable.cancel()
         subject.send(3)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
 
         #expect(values.values == [1, 2])
     }
@@ -101,9 +117,9 @@ final class AtomicCounter: @unchecked Sendable {
             receiveValue: { _ in }
         )
         subject.send(1)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
         cancellable.cancel()
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
 
         #expect(completions.values.isEmpty)
     }
@@ -122,7 +138,7 @@ final class AtomicCounter: @unchecked Sendable {
         // deinit fires, task.cancel() called before the Task has run
 
         subject.send(1)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await settle()
 
         #expect(values.values.isEmpty)
     }
@@ -135,7 +151,7 @@ final class AtomicCounter: @unchecked Sendable {
             receiveCompletion: { completions.append($0) },
             receiveValue: { _ in }
         )
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll(until: { completions.values.count == 1 })
         cancellable.cancel()
 
         #expect(completions.values == [.failure(.boom)])
@@ -156,9 +172,8 @@ final class AtomicCounter: @unchecked Sendable {
         let values = Collector<Int>()
         let cancellable = subject.eraseToPublisher().sink { values.append($0) }
 
-        try? await Task.sleep(nanoseconds: 10_000_000)  // allow replay to arrive
         subject.send(20)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await poll(until: { values.values.count == 2 })
         cancellable.cancel()
 
         #expect(values.values == [10, 20])

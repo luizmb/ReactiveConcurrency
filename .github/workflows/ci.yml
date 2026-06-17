@@ -46,7 +46,7 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test --no-parallel 2>&1
+        run: swift test 2>&1
 
       - name: Periphery
         run: mint run periphery scan
@@ -61,7 +61,7 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test --no-parallel 2>&1
+        run: swift test 2>&1
 
   test-android:
     name: Build & Test (Android)
