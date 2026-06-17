@@ -62,3 +62,19 @@ jobs:
 
       - name: Test
         run: swift test --no-parallel 2>&1
+
+  test-android:
+    name: Build & Test (Android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # Cross-compiles the package with the Swift Android SDK and runs the test suite on an
+      # Android emulator (the action provisions and boots it). --no-parallel for the same reason
+      # as Linux: Swift Testing's parallel execution starves async consumer Tasks on constrained
+      # runners, and the emulator is more constrained still.
+      - name: Test Swift Package on Android
+        uses: skiptools/swift-android-action@v2
+        with:
+          swift-test-flags: --no-parallel
+          free-disk-space: true
