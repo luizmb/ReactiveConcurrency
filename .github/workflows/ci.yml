@@ -70,11 +70,13 @@ jobs:
       - uses: actions/checkout@v6
 
       # Cross-compiles the package with the Swift Android SDK and runs the test suite on an
-      # Android emulator (the action provisions and boots it). --no-parallel for the same reason
-      # as Linux: Swift Testing's parallel execution starves async consumer Tasks on constrained
-      # runners, and the emulator is more constrained still.
+      # Android emulator (the action provisions and boots it). The action runs the on-device
+      # binary as both XCTest and swift-testing, and the XCTest pass rejects swift test's
+      # --no-parallel, so serial execution can't be forced; android-cores gives the emulator
+      # extra CPUs to reduce Swift Testing parallel-task starvation. Requires the Android-
+      # compatible FP (>= 1.11.2, Float80 guard) which Package.swift now floors.
       - name: Test Swift Package on Android
         uses: skiptools/swift-android-action@v2
         with:
-          swift-test-flags: --no-parallel
+          android-cores: 4
           free-disk-space: true
