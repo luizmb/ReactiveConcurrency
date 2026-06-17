@@ -30,3 +30,39 @@ extension Publisher where Failure == Never {
         return AnyCancellable { task.cancel() }
     }
 }
+
+// MARK: - Failable: assign the Result events
+//
+// A failable publisher has no plain value to assign on failure, so the target is a
+// `Result<Output, Failure>` property: each element writes `.success(value)`, and a failure
+// completion writes `.failure(error)`. (Result is a value type — only `Root` must be a reference.)
+
+extension Publisher {
+    /// Writes each event as a `Result` into `object[keyPath:]` (`.success` per value,
+    /// `.failure` on failure). `Root: Sendable`; written on the subscription task.
+    public func assign<Root: AnyObject & Sendable>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>> & Sendable,
+        on object: Root
+    ) -> AnyCancellable {
+        sink(
+            receiveCompletion: { [weak object] completion in
+                if case .failure(let error) = completion { object?[keyPath: keyPath] = .failure(error) }
+            },
+            receiveValue: { [weak object] value in object?[keyPath: keyPath] = .success(value) }
+        )
+    }
+
+    /// Writes each event as a `Result` into a main-actor-isolated `object`, on the main actor,
+    /// in order.
+    @MainActor
+    public func assignOnMain<Root: AnyObject>(
+        to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>>,
+        on object: Root
+    ) -> AnyCancellable {
+        let stream = results
+        let task = Task { @MainActor in
+            for await result in stream { object[keyPath: keyPath] = result }
+        }
+        return AnyCancellable { task.cancel() }
+    }
+}

@@ -16,6 +16,17 @@ private final class Box: @unchecked Sendable {
     var value = 0
 }
 
+private enum AErr: Error, Equatable { case boom }
+
+private final class ResultBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _value: Result<Int, AErr> = .success(0)
+    var value: Result<Int, AErr> {
+        get { lock.withLock { _value } }
+        set { lock.withLock { _value = newValue } }
+    }
+}
+
 private func poll(_ condition: @Sendable () -> Bool) async {
     for _ in 0..<1_000 {
         if condition() { return }
@@ -41,6 +52,22 @@ private func poll(_ condition: @Sendable () -> Bool) async {
             try? await Task.sleep(nanoseconds: 2_000_000)
         }
         #expect(box.value == 5)
+        cancellable.cancel()
+    }
+
+    @Test func assignWritesSuccessResult() async {
+        let box = ResultBox()
+        let cancellable = Publisher<Int, AErr>.just(7).assign(to: \.value, on: box)
+        await poll { box.value == .success(7) }
+        #expect(box.value == .success(7))
+        cancellable.cancel()
+    }
+
+    @Test func assignWritesFailureResult() async {
+        let box = ResultBox()
+        let cancellable = Publisher<Int, AErr>.fail(.boom).assign(to: \.value, on: box)
+        await poll { box.value == .failure(.boom) }
+        #expect(box.value == .failure(.boom))
         cancellable.cancel()
     }
 }
