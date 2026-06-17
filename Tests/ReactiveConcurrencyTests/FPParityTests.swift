@@ -167,21 +167,21 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
     }
 
     @Test func publisherFirstValue() async {
-        let first = await Publisher<Int, Never>.sequence(1...5).firstValue().run()
+        let first = await Publisher<Int, Never>.sequence(1...5).firstValue()
         #expect(first == 1)
-        let empty = await Publisher<Int, Never>.empty().firstValue().run()
+        let empty = await Publisher<Int, Never>.empty().firstValue()
         #expect(empty == nil)
     }
 
     @Test func publisherFirstResult() async {
-        let first = await Publisher<Int, TestError>.just(8).firstResult().run()
+        let first = await Publisher<Int, TestError>.just(8).firstResult()
         #expect(first == .success(8))
-        let failed = await Publisher<Int, TestError>.fail(.boom).firstResult().run()
+        let failed = await Publisher<Int, TestError>.fail(.boom).firstResult()
         #expect(failed == .failure(.boom))
     }
 
     @Test func taskRoundTrip() async {
-        let roundTripped = await DeferredTask { 99 }.eraseToPublisher().firstValue().run()
+        let roundTripped = await DeferredTask { 99 }.eraseToPublisher().firstValue()
         #expect(roundTripped == 99)
     }
 }
@@ -204,19 +204,19 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
     @Test func publisherToDeferredStream() async {
         var out: [Int] = []
-        for await v in Publisher<Int, Never>.sequence(1...3).toDeferredStream() { out.append(v) }
+        for await v in Publisher<Int, Never>.sequence(1...3).values { out.append(v) }
         #expect(out == [1, 2, 3])
     }
 
     @Test func publisherToResultStream() async {
         var out: [Result<Int, TestError>] = []
-        for await r in Publisher<Int, TestError>.just(7).toResultStream() { out.append(r) }
+        for await r in Publisher<Int, TestError>.just(7).results { out.append(r) }
         #expect(out == [.success(7)])
     }
 
     @Test func streamRoundTrip() async {
         var out: [Int] = []
-        for await v in DeferredStream<Int>.pure(42).eraseToPublisher().toDeferredStream() { out.append(v) }
+        for await v in DeferredStream<Int>.pure(42).eraseToPublisher().values { out.append(v) }
         #expect(out == [42])
     }
 }

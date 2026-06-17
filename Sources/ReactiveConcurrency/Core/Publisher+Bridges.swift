@@ -8,8 +8,7 @@ extension DeferredStream {
     }
 
     // DeferredStream<Result<A, E>> -> Publisher<A, E>: surface the Result events on the
-    // Publisher's value/failure channels. E may be Never. The exact inverse of
-    // Publisher.toResultStream().
+    // Publisher's value/failure channels. E may be Never. The exact inverse of `Publisher.results`.
     public func eraseToThrowingPublisher<A: Sendable, E: Error>() -> Publisher<A, E>
         where Element == Result<A, E> {
         Publisher<A, E>(self)
@@ -17,16 +16,19 @@ extension DeferredStream {
 }
 
 extension Publisher {
-    // Full-fidelity DeferredStream of the underlying Result events (value and failure).
-    public func toResultStream() -> DeferredStream<Result<Output, Failure>> {
+    /// The underlying events as an `AsyncSequence` of `Result` (value or typed failure):
+    /// `for await result in publisher.results { ... }`. Available for any `Failure`; the typed
+    /// error is preserved as a value, so iteration never surfaces an untyped `any Error`.
+    public var results: DeferredStream<Result<Output, Failure>> {
         _stream
     }
 }
 
 extension Publisher where Failure == Never {
-    // DeferredStream of just the values. Failure == Never means every event is a success,
-    // so no failure can be dropped. The inverse of DeferredStream.eraseToPublisher().
-    public func toDeferredStream() -> DeferredStream<Output> {
+    /// The emitted values as an `AsyncSequence`: `for await value in publisher.values { ... }`.
+    /// Only available when `Failure == Never` (every event is a success); for failable
+    /// publishers use `results`. The inverse of `DeferredStream.eraseToPublisher()`.
+    public var values: DeferredStream<Output> {
         let factory = _stream.factory
         return DeferredStream<Output> {
             let upstream = factory()
@@ -40,5 +42,18 @@ extension Publisher where Failure == Never {
                 continuation.onTermination = { _ in task.cancel() }
             }
         }
+    }
+}
+
+// MARK: - AsyncStream -> Publisher
+
+extension AsyncStream where Element: Sendable {
+    /// Bridges an existing `AsyncStream` into a `Publisher<Element, Never>`.
+    ///
+    /// The stream is consumed once — an `AsyncStream` cannot be restarted, so only the first
+    /// subscription receives elements. For a cold, restartable publisher, build a
+    /// `DeferredStream { ... }` and call its `eraseToPublisher()` instead.
+    public func eraseToPublisher() -> Publisher<Element, Never> {
+        DeferredStream.wrap(self).eraseToPublisher()
     }
 }

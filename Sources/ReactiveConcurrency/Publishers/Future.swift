@@ -58,9 +58,18 @@ extension DeferredTask {
 }
 
 extension Publisher where Failure == Never {
-    // Publisher<Output, Never> -> DeferredTask<Output?>: the first emitted value, or nil if
-    // the publisher finishes without emitting. The inverse of DeferredTask.eraseToPublisher().
-    public func firstValue() -> DeferredTask<Output?> {
+    /// Awaits the first emitted value, or `nil` if the publisher finishes without emitting:
+    /// `let v = await publisher.firstValue()`. Subscribes, takes the first value, and tears down.
+    public func firstValue() async -> Output? {
+        for await result in _stream {
+            if case .success(let value) = result { return value }
+        }
+        return nil
+    }
+
+    // Lazy form: the first emitted value as a composable DeferredTask. The inverse of
+    // DeferredTask.eraseToPublisher().
+    public func firstValueTask() -> DeferredTask<Output?> {
         let factory = _stream.factory
         return DeferredTask<Output?> {
             for await result in factory() {
@@ -72,9 +81,17 @@ extension Publisher where Failure == Never {
 }
 
 extension Publisher {
-    // Publisher<Output, Failure> -> DeferredTask<Result<Output, Failure>?>: the first event
-    // (value or failure), or nil if the publisher finishes without emitting.
-    public func firstResult() -> DeferredTask<Result<Output, Failure>?> {
+    /// Awaits the first event (value or typed failure), or `nil` if the publisher finishes
+    /// without emitting: `let r = await publisher.firstResult()`.
+    public func firstResult() async -> Result<Output, Failure>? {
+        for await result in _stream {
+            return result
+        }
+        return nil
+    }
+
+    // Lazy form: the first event as a composable DeferredTask.
+    public func firstResultTask() -> DeferredTask<Result<Output, Failure>?> {
         let factory = _stream.factory
         return DeferredTask<Result<Output, Failure>?> {
             for await result in factory() {
