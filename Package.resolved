@@ -1,5 +1,5 @@
 {
-  "originHash" : "dc7c0b1fae12458287a73465ccd7494ba657161861eb3898a734666aef5a26e9",
+  "originHash" : "ebfa4644f3edc34622413b262b633c9b8ff3134233bad6003700f57beaec1730",
   "pins" : [
     {
       "identity" : "fp",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/luizmb/Hourglass.git",
       "state" : {
-        "revision" : "5c028ee7e78218b0e5a9ec3c8516150382a2f062",
-        "version" : "0.4.0"
+        "revision" : "6d35df23dcce1477bb244d51eb045707eec5506c",
+        "version" : "0.5.0"
       }
     },
     {
