@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/luizmb/FP.git",
       "state" : {
-        "revision" : "9141607df481b2ff4b65ca1f46a1a6e7395c5062",
-        "version" : "1.11.2"
+        "revision" : "1b93d54ee5d35a9696c038b323563d2f22f60a2c",
+        "version" : "1.12.0"
       }
     },
     {
