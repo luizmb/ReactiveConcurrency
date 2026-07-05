@@ -21,7 +21,7 @@ public func applyStatefulDeferredStream<S, A: Sendable, B: Sendable>(
 /// liftA2 for StatefulTDeferredStream
 public func liftA2StatefulDeferredStream<S, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Stateful<S, DeferredStream<A>>, Stateful<S, DeferredStream<B>>) -> Stateful<S, DeferredStream<C>> {
+) -> @Sendable (Stateful<S, DeferredStream<A>>, Stateful<S, DeferredStream<B>>) -> Stateful<S, DeferredStream<C>> {
     { sa, sb in
         Stateful<S, DeferredStream<C>> { s in
             let dsA = sa.run(&s)

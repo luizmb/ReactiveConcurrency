@@ -19,7 +19,7 @@ public func applyWriterDeferredTask<W: Monoid, A: Sendable, B: Sendable>(
 /// liftA2 for Writer<W, DeferredTask>
 public func liftA2WriterDeferredTask<W: Monoid, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Writer<W, DeferredTask<A>>, Writer<W, DeferredTask<B>>) -> Writer<W, DeferredTask<C>> {
+) -> @Sendable (Writer<W, DeferredTask<A>>, Writer<W, DeferredTask<B>>) -> Writer<W, DeferredTask<C>> {
     { wa, wb in
         Writer<W, DeferredTask<C>>(
             liftA2DeferredTask(fn)(wa.value, wb.value),

@@ -29,6 +29,6 @@ public func mapTWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
 
 public func fmapTWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B
-) -> (Writer<W, Publisher<A, F>>) -> Writer<W, Publisher<B, F>> {
+) -> @Sendable (Writer<W, Publisher<A, F>>) -> Writer<W, Publisher<B, F>> {
     { writer in mapTWriterPublisher(fn, writer) }
 }

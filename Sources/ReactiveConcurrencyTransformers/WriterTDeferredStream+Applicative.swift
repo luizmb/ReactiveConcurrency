@@ -19,7 +19,7 @@ public func applyWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
 /// liftA2 for Writer<W, DeferredStream>
 public func liftA2WriterDeferredStream<W: Monoid, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Writer<W, DeferredStream<A>>, Writer<W, DeferredStream<B>>) -> Writer<W, DeferredStream<C>> {
+) -> @Sendable (Writer<W, DeferredStream<A>>, Writer<W, DeferredStream<B>>) -> Writer<W, DeferredStream<C>> {
     { wa, wb in
         Writer<W, DeferredStream<C>>(
             liftA2DeferredStream(fn)(wa.value, wb.value),

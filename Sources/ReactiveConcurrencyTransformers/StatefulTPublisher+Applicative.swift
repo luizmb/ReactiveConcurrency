@@ -20,7 +20,7 @@ public func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
 
 public func liftA2StatefulPublisher<S, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Stateful<S, Publisher<A, F>>, Stateful<S, Publisher<B, F>>) -> Stateful<S, Publisher<C, F>> {
+) -> @Sendable (Stateful<S, Publisher<A, F>>, Stateful<S, Publisher<B, F>>) -> Stateful<S, Publisher<C, F>> {
     { sa, sb in
         Stateful<S, Publisher<C, F>> { s in
             let pa = sa.run(&s)

@@ -24,6 +24,6 @@ public func -<< <W: Monoid, A: Sendable, B: Sendable, F: Error>(
 public func >=> <W: Monoid, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Writer<W, Publisher<B, F>>,
     _ fn2: @escaping @Sendable (B) -> Writer<W, Publisher<C, F>>
-) -> (A) -> Writer<W, Publisher<C, F>> {
+) -> @Sendable (A) -> Writer<W, Publisher<C, F>> {
     { a in fn1(a).flatMapT(fn2) }
 }

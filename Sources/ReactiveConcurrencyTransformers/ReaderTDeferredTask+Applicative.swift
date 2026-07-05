@@ -15,7 +15,7 @@ public func applyReaderDeferredTask<Env, A: Sendable, B: Sendable>(
 /// liftA2 for ReaderTDeferredTask
 public func liftA2ReaderDeferredTask<Env, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Reader<Env, DeferredTask<A>>, Reader<Env, DeferredTask<B>>) -> Reader<Env, DeferredTask<C>> {
+) -> @Sendable (Reader<Env, DeferredTask<A>>, Reader<Env, DeferredTask<B>>) -> Reader<Env, DeferredTask<C>> {
     { ra, rb in
         Reader { env in liftA2DeferredTask(fn)(ra(env), rb(env)) }
     }
