@@ -55,7 +55,7 @@
 ///     getUser >=> enrichProfile   // using >=> from CoreFPOperators
 /// ```
 ///
-/// - SeeAlso: ``DeferredStream``, ``ZIO``
+/// - SeeAlso: ``DeferredStream``
 public struct DeferredTask<Success: Sendable>: Sendable {
     public let body: @Sendable () async -> Success
 

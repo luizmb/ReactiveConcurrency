@@ -13,7 +13,7 @@ public func applyReaderPublisher<Env, A: Sendable, B: Sendable, F: Error>(
 
 public func liftA2ReaderPublisher<Env, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Reader<Env, Publisher<A, F>>, Reader<Env, Publisher<B, F>>) -> Reader<Env, Publisher<C, F>> {
+) -> @Sendable (Reader<Env, Publisher<A, F>>, Reader<Env, Publisher<B, F>>) -> Reader<Env, Publisher<C, F>> {
     { ra, rb in
         Reader { env in ra(env).zip(rb(env)).map { fn($0.0, $0.1) } }
     }

@@ -15,7 +15,7 @@ public func applyReaderDeferredStream<Env, A: Sendable, B: Sendable>(
 /// liftA2 for ReaderTDeferredStream
 public func liftA2ReaderDeferredStream<Env, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Reader<Env, DeferredStream<A>>, Reader<Env, DeferredStream<B>>) -> Reader<Env, DeferredStream<C>> {
+) -> @Sendable (Reader<Env, DeferredStream<A>>, Reader<Env, DeferredStream<B>>) -> Reader<Env, DeferredStream<C>> {
     { ra, rb in
         Reader { env in liftA2DeferredStream(fn)(ra(env), rb(env)) }
     }

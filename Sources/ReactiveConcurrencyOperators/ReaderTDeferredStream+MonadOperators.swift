@@ -23,6 +23,6 @@ public func -<< <Env: Sendable, A: Sendable, B: Sendable>(
 public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>
-) -> (A) -> Reader<Env, DeferredStream<C>> {
+) -> @Sendable (A) -> Reader<Env, DeferredStream<C>> {
     { a in fn1(a).flatMapT(fn2) }
 }

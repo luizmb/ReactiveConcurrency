@@ -660,11 +660,8 @@ deferredTask.eraseToPublisher()                    // DeferredTask<A>           
 publisher.firstValueTask()                         // Publisher<A, Never>          → DeferredTask<A?>  (lazy)
 ```
 
-A ZIO-style effect can also be lifted into a publisher:
-
-```swift
-zio.eraseToPublisher(environment: env)             // ZIO<Env, A, E> → Publisher<A, E>
-```
+For an environment-dependent effect, compose `Reader` with `Publisher` — the `ReaderTPublisher`
+transformer (`Reader<Env, Publisher<A, E>>`) provides `mapT` / `flatMapT` and the symbolic operators.
 
 ---
 

@@ -22,7 +22,7 @@ public func applyStatefulDeferredTask<S, A: Sendable, B: Sendable>(
 /// liftA2 for StatefulTDeferredTask
 public func liftA2StatefulDeferredTask<S, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Stateful<S, DeferredTask<A>>, Stateful<S, DeferredTask<B>>) -> Stateful<S, DeferredTask<C>> {
+) -> @Sendable (Stateful<S, DeferredTask<A>>, Stateful<S, DeferredTask<B>>) -> Stateful<S, DeferredTask<C>> {
     { sa, sb in
         Stateful<S, DeferredTask<C>> { s in
             let dtA = sa.run(&s)

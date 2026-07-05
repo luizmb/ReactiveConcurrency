@@ -17,7 +17,7 @@ public func applyWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
 
 public func liftA2WriterPublisher<W: Monoid, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> (Writer<W, Publisher<A, F>>, Writer<W, Publisher<B, F>>) -> Writer<W, Publisher<C, F>> {
+) -> @Sendable (Writer<W, Publisher<A, F>>, Writer<W, Publisher<B, F>>) -> Writer<W, Publisher<C, F>> {
     { wa, wb in
         Writer<W, Publisher<C, F>>(
             wa.value.zip(wb.value).map { fn($0.0, $0.1) },

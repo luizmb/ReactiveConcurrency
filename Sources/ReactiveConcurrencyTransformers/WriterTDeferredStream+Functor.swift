@@ -29,6 +29,6 @@ public func mapTWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
 
 public func fmapTWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
-) -> (Writer<W, DeferredStream<A>>) -> Writer<W, DeferredStream<B>> {
+) -> @Sendable (Writer<W, DeferredStream<A>>) -> Writer<W, DeferredStream<B>> {
     { writer in mapTWriterDeferredStream(fn, writer) }
 }
