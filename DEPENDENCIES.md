@@ -2,7 +2,7 @@
 
 | Package | Version | License | Purpose |
 |---------|---------|---------|---------|
-| [FP](https://github.com/luizmb/FP) | ≥1.13.0 | Apache 2.0 | Functional programming utilities (DeferredStream, Result, operators) |
+| [FP](https://github.com/luizmb/FP) | ≥1.14.0 | Apache 2.0 | Functional programming utilities (DeferredStream, Result, operators) |
 | [Hourglass](https://github.com/luizmb/Hourglass) | ≥0.6.2 | Apache 2.0 | Clock utilities and time-based AsyncStream operators |
 | [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) | ≥1.4.0 | Apache 2.0 | Documentation generation |
 
