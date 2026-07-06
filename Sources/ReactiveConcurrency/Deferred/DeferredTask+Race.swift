@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Runs two deferred tasks concurrently and returns the result of whichever finishes first.
 ///
 /// `race` is the competitive counterpart to `zip` / `liftA2`. Where `zip` waits for *both*

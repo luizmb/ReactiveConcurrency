@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Hourglass
 
 // Time-based operators delegate to Hourglass's AsyncStream operators. Hourglass works on
@@ -5,10 +7,10 @@ import Hourglass
 // `any Error`; our typed Failure channel is preserved by `_timed`, which routes successes
 // through the Hourglass transform and forwards a failure immediately, terminating the stream.
 
-extension Publisher {
+public extension Publisher {
     /// Delays forwarding elements (and completion) by `interval`. Failures are delayed too,
     /// matching Combine — the whole Result stream is shifted by Hourglass's `delay`.
-    public func delay<C: Clock & Sendable>(
+    func delay<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C
     ) -> Publisher<Output, Failure> {
@@ -20,7 +22,7 @@ extension Publisher {
 
     /// Emits a value only after the upstream has been quiet for `interval`; the timer resets
     /// on each new value. A failure preempts any pending value and terminates immediately.
-    public func debounce<C: Clock & Sendable>(
+    func debounce<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C
     ) -> Publisher<Output, Failure> {
@@ -29,7 +31,7 @@ extension Publisher {
 
     /// Emits the first value in each `interval` window (leading edge) when `latest` is false,
     /// or the most recent value at the end of each window when `latest` is true.
-    public func throttle<C: Clock & Sendable>(
+    func throttle<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C,
         latest: Bool
@@ -38,7 +40,7 @@ extension Publisher {
     }
 
     /// Replaces each value with the elapsed duration since the previous value (or subscription).
-    public func measureInterval<C: Clock & Sendable>(
+    func measureInterval<C: Clock & Sendable>(
         using clock: C
     ) -> Publisher<C.Instant.Duration, Failure> {
         _timed { $0.measureInterval(using: clock) }
@@ -46,7 +48,7 @@ extension Publisher {
 
     /// Groups values into arrays, flushing at the end of each time window. Empty windows are
     /// skipped; a partial window is flushed when the upstream completes.
-    public func collect<C: Clock & Sendable>(
+    func collect<C: Clock & Sendable>(
         every interval: C.Instant.Duration,
         clock: C
     ) -> Publisher<[Output], Failure> {
@@ -56,7 +58,7 @@ extension Publisher {
     /// Groups values into arrays, flushing when the time window elapses OR the buffer reaches
     /// `count`, whichever comes first; each flush resets the window. A partial window is flushed
     /// when the upstream completes.
-    public func collect<C: Clock & Sendable>(
+    func collect<C: Clock & Sendable>(
         every interval: C.Instant.Duration,
         orCount count: Int,
         clock: C
@@ -91,9 +93,9 @@ extension Publisher {
                 let producer = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let value):
+                        case let .success(value):
                             valuesContinuation.yield(value)
-                        case .failure(let error):
+                        case let .failure(error):
                             consumer.cancel()
                             valuesContinuation.finish()
                             _ = downstream.yield(.failure(error))
@@ -115,13 +117,13 @@ extension Publisher {
 
 // MARK: - timeout
 
-extension Publisher where Failure: Error {
+public extension Publisher where Failure: Error {
     /// Fails with `error` if no value arrives within `interval` of subscription or the last value.
     ///
     /// Bridges Hourglass's `AsyncStream.timeout`, which carries the timeout as a typed
     /// `Result<Output, Failure>` value (never a thrown `any Error`). The success channel feeds
     /// the Hourglass operator; an upstream failure preempts the timer and terminates immediately.
-    public func timeout<C: Clock & Sendable>(
+    func timeout<C: Clock & Sendable>(
         _ interval: C.Instant.Duration,
         clock: C,
         error: @autoclosure @escaping @Sendable () -> Failure
@@ -143,9 +145,9 @@ extension Publisher where Failure: Error {
                 let producer = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let value):
+                        case let .success(value):
                             valuesContinuation.yield(value)
-                        case .failure(let upstreamError):
+                        case let .failure(upstreamError):
                             consumer.cancel()
                             valuesContinuation.finish()
                             _ = downstream.yield(.failure(upstreamError))

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public func join<A: Sendable>(_ nested: DeferredTask<DeferredTask<A>>) -> DeferredTask<A> {
     DeferredTask<DeferredTask<A>>.join(nested)
 }

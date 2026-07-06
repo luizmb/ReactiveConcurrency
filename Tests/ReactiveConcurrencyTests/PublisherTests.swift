@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import ReactiveConcurrency
 import Testing
@@ -15,7 +17,9 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 // Yields repeatedly so already-scheduled consumer Tasks drain, when we expect NO further delivery
 // (e.g. after cancellation) and therefore have no count to poll for.
 private func settle() async {
-    for _ in 0..<20 { await Task.yield() }
+    for _ in 0..<20 {
+        await Task.yield()
+    }
 }
 
 // Thread-safe value collector for use in @Sendable sink closures.
@@ -70,7 +74,7 @@ final class AtomicCounter: @unchecked Sendable {
         // Direct async iteration avoids @Sendable capture issues
         var collected: [Int] = []
         for await result in Publisher<Int, Never>.sequence(1...5)._stream {
-            if case .success(let v) = result { collected.append(v) }
+            if case let .success(v) = result { collected.append(v) }
         }
         #expect(collected == [1, 2, 3, 4, 5])
     }
@@ -78,7 +82,7 @@ final class AtomicCounter: @unchecked Sendable {
     @Test func mapTransformsValues() async {
         var collected: [String] = []
         for await result in Publisher<Int, Never>.sequence(1...3).map({ "\($0)" })._stream {
-            if case .success(let v) = result { collected.append(v) }
+            if case let .success(v) = result { collected.append(v) }
         }
         #expect(collected == ["1", "2", "3"])
     }
@@ -86,7 +90,7 @@ final class AtomicCounter: @unchecked Sendable {
     @Test func filterRemovesNonMatchingValues() async {
         var collected: [Int] = []
         for await result in Publisher<Int, Never>.sequence(1...6).filter({ $0.isMultiple(of: 2) })._stream {
-            if case .success(let v) = result { collected.append(v) }
+            if case let .success(v) = result { collected.append(v) }
         }
         #expect(collected == [2, 4, 6])
     }
@@ -133,7 +137,7 @@ final class AtomicCounter: @unchecked Sendable {
 
         do {
             let cancellable = subject.eraseToPublisher().sink { values.append($0) }
-            _ = cancellable  // keep alive until here
+            _ = cancellable // keep alive until here
         }
         // deinit fires, task.cancel() called before the Task has run
 
@@ -162,7 +166,7 @@ final class AtomicCounter: @unchecked Sendable {
         for await result in Publisher<Int, Never> { continuation in
             continuation.yieldAll(0..<5)
         }._stream {
-            if case .success(let v) = result { collected.append(v) }
+            if case let .success(v) = result { collected.append(v) }
         }
         #expect(collected == [0, 1, 2, 3, 4])
     }

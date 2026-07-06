@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import ReactiveConcurrency
 import Testing
@@ -10,7 +12,9 @@ private struct Pair: Sendable {
 
 // Lets pending consumer Tasks register/run before we send into a hot subject.
 private func settle() async {
-    for _ in 0..<20 { await Task.yield() }
+    for _ in 0..<20 {
+        await Task.yield()
+    }
 }
 
 // Polls a condition instead of sleeping a fixed amount — merge/combineLatest deliver via
@@ -27,7 +31,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func scanAccumulates() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...4).scan(0, +)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 3, 6, 10])
     }
@@ -35,7 +39,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func reduceEmitsFinalValue() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...4).reduce(0, +)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [10])
     }
@@ -43,7 +47,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func collectBuffersAll() async {
         var result: [[Int]] = []
         for await r in Publisher<Int, Never>.sequence(1...3).collect()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [[1, 2, 3]])
     }
@@ -51,7 +55,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func prependAddsBeforeUpstream() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(3...4).prepend(1, 2)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3, 4])
     }
@@ -59,7 +63,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func appendAddsAfterUpstream() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...2).append(3, 4)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3, 4])
     }
@@ -81,7 +85,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let ints = Publisher<Int, Never>.sequence(1...3)
         let strs = Publisher<String, Never>.sequence(["a", "b", "c"])
         for await r in ints.zip(strs)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.map(\.0) == [1, 2, 3])
         #expect(result.map(\.1) == ["a", "b", "c"])
@@ -92,7 +96,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let a = Publisher<Int, Never>.sequence(1...5)
         let b = Publisher<Int, Never>.sequence(1...3)
         for await r in a.zip(b)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.count == 3)
     }
@@ -108,13 +112,13 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .sink { values.append($0) }
 
         await settle()
-        subject1.send(1)                          // → latestA=1, no b yet
+        subject1.send(1) // → latestA=1, no b yet
         await settle()
-        subject2.send("a")                        // → latestB="a", emit (1,"a")
+        subject2.send("a") // → latestB="a", emit (1,"a")
         await poll { values.values.count >= 1 }
-        subject1.send(2)                          // → latestA=2, emit (2,"a")
+        subject1.send(2) // → latestA=2, emit (2,"a")
         await poll { values.values.count >= 2 }
-        subject2.send("b")                        // → latestB="b", emit (2,"b")
+        subject2.send("b") // → latestB="b", emit (2,"b")
         await poll { values.values.count >= 3 }
         cancellable.cancel()
 
@@ -261,7 +265,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             ._stream
         var result: [Int] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.sorted() == [10, 11, 20, 21, 30, 31])
     }
@@ -273,7 +277,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             ._stream
         var result: [Int] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [10, 11, 20, 21, 30, 31])
     }
@@ -286,7 +290,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             ._stream
         var result: [String] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == ["1+10", "2+11", "3+12"])
     }
@@ -301,11 +305,11 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .sink { values.append($0) }
 
         await settle()
-        a.send(1)                                 // latestA=1, no emit yet (b unseen)
+        a.send(1) // latestA=1, no emit yet (b unseen)
         await settle()
-        b.send(2)                                 // emit "1-2"
+        b.send(2) // emit "1-2"
         await poll { values.values.count >= 1 }
-        a.send(3)                                 // emit "3-2"
+        a.send(3) // emit "3-2"
         await poll { values.values.count >= 2 }
         sub.cancel()
 
@@ -324,7 +328,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return v > 3
             })._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append(-1)
             }
         }
@@ -336,7 +340,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .tryLast(where: { v throws(TestError) in v.isMultiple(of: 2) })._stream
         var result: [Int] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [4])
     }
@@ -349,7 +353,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return v < 3
             })._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append(-1)
             }
         }
@@ -364,7 +368,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return v < 4
             })._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append(-1)
             }
         }
@@ -376,17 +380,17 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .tryContains(where: { v throws(TestError) in v == 4 })._stream
         var result: [Bool] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [true])
     }
 
     @Test func tryAllSatisfyTrueWhenAllMatch() async {
         let stream = Publisher<Int, Never>.sequence(1...5)
-            .tryAllSatisfy({ v throws(TestError) in v < 10 })._stream
+            .tryAllSatisfy { v throws(TestError) in v < 10 }._stream
         var result: [Bool] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [true])
     }
@@ -396,7 +400,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             .tryRemoveDuplicates(by: { a, b throws(TestError) in abs(a - b) < 3 })._stream
         var result: [Int] = []
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 5, 10])
     }

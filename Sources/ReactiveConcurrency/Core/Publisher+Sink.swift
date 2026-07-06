@@ -1,5 +1,7 @@
-extension Publisher {
-    public func sink(
+// SPDX-License-Identifier: Apache-2.0
+
+public extension Publisher {
+    func sink(
         receiveCompletion: @escaping @Sendable (Subscribers.Completion<Failure>) -> Void,
         receiveValue: @escaping @Sendable (Output) -> Void
     ) -> AnyCancellable {
@@ -14,9 +16,9 @@ extension Publisher {
                 // delivers buffered values, matching cooperative-cancellation expectations.
                 guard !Task.isCancelled else { break }
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     receiveValue(value)
-                case .failure(let error):
+                case let .failure(error):
                     receiveCompletion(.failure(error))
                     return
                 }
@@ -29,13 +31,13 @@ extension Publisher {
     }
 }
 
-extension Publisher where Failure == Never {
-    public func sink(receiveValue: @escaping @Sendable (Output) -> Void) -> AnyCancellable {
+public extension Publisher where Failure == Never {
+    func sink(receiveValue: @escaping @Sendable (Output) -> Void) -> AnyCancellable {
         let stream = _stream.factory()
         let task = Task {
             for await result in stream {
                 guard !Task.isCancelled else { break }
-                if case .success(let value) = result { receiveValue(value) }
+                if case let .success(value) = result { receiveValue(value) }
             }
         }
         return AnyCancellable { task.cancel() }

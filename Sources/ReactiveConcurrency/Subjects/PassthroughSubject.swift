@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public final class PassthroughSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: SubjectCore<Output, Failure>
 

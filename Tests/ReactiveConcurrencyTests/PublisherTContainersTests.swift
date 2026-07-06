@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFP
 import CoreFPOperators
 import DataStructure
@@ -11,7 +13,7 @@ private enum CErr: Error, Equatable { case boom }
 private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> [O] {
     var out: [O] = []
     for await result in publisher._stream {
-        if case .success(let v) = result { out.append(v) }
+        if case let .success(v) = result { out.append(v) }
     }
     return out
 }
@@ -92,8 +94,8 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 @Suite struct PublisherTValidationTests {
     private func tag(_ v: Validation<[String], Int>) -> String {
         switch v {
-        case .success(let a): "S\(a)"
-        case .failure(let e): "F\(e.joined(separator: ","))"
+        case let .success(a): "S\(a)"
+        case let .failure(e): "F\(e.joined(separator: ","))"
         }
     }
 

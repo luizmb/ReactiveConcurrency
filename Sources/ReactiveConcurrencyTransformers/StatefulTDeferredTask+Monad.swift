@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // StatefulTDeferredTask: outer = Stateful, inner = DeferredTask
 // Type: Stateful<S, DeferredTask<A>>
 //

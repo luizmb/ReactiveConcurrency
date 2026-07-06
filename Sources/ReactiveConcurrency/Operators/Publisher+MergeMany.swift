@@ -1,9 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // merge over an arbitrary number of publishers (Combine's Publishers.MergeMany).
 // All sources run concurrently; outputs interleave in arrival order; the first failure
 // (from any source) seals the stream.
 
-extension Publisher {
-    public static func merge(_ publishers: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
+public extension Publisher {
+    static func merge(_ publishers: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
         let factories = publishers.map(\._stream.factory)
         return Publisher<Output, Failure>(DeferredStream {
             // Pre-subscribe all sources synchronously so values sent right after .sink() aren't lost.
@@ -32,7 +34,7 @@ extension Publisher {
         })
     }
 
-    public func merge(with others: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
+    func merge(with others: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
         Publisher.merge([self] + others)
     }
 }

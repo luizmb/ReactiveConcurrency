@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/luizmb/ReactiveConcurrency/actions/workflows/ci.yml/badge.svg)](https://github.com/luizmb/ReactiveConcurrency/actions/workflows/ci.yml)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue)
-![Swift](https://img.shields.io/badge/Swift-6.2-orange)
+![Swift](https://img.shields.io/badge/Swift-6.3-orange)
 ![License](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
 
 A **cross-platform reactive framework** built on top of modern Swift Concurrency and the
@@ -69,7 +69,7 @@ modern, pragmatic view:
 Add the package to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "1.0.0")
+.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "0.3.0")
 ```
 
 Then depend on the products you need:

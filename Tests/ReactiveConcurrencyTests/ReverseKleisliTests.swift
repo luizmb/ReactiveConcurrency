@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFPOperators
 @testable import ReactiveConcurrency
 import ReactiveConcurrencyOperators
@@ -30,7 +32,9 @@ import Testing
         let g: @Sendable (Int) -> DeferredStream<String> = { x in .pure("v\(x)") }
 
         var out: [String] = []
-        for await value in DeferredStream<Int>.kleisliBack(g, f)(2) { out.append(value) }
+        for await value in DeferredStream<Int>.kleisliBack(g, f)(2) {
+            out.append(value)
+        }
         #expect(out == ["v3"])
     }
 
@@ -39,9 +43,13 @@ import Testing
         let g: @Sendable (Int) -> DeferredStream<String> = { x in .pure("v\(x)") }
 
         var back: [String] = []
-        for await value in (g <=< f)(2) { back.append(value) }
+        for await value in (g <=< f)(2) {
+            back.append(value)
+        }
         var forward: [String] = []
-        for await value in (f >=> g)(2) { forward.append(value) }
+        for await value in (f >=> g)(2) {
+            forward.append(value)
+        }
         #expect(back == ["v3"])
         #expect(back == forward)
     }

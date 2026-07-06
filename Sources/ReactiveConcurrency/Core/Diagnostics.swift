@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 
 /// Opt-in runtime diagnostics for catching common misuse. Enabled by default in DEBUG builds and
@@ -17,9 +19,9 @@ public enum Diagnostics {
 
     private static var defaultEnabled: Bool {
         #if DEBUG
-        true
+            true
         #else
-        false
+            false
         #endif
     }
 

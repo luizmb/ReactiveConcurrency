@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+
 @testable import ReactiveConcurrency
 import Testing
 
-private func settle() async { for _ in 0..<20 { await Task.yield() } }
+private func settle() async { for _ in 0..<20 {
+    await Task.yield()
+} }
 
 private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool) async {
     for _ in 0..<(timeoutMs / 2) {
@@ -13,7 +17,9 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
 
 private func collect<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O] {
     var out: [O] = []
-    for await v in publisher.values { out.append(v) }
+    for await v in publisher.values {
+        out.append(v)
+    }
     return out
 }
 

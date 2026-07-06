@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
@@ -5,6 +7,7 @@ import Testing
 
 @Suite struct StatefulTDeferredTaskTests {
     // MARK: - Stateful<S, DeferredTask<A>> — State as outer, DeferredTask as inner
+
     // Note: flatMapT is not implementable for this stack.
 
     @Test func mapTTransformsValue() async {

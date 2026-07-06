@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // DeferredStreamTReader: outer = DeferredStream, inner = Reader
 // Type: DeferredStream<Reader<Env, A>>
 //

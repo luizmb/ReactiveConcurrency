@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // MARK: - print
 
-extension Publisher {
+public extension Publisher {
     // Logs subscription, values, completion, and cancellation to stdout with an optional prefix.
-    public func print(_ prefix: String = "") -> Publisher<Output, Failure> {
+    func print(_ prefix: String = "") -> Publisher<Output, Failure> {
         let pfx = prefix.isEmpty ? "" : "\(prefix): "
         return handleEvents(
             receiveSubscription: { Swift.print("\(pfx)receive subscription") },
@@ -10,7 +12,7 @@ extension Publisher {
             receiveCompletion: {
                 switch $0 {
                 case .finished: Swift.print("\(pfx)receive finished")
-                case .failure(let e): Swift.print("\(pfx)receive error: (\(e))")
+                case let .failure(e): Swift.print("\(pfx)receive error: (\(e))")
                 }
             },
             receiveCancel: { Swift.print("\(pfx)receive cancel") }
@@ -20,11 +22,11 @@ extension Publisher {
 
 // MARK: - assertNoFailure
 
-extension Publisher {
+public extension Publisher {
     // Converts to an infallible publisher by asserting failures never arrive.
     // In debug builds, triggers assertionFailure if a failure is received.
     // In release builds, silently finishes instead.
-    public func assertNoFailure(
+    func assertNoFailure(
         _ message: @autoclosure @escaping @Sendable () -> String = "",
         file: StaticString = #file,
         line: UInt = #line
@@ -36,9 +38,9 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let v):
+                        case let .success(v):
                             if case .terminated = raw.yield(.success(v)) { return }
-                        case .failure(let e):
+                        case let .failure(e):
                             let msg = message()
                             assertionFailure(
                                 msg.isEmpty ? "assertNoFailure received: \(e)" : "\(msg): \(e)",
@@ -58,16 +60,16 @@ extension Publisher {
 
 // MARK: - breakpointOnError / breakpoint
 
-extension Publisher {
+public extension Publisher {
     // Raises assertionFailure (debug only) when a failure is received.
-    public func breakpointOnError() -> Publisher<Output, Failure> {
+    func breakpointOnError() -> Publisher<Output, Failure> {
         handleEvents(receiveCompletion: {
-            if case .failure(let e) = $0 { assertionFailure("breakpointOnError: \(e)") }
+            if case let .failure(e) = $0 { assertionFailure("breakpointOnError: \(e)") }
         })
     }
 
     // Raises assertionFailure (debug only) when the provided closure returns true.
-    public func breakpoint(
+    func breakpoint(
         receiveOutput: (@Sendable (Output) -> Bool)? = nil,
         receiveCompletion: (@Sendable (Subscribers.Completion<Failure>) -> Bool)? = nil
     ) -> Publisher<Output, Failure> {

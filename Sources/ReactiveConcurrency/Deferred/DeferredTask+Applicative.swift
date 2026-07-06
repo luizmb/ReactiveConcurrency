@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public extension DeferredTask {
     // pure :: a -> DeferredTask a
     static func pure(_ value: Success) -> DeferredTask<Success> {
@@ -6,12 +8,12 @@ public extension DeferredTask {
 
     // seqRight :: DeferredTask a -> DeferredTask b -> DeferredTask b
     func seqRight<B: Sendable>(_ rhs: DeferredTask<B>) -> DeferredTask<B> {
-        liftA2DeferredTask({ _, b in b })(self, rhs)
+        liftA2DeferredTask { _, b in b }(self, rhs)
     }
 
     // seqLeft :: DeferredTask a -> DeferredTask b -> DeferredTask a
     func seqLeft<B: Sendable>(_ rhs: DeferredTask<B>) -> DeferredTask<Success> {
-        liftA2DeferredTask({ a, _ in a })(self, rhs)
+        liftA2DeferredTask { a, _ in a }(self, rhs)
     }
 
     // zip :: DeferredTask a -> DeferredTask b -> … -> DeferredTask (a, b, …)

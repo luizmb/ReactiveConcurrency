@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // buffer(size:whenFull:) — bound how many undelivered elements are held, dropping per strategy
 // when the downstream can't keep up. Maps to AsyncStream's buffering policy.
 //
@@ -11,8 +13,8 @@ public enum BufferStrategy: Sendable {
     case dropNewest
 }
 
-extension Publisher {
-    public func buffer(size: Int, whenFull strategy: BufferStrategy) -> Publisher<Output, Failure> {
+public extension Publisher {
+    func buffer(size: Int, whenFull strategy: BufferStrategy) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         let policy: AsyncStream<Result<Output, Failure>>.Continuation.BufferingPolicy =
             switch strategy {

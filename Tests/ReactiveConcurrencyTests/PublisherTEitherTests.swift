@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFPOperators
 import DataStructure
 @testable import ReactiveConcurrency
@@ -13,10 +15,10 @@ private func tags<L: Sendable, A: Sendable, F: Error>(
 ) async -> [String] {
     var out: [String] = []
     for await result in publisher._stream {
-        if case .success(let either) = result {
+        if case let .success(either) = result {
             switch either {
-            case .right(let r): out.append("R\(r)")
-            case .left(let l): out.append("L\(l)")
+            case let .right(r): out.append("R\(r)")
+            case let .left(l): out.append("L\(l)")
             }
         }
     }
@@ -37,7 +39,7 @@ private func tags<L: Sendable, A: Sendable, F: Error>(
     }
 
     @Test func applyTCombinesRights() async {
-        let fns = Publisher<Either<String, @Sendable (Int) -> Int>, Never>.just(.right({ $0 + 1 }))
+        let fns = Publisher<Either<String, @Sendable (Int) -> Int>, Never>.just(.right { $0 + 1 })
         let vals = Publisher<Either<String, Int>, Never>.just(.right(10))
         #expect(await tags(applyTPublisherEither(fns, vals)) == ["R11"])
         #expect(await tags(fns <*> vals) == ["R11"])

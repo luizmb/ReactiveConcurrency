@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFPOperators
 import Foundation
 @testable import ReactiveConcurrency
@@ -11,7 +13,7 @@ private enum MappedError: Error, Equatable { case mapped }
 private func values<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O] {
     var out: [O] = []
     for await result in publisher._stream {
-        if case .success(let v) = result { out.append(v) }
+        if case let .success(v) = result { out.append(v) }
     }
     return out
 }
@@ -19,7 +21,9 @@ private func values<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O] 
 // Collect the raw Result events from a failable publisher.
 private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -> [Result<O, E>] {
     var out: [Result<O, E>] = []
-    for await result in publisher._stream { out.append(result) }
+    for await result in publisher._stream {
+        out.append(result)
+    }
     return out
 }
 
@@ -204,19 +208,25 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
     @Test func publisherToDeferredStream() async {
         var out: [Int] = []
-        for await v in Publisher<Int, Never>.sequence(1...3).values { out.append(v) }
+        for await v in Publisher<Int, Never>.sequence(1...3).values {
+            out.append(v)
+        }
         #expect(out == [1, 2, 3])
     }
 
     @Test func publisherToResultStream() async {
         var out: [Result<Int, TestError>] = []
-        for await r in Publisher<Int, TestError>.just(7).results { out.append(r) }
+        for await r in Publisher<Int, TestError>.just(7).results {
+            out.append(r)
+        }
         #expect(out == [.success(7)])
     }
 
     @Test func streamRoundTrip() async {
         var out: [Int] = []
-        for await v in DeferredStream<Int>.pure(42).eraseToPublisher().values { out.append(v) }
+        for await v in DeferredStream<Int>.pure(42).eraseToPublisher().values {
+            out.append(v)
+        }
         #expect(out == [42])
     }
 }

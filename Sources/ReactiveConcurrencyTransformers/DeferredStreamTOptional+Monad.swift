@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import ReactiveConcurrency
+
 // DeferredStreamTOptional: outer = DeferredStream, inner = Optional
 // Type: DeferredStream<A?>
 

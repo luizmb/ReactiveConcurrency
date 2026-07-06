@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFP
 import DataStructure
 import ReactiveConcurrency
@@ -40,8 +42,8 @@ public func applyTDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable,
                 while let vf = await fi.next(), let va = await vi.next() {
                     let result: Validation<E, B> = switch (vf, va) {
                     case let (.success(f), .success(a)): .success(f(a))
-                    case let (.failure(e), .success):    .failure(e)
-                    case let (.success, .failure(e)):    .failure(e)
+                    case let (.failure(e), .success): .failure(e)
+                    case let (.success, .failure(e)): .failure(e)
                     case let (.failure(e1), .failure(e2)): .failure(E.combine(e1, e2))
                     }
                     continuation.yield(result)

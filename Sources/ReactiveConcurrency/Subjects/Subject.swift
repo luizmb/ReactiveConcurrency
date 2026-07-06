@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public protocol Subject<Output, Failure>: AnyObject, Sendable {
     associatedtype Output: Sendable
     associatedtype Failure: Error
@@ -7,8 +9,8 @@ public protocol Subject<Output, Failure>: AnyObject, Sendable {
     func eraseToPublisher() -> Publisher<Output, Failure>
 }
 
-extension Subject {
-    public func eraseToAnySubject() -> AnySubject<Output, Failure> {
+public extension Subject {
+    func eraseToAnySubject() -> AnySubject<Output, Failure> {
         AnySubject(self)
     }
 }

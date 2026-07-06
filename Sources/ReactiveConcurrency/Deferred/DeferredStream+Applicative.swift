@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public extension DeferredStream {
     // pure :: a -> DeferredStream a
     static func pure(_ value: Element) -> DeferredStream<Element> {
@@ -10,12 +12,12 @@ public extension DeferredStream {
 
     // seqRight :: DeferredStream a -> DeferredStream b -> DeferredStream b
     func seqRight<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<B> {
-        liftA2DeferredStream({ _, b in b })(self, rhs)
+        liftA2DeferredStream { _, b in b }(self, rhs)
     }
 
     // seqLeft :: DeferredStream a -> DeferredStream b -> DeferredStream a
     func seqLeft<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<Element> {
-        liftA2DeferredStream({ a, _ in a })(self, rhs)
+        liftA2DeferredStream { a, _ in a }(self, rhs)
     }
 
     // zip :: DeferredStream a -> DeferredStream b -> DeferredStream (a, b)

@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 import ReactiveConcurrency
 #if canImport(Combine)
-import Combine
+    import Combine
 #endif
 
 // Lightweight, dependency-free throughput benchmarks. Wall-clock only (no allocation profiling —
@@ -13,13 +15,17 @@ import Combine
 
 func fmt(_ value: Double, _ width: Int = 8, _ decimals: Int = 2) -> String {
     var s = String(format: "%.\(decimals)f", value)
-    while s.count < width { s = " " + s }
+    while s.count < width {
+        s = " " + s
+    }
     return s
 }
 
 func pad(_ s: String, _ width: Int) -> String {
     var r = s
-    while r.count < width { r += " " }
+    while r.count < width {
+        r += " "
+    }
     return r
 }
 
@@ -30,7 +36,7 @@ func report(_ name: String, n: Int, secs: Double, extra: String) {
 
 @discardableResult
 func bench(_ name: String, n: Int, _ body: @Sendable (Int) async -> Int) async -> Int {
-    _ = await body(Swift.min(n, 10_000))  // warmup
+    _ = await body(Swift.min(n, 10_000)) // warmup
     let clock = ContinuousClock()
     let start = clock.now
     let checksum = await body(n)
@@ -66,8 +72,16 @@ enum Benchmarks {
         await bench("AsyncStream identity", n: n) { n in
             var sum = 0
             let (s, c) = AsyncStream<Int>.makeStream()
-            let consumer = Task { var a = 0; for await v in s { a &+= v }; return a }
-            for i in 0..<n { c.yield(i) }
+            let consumer = Task {
+                var a = 0
+                for await v in s {
+                    a &+= v
+                }
+                return a
+            }
+            for i in 0..<n {
+                c.yield(i)
+            }
             c.finish()
             sum = await consumer.value
             return sum
@@ -84,17 +98,17 @@ enum Benchmarks {
             return acc.v
         }
         #if canImport(Combine)
-        await bench("Combine identity", n: n) { n in
-            let acc = Sum()
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                let box = CombineBox()
-                box.c = (0..<n).publisher.sink(
-                    receiveCompletion: { _ in box.c = nil; cont.resume() },
-                    receiveValue: { acc.add($0) }
-                )
+            await bench("Combine identity", n: n) { n in
+                let acc = Sum()
+                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                    let box = CombineBox()
+                    box.c = (0..<n).publisher.sink(
+                        receiveCompletion: { _ in box.c = nil; cont.resume() },
+                        receiveValue: { acc.add($0) }
+                    )
+                }
+                return acc.v
             }
-            return acc.v
-        }
         #endif
     }
 
@@ -103,8 +117,16 @@ enum Benchmarks {
             var sum = 0
             let (s, c) = AsyncStream<Int>.makeStream()
             let mapped = s.map { $0 &+ 1 }.map { $0 &+ 1 }.map { $0 &+ 1 }
-            let consumer = Task { var a = 0; for await v in mapped { a &+= v }; return a }
-            for i in 0..<n { c.yield(i) }
+            let consumer = Task {
+                var a = 0
+                for await v in mapped {
+                    a &+= v
+                }
+                return a
+            }
+            for i in 0..<n {
+                c.yield(i)
+            }
             c.finish()
             sum = await consumer.value
             return sum
@@ -122,55 +144,74 @@ enum Benchmarks {
             return acc.v
         }
         #if canImport(Combine)
-        await bench("Combine map x3", n: n) { n in
-            let acc = Sum()
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                let box = CombineBox()
-                // Pin to Combine's concrete Sequence type to disambiguate `.publisher` from RC.
-                let src: Publishers.Sequence<Range<Int>, Never> = (0..<n).publisher
-                let chained = src.eraseToAnyPublisher().map { $0 &+ 1 }.map { $0 &+ 1 }.map { $0 &+ 1 }
-                box.c = chained.sink(
-                    receiveCompletion: { _ in box.c = nil; cont.resume() },
-                    receiveValue: { acc.add($0) }
-                )
+            await bench("Combine map x3", n: n) { n in
+                let acc = Sum()
+                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                    let box = CombineBox()
+                    // Pin to Combine's concrete Sequence type to disambiguate `.publisher` from RC.
+                    let src: Publishers.Sequence<Range<Int>, Never> = (0..<n).publisher
+                    let chained = src.eraseToAnyPublisher().map { $0 &+ 1 }.map { $0 &+ 1 }.map { $0 &+ 1 }
+                    box.c = chained.sink(
+                        receiveCompletion: { _ in box.c = nil; cont.resume() },
+                        receiveValue: { acc.add($0) }
+                    )
+                }
+                return acc.v
             }
-            return acc.v
-        }
         #endif
     }
 
     static func chainBenchmarks() async {
         await bench("baseline AsyncStream", n: 1_000_000) { n in
             var sum = 0
-            let s = AsyncStream<Int> { c in for i in 0..<n { c.yield(i) }; c.finish() }
-            for await v in s { sum &+= v }
+            let s = AsyncStream<Int> { c in
+                for i in 0..<n {
+                    c.yield(i)
+                }
+                c.finish()
+            }
+            for await v in s {
+                sum &+= v
+            }
             return sum
         }
         await bench("Publisher.sequence.values", n: 1_000_000) { n in
             var sum = 0
-            for await v in Publisher<Int, Never>.sequence(0..<n).values { sum &+= v }
+            for await v in Publisher<Int, Never>.sequence(0..<n).values {
+                sum &+= v
+            }
             return sum
         }
         await bench("map x1", n: 1_000_000) { n in
             var sum = 0
-            for await v in Publisher<Int, Never>.sequence(0..<n).map({ $0 &+ 1 }).values { sum &+= v }
+            for await v in Publisher<Int, Never>.sequence(0..<n).map({ $0 &+ 1 }).values {
+                sum &+= v
+            }
             return sum
         }
         await bench("map x10", n: 1_000_000) { n in
             var sum = 0
             var p = Publisher<Int, Never>.sequence(0..<n)
-            for _ in 0..<10 { p = p.map { $0 &+ 1 } }
-            for await v in p.values { sum &+= v }
+            for _ in 0..<10 {
+                p = p.map { $0 &+ 1 }
+            }
+            for await v in p.values {
+                sum &+= v
+            }
             return sum
         }
         await bench("filter (keep even)", n: 1_000_000) { n in
             var sum = 0
-            for await v in Publisher<Int, Never>.sequence(0..<n).filter({ $0.isMultiple(of: 2) }).values { sum &+= v }
+            for await v in Publisher<Int, Never>.sequence(0..<n).filter({ $0.isMultiple(of: 2) }).values {
+                sum &+= v
+            }
             return sum
         }
         await bench("scan (running sum)", n: 1_000_000) { n in
             var last = 0
-            for await v in Publisher<Int, Never>.sequence(0..<n).scan(0, { $0 &+ $1 }).values { last = v }
+            for await v in Publisher<Int, Never>.sequence(0..<n).scan(0, { $0 &+ $1 }).values {
+                last = v
+            }
             return last
         }
     }
@@ -179,20 +220,26 @@ enum Benchmarks {
         await bench("flatMap (1 inner each)", n: 100_000) { n in
             var sum = 0
             let p = Publisher<Int, Never>.sequence(0..<n).flatMap { Publisher<Int, Never>.just($0 &+ 1) }
-            for await v in p.values { sum &+= v }
+            for await v in p.values {
+                sum &+= v
+            }
             return sum
         }
         await bench("merge x4", n: 1_000_000) { n in
             var sum = 0
             let q = n / 4
             let merged = Publisher<Int, Never>.merge([.sequence(0..<q), .sequence(0..<q), .sequence(0..<q), .sequence(0..<q)])
-            for await v in merged.values { sum &+= v }
+            for await v in merged.values {
+                sum &+= v
+            }
             return sum
         }
         await bench("zip2", n: 1_000_000) { n in
             var sum = 0
             let zipped = Publisher<Int, Never>.sequence(0..<n).zip(Publisher<Int, Never>.sequence(0..<n))
-            for await pair in zipped.values { sum &+= pair.0 &+ pair.1 }
+            for await pair in zipped.values {
+                sum &+= pair.0 &+ pair.1
+            }
             return sum
         }
     }
@@ -203,15 +250,23 @@ enum Benchmarks {
         let counter = Counter()
         let subject = ReactiveConcurrency.PassthroughSubject<Int, Never>()
         let consumer = Task {
-            for await _ in subject.eraseToPublisher().values { counter.bump() }
+            for await _ in subject.eraseToPublisher().values {
+                counter.bump()
+            }
         }
-        for _ in 0..<12 { await Task.yield() }  // let the consumer subscribe
+        for _ in 0..<12 {
+            await Task.yield()
+        } // let the consumer subscribe
 
         let clock = ContinuousClock()
         let start = clock.now
-        for i in 0..<n { subject.send(i) }
+        for i in 0..<n {
+            subject.send(i)
+        }
         subject.send(completion: .finished)
-        while counter.value < n { await Task.yield() }
+        while counter.value < n {
+            await Task.yield()
+        }
         report("PassthroughSubject send+drain", n: n, secs: seconds(start.duration(to: clock.now)), extra: "recv=\(counter.value)")
         consumer.cancel()
     }
@@ -231,5 +286,5 @@ final class Sum: @unchecked Sendable { var v = 0; func add(_ x: Int) { v &+= x }
 // Retain boxes: AnyCancellable cancels on deinit, so the subscription must be held until completion.
 final class CancellableBox: @unchecked Sendable { var c: ReactiveConcurrency.AnyCancellable? }
 #if canImport(Combine)
-final class CombineBox: @unchecked Sendable { var c: Combine.AnyCancellable? }
+    final class CombineBox: @unchecked Sendable { var c: Combine.AnyCancellable? }
 #endif

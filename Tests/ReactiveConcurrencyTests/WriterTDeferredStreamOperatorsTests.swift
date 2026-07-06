@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFPOperators
 import DataStructure
 import DataStructureOperators
@@ -77,7 +79,9 @@ import Testing
         )
         let result = wf <*> wa
         var values: [String] = []
-        for await v in result.value { values.append(v) }
+        for await v in result.value {
+            values.append(v)
+        }
         #expect(values == ["7"])
         #expect(result.log == ["fn", "val"])
     }
@@ -93,7 +97,9 @@ import Testing
         )
         let result = lhs *> rhs
         var values: [String] = []
-        for await v in result.value { values.append(v) }
+        for await v in result.value {
+            values.append(v)
+        }
         #expect(values == ["hello"])
         #expect(result.log == ["a", "b"])
     }
@@ -109,7 +115,9 @@ import Testing
         )
         let result = lhs <* rhs
         var values: [Int] = []
-        for await v in result.value { values.append(v) }
+        for await v in result.value {
+            values.append(v)
+        }
         #expect(values == [99])
         #expect(result.log == ["a", "b"])
     }

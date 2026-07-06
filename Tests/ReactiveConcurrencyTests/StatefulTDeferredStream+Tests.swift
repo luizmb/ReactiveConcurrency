@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
@@ -5,6 +7,7 @@ import Testing
 
 @Suite struct StatefulTDeferredStreamTests {
     // MARK: - Stateful<S, DeferredStream<A>> — State as outer, DeferredStream as inner
+
     // Note: flatMapT is not implementable for this stack.
 
     @Test func mapTTransformsValues() async {
@@ -62,7 +65,9 @@ import Testing
         }
         let result = applyStatefulDeferredStream(sf, sa)
         var results: [String] = []
-        for await value in result.eval(0) { results.append(value) }
+        for await value in result.eval(0) {
+            results.append(value)
+        }
         #expect(results == ["42"])
     }
 
@@ -75,7 +80,9 @@ import Testing
         }
         let result = seqRightStatefulDeferredStream(lhs, rhs)
         var results: [String] = []
-        for await value in result.eval(0) { results.append(value) }
+        for await value in result.eval(0) {
+            results.append(value)
+        }
         #expect(results == ["hello"])
     }
 
@@ -88,7 +95,9 @@ import Testing
         }
         let result = seqLeftStatefulDeferredStream(lhs, rhs)
         var results: [Int] = []
-        for await value in result.eval(0) { results.append(value) }
+        for await value in result.eval(0) {
+            results.append(value)
+        }
         #expect(results == [99])
     }
 }
