@@ -3,6 +3,8 @@ name: Documentation
 on:
   push:
     tags: ['v*']
+  # Manual clean re-deploy (single artifact) without a new tag — transient Pages failures.
+  workflow_dispatch:
 
 permissions:
   contents: read
