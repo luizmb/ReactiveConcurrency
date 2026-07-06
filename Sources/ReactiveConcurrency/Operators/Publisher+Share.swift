@@ -1,15 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // MARK: - share()
 
-extension Publisher {
+public extension Publisher {
     // Multicasts the upstream to multiple downstream subscribers.
     // The upstream subscription starts with the first subscriber and is torn down
     // when the last subscriber cancels. Subsequent re-subscriptions restart upstream.
-    public func share() -> Publisher<Output, Failure> {
+    func share() -> Publisher<Output, Failure> {
         let shared = SharedState(upstream: self)
         return Publisher<Output, Failure>(DeferredStream {
             let (id, stream) = shared.subscribe()
             return AsyncStream<Result<Output, Failure>> { raw in
-                let t = Task { for await result in stream { raw.yield(result) }; raw.finish() }
+                let t = Task {
+                    for await result in stream {
+                        raw.yield(result)
+                    }
+                    raw.finish()
+                }
                 raw.onTermination = { _ in t.cancel(); shared.unsubscribe(id) }
             }
         })
@@ -24,6 +31,7 @@ private final class SharedState<Output: Sendable, Failure: Error>: Sendable {
         var refCount: Int = 0
         var upstreamTask: Task<Void, Never>?
     }
+
     private let _state = Locked(_State())
 
     init(upstream: Publisher<Output, Failure>) {
@@ -42,8 +50,8 @@ private final class SharedState<Output: Sendable, Failure: Error>: Sendable {
                 state.upstreamTask = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let v): core.send(v)
-                        case .failure(let e): core.complete(.failure(e)); return
+                        case let .success(v): core.send(v)
+                        case let .failure(e): core.complete(.failure(e)); return
                         }
                     }
                     core.complete(.finished)
@@ -82,22 +90,22 @@ private final class AutoconnectState: Sendable {
 
 // MARK: - makeConnectable() / ConnectablePublisher
 
-extension Publisher {
+public extension Publisher {
     /// A connectable publisher that fans the upstream out through an internal `PassthroughSubject`.
-    public func makeConnectable() -> ConnectablePublisher<Output, Failure> {
+    func makeConnectable() -> ConnectablePublisher<Output, Failure> {
         ConnectablePublisher(upstream: self, subject: PassthroughSubject<Output, Failure>().eraseToAnySubject())
     }
 
     /// Multicasts the upstream through the given subject. The subject's semantics drive fan-out —
     /// e.g. a `CurrentValueSubject` replays the latest value to late subscribers.
-    public func multicast<S: Subject>(
+    func multicast<S: Subject>(
         subject: S
     ) -> ConnectablePublisher<Output, Failure> where S.Output == Output, S.Failure == Failure {
         ConnectablePublisher(upstream: self, subject: subject.eraseToAnySubject())
     }
 
     /// Multicasts the upstream through a subject created by `createSubject`.
-    public func multicast<S: Subject>(
+    func multicast<S: Subject>(
         _ createSubject: @Sendable () -> S
     ) -> ConnectablePublisher<Output, Failure> where S.Output == Output, S.Failure == Failure {
         ConnectablePublisher(upstream: self, subject: createSubject().eraseToAnySubject())
@@ -122,8 +130,8 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
         let task = Task {
             for await result in upstream {
                 switch result {
-                case .success(let v): subject.send(v)
-                case .failure(let e): subject.send(completion: .failure(e)); return
+                case let .success(v): subject.send(v)
+                case let .failure(e): subject.send(completion: .failure(e)); return
                 }
             }
             subject.send(completion: .finished)
@@ -141,10 +149,15 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
             state.connectOnce { connectable.connect() }
             let downstream = subject.eraseToPublisher()._stream.factory()
             return AsyncStream<Result<Output, Failure>> { raw in
-                let t = Task { for await result in downstream { raw.yield(result) }; raw.finish() }
+                let t = Task {
+                    for await result in downstream {
+                        raw.yield(result)
+                    }
+                    raw.finish()
+                }
                 raw.onTermination = { [state] _ in
                     t.cancel()
-                    _ = state  // keep connection alive as long as any subscriber is alive
+                    _ = state // keep connection alive as long as any subscriber is alive
                 }
             }
         })

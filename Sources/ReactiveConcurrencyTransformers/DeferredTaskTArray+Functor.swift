@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import ReactiveConcurrency
+
 // DeferredTaskTArray: outer = DeferredTask, inner = Array
 // Type: DeferredTask<[A]>  — Haskell: ListT DeferredTask
 

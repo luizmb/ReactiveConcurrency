@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 
 // Drop-in replacement for Synchronization.Mutex that works on iOS 16 / macOS 13.

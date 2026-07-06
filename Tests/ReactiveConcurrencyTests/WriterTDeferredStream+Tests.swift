@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
@@ -85,7 +87,9 @@ import Testing
         )
         let result = seqRightWriterDeferredStream(lhs, rhs)
         var results: [String] = []
-        for await value in result.value { results.append(value) }
+        for await value in result.value {
+            results.append(value)
+        }
         #expect(results == ["hello"])
         #expect(result.log == ["a", "b"])
     }
@@ -101,7 +105,9 @@ import Testing
         )
         let result = seqLeftWriterDeferredStream(lhs, rhs)
         var results: [Int] = []
-        for await value in result.value { results.append(value) }
+        for await value in result.value {
+            results.append(value)
+        }
         #expect(results == [99])
         #expect(result.log == ["a", "b"])
     }

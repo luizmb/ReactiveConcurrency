@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 import Testing
@@ -18,7 +20,9 @@ private enum TestError: Error, Equatable { case err }
         }
         #expect(!started, "factory must not run before iteration")
         var results: [Int] = []
-        for await v in stream { results.append(v) }
+        for await v in stream {
+            results.append(v)
+        }
         #expect(started)
         #expect(results == [42])
     }
@@ -30,7 +34,9 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<Int> { c in c.yield(1); c.yield(2); c.yield(3); c.finish() }
         }
         var results: [Int] = []
-        for await v in stream.map({ $0 * 2 }) { results.append(v) }
+        for await v in stream.map({ $0 * 2 }) {
+            results.append(v)
+        }
         #expect(results == [2, 4, 6])
     }
 
@@ -39,7 +45,9 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<Int> { c in c.yield(1); c.yield(2); c.finish() }
         }
         var results: [String] = []
-        for await v in stream.replace("x") { results.append(v) }
+        for await v in stream.replace("x") {
+            results.append(v)
+        }
         #expect(results == ["x", "x"])
     }
 
@@ -47,7 +55,9 @@ private enum TestError: Error, Equatable { case err }
 
     @Test func pure() async {
         var results: [Int] = []
-        for await v in DeferredStream<Int>.pure(99) { results.append(v) }
+        for await v in DeferredStream<Int>.pure(99) {
+            results.append(v)
+        }
         #expect(results == [99])
     }
 
@@ -55,7 +65,9 @@ private enum TestError: Error, Equatable { case err }
         let lhs = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.yield(2); c.finish() } }
         let rhs = DeferredStream<String> { AsyncStream { c in c.yield("a"); c.yield("b"); c.finish() } }
         var results: [String] = []
-        for await v in lhs.seqRight(rhs) { results.append(v) }
+        for await v in lhs.seqRight(rhs) {
+            results.append(v)
+        }
         #expect(results == ["a", "b"])
     }
 
@@ -63,7 +75,9 @@ private enum TestError: Error, Equatable { case err }
         let lhs = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.yield(2); c.finish() } }
         let rhs = DeferredStream<String> { AsyncStream { c in c.yield("a"); c.yield("b"); c.finish() } }
         var results: [Int] = []
-        for await v in lhs.seqLeft(rhs) { results.append(v) }
+        for await v in lhs.seqLeft(rhs) {
+            results.append(v)
+        }
         #expect(results == [1, 2])
     }
 
@@ -77,7 +91,9 @@ private enum TestError: Error, Equatable { case err }
             DeferredStream<Int> { AsyncStream { c in c.yield(n); c.yield(n * 10); c.finish() } }
         }
         var results: [Int] = []
-        for await v in result { results.append(v) }
+        for await v in result {
+            results.append(v)
+        }
         #expect(results == [1, 10, 2, 20])
     }
 
@@ -90,7 +106,9 @@ private enum TestError: Error, Equatable { case err }
         }
         let fg = DeferredStream<Int>.kleisli(f, g)
         var results: [String] = []
-        for await v in fg(5) { results.append(v) }
+        for await v in fg(5) {
+            results.append(v)
+        }
         #expect(results == ["6"])
     }
 
@@ -157,7 +175,9 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<Int?> { c in c.yield(1); c.yield(nil); c.yield(3); c.finish() }
         }
         var results: [Int?] = []
-        for await v in mapTDeferredStreamOptional({ $0 * 2 }, stream) { results.append(v) }
+        for await v in mapTDeferredStreamOptional({ $0 * 2 }, stream) {
+            results.append(v)
+        }
         #expect(results == [2, nil, 6])
     }
 
@@ -169,7 +189,9 @@ private enum TestError: Error, Equatable { case err }
             DeferredStream<Int?> { AsyncStream { c in c.yield(n * 10); c.finish() } }
         }
         var results: [Int?] = []
-        for await v in result { results.append(v) }
+        for await v in result {
+            results.append(v)
+        }
         #expect(results == [20, nil])
     }
 
@@ -180,7 +202,9 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<[Int]> { c in c.yield([1, 2]); c.yield([3]); c.finish() }
         }
         var results: [[Int]] = []
-        for await v in mapTDeferredStreamArray({ $0 * 2 }, stream) { results.append(v) }
+        for await v in mapTDeferredStreamArray({ $0 * 2 }, stream) {
+            results.append(v)
+        }
         #expect(results == [[2, 4], [6]])
     }
 
@@ -192,7 +216,9 @@ private enum TestError: Error, Equatable { case err }
             DeferredStream<[Int]> { AsyncStream { c in c.yield([n, n * 10]); c.finish() } }
         }
         var results: [[Int]] = []
-        for await v in result { results.append(v) }
+        for await v in result {
+            results.append(v)
+        }
         #expect(results == [[1, 10, 2, 20]])
     }
 
@@ -207,7 +233,9 @@ private enum TestError: Error, Equatable { case err }
             }
         }
         var results: [Result<Int, TestError>] = []
-        for await v in mapTDeferredStreamResult({ $0 * 2 }, stream) { results.append(v) }
+        for await v in mapTDeferredStreamResult({ $0 * 2 }, stream) {
+            results.append(v)
+        }
         #expect(results == [.success(6), .failure(.err)])
     }
 
@@ -221,7 +249,9 @@ private enum TestError: Error, Equatable { case err }
             }
         }
         var results: [Result<String, TestError>] = []
-        for await v in result { results.append(v) }
+        for await v in result {
+            results.append(v)
+        }
         #expect(results == [.success("v5")])
     }
 
@@ -231,14 +261,18 @@ private enum TestError: Error, Equatable { case err }
         let inner = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.yield(2); c.finish() } }
         let nested = DeferredStream<DeferredStream<Int>> { AsyncStream { c in c.yield(inner); c.finish() } }
         var collected: [Int] = []
-        for await v in ReactiveConcurrency.join(nested) { collected.append(v) }
+        for await v in ReactiveConcurrency.join(nested) {
+            collected.append(v)
+        }
         #expect(collected == [1, 2])
     }
 
     @Test func voidFreeFunction() async {
         let stream = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.yield(2); c.finish() } }
         var count = 0
-        for await _ in ReactiveConcurrency.void(stream) { count += 1 }
+        for await _ in ReactiveConcurrency.void(stream) {
+            count += 1
+        }
         #expect(count == 2)
     }
 
@@ -248,7 +282,9 @@ private enum TestError: Error, Equatable { case err }
         let lhs = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.yield(2); c.finish() } }
         let rhs = DeferredStream<Int> { AsyncStream { c in c.yield(3); c.yield(4); c.finish() } }
         var results: [Int] = []
-        for await v in DeferredStream.alt(lhs, rhs) { results.append(v) }
+        for await v in DeferredStream.alt(lhs, rhs) {
+            results.append(v)
+        }
         #expect(results == [1, 2, 3, 4])
     }
 
@@ -256,7 +292,9 @@ private enum TestError: Error, Equatable { case err }
         let lhs = DeferredStream<Int> { AsyncStream { c in c.finish() } }
         let rhs = DeferredStream<Int> { AsyncStream { c in c.yield(42); c.finish() } }
         var results: [Int] = []
-        for await v in DeferredStream.alt(lhs, rhs) { results.append(v) }
+        for await v in DeferredStream.alt(lhs, rhs) {
+            results.append(v)
+        }
         #expect(results == [42])
     }
 
@@ -264,7 +302,9 @@ private enum TestError: Error, Equatable { case err }
         let lhs = DeferredStream<Int> { AsyncStream { c in c.yield(1); c.finish() } }
         let rhs = DeferredStream<Int> { AsyncStream { c in c.finish() } }
         var results: [Int] = []
-        for await v in DeferredStream.alt(lhs, rhs) { results.append(v) }
+        for await v in DeferredStream.alt(lhs, rhs) {
+            results.append(v)
+        }
         #expect(results == [1])
     }
 }

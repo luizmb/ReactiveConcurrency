@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // A publisher that records values and a completion, then replays them cold on each subscription.
 // Mirrors Combine's Record<Output, Failure>.
 public struct Record<Output: Sendable, Failure: Error>: Sendable {
@@ -32,17 +34,19 @@ public struct Record<Output: Sendable, Failure: Error>: Sendable {
     public init(_ record: (inout Recording) -> Void) {
         var r = Recording()
         record(&r)
-        self.recording = r
+        recording = r
     }
 
     public func eraseToPublisher() -> Publisher<Output, Failure> {
         let output = recording.output
         let completion = recording.completion
         return Publisher<Output, Failure> { continuation in
-            for value in output { continuation.yield(value) }
+            for value in output {
+                continuation.yield(value)
+            }
             switch completion {
             case .finished: continuation.finish()
-            case .failure(let error): continuation.fail(error)
+            case let .failure(error): continuation.fail(error)
             }
         }
     }

@@ -1,6 +1,8 @@
-extension Publisher {
+// SPDX-License-Identifier: Apache-2.0
+
+public extension Publisher {
     // Replaces failure with a recovery publisher; downstream becomes infallible.
-    public func `catch`(
+    func `catch`(
         _ handler: @escaping @Sendable (Failure) -> Publisher<Output, Never>
     ) -> Publisher<Output, Never> {
         let selfFactory = _stream.factory
@@ -10,9 +12,9 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let value):
+                        case let .success(value):
                             if case .terminated = raw.yield(Result.success(value)) { return }
-                        case .failure(let error):
+                        case let .failure(error):
                             for await r in handler(error)._stream.factory() {
                                 if case .terminated = raw.yield(r) { return }
                             }
@@ -28,15 +30,15 @@ extension Publisher {
     }
 
     // Replaces failure with a recovery publisher of the same failure type.
-    public func `catch`(
+    func `catch`(
         _ handler: @escaping @Sendable (Failure) -> Publisher<Output, Failure>
     ) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     if case .terminated = raw.yield(Result.success(value)) { return }
-                case .failure(let error):
+                case let .failure(error):
                     for await r in handler(error)._stream.factory() {
                         if case .terminated = raw.yield(r) { return }
                         if case .failure = r { raw.finish(); return }
@@ -49,7 +51,7 @@ extension Publisher {
         }
     }
 
-    public func replaceError(with output: Output) -> Publisher<Output, Never> {
+    func replaceError(with output: Output) -> Publisher<Output, Never> {
         let selfFactory = _stream.factory
         return Publisher<Output, Never>(DeferredStream {
             let upstream = selfFactory()
@@ -57,7 +59,7 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let value):
+                        case let .success(value):
                             if case .terminated = raw.yield(Result.success(value)) { return }
                         case .failure:
                             _ = raw.yield(Result.success(output))
@@ -72,7 +74,7 @@ extension Publisher {
         })
     }
 
-    public func retry(_ times: Int) -> Publisher<Output, Failure> {
+    func retry(_ times: Int) -> Publisher<Output, Failure> {
         guard times > 0 else { return self }
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {
@@ -84,9 +86,9 @@ extension Publisher {
                         let upstream = selfFactory()
                         loop: for await result in upstream {
                             switch result {
-                            case .success(let v):
+                            case let .success(v):
                                 if case .terminated = raw.yield(Result.success(v)) { return }
-                            case .failure(let e):
+                            case let .failure(e):
                                 if remaining > 0 {
                                     remaining -= 1
                                     shouldRetry = true

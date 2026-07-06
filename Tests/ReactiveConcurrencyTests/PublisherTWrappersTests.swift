@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFP
 import CoreFPOperators
 import DataStructure
@@ -9,7 +11,7 @@ import Testing
 private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> [O] {
     var out: [O] = []
     for await result in publisher._stream {
-        if case .success(let v) = result { out.append(v) }
+        if case let .success(v) = result { out.append(v) }
     }
     return out
 }
@@ -48,7 +50,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
     }
 
     @Test func applyCombinesLogs() async {
-        let wf = Writer<[String], Publisher<@Sendable (Int) -> Int, Never>>(.just({ $0 + 1 }), ["f"])
+        let wf = Writer<[String], Publisher<@Sendable (Int) -> Int, Never>>(.just { $0 + 1 }, ["f"])
         let wa = Writer<[String], Publisher<Int, Never>>(.just(10), ["a"])
         let result = applyWriterPublisher(wf, wa)
         #expect(await vals(result.value) == [11])
@@ -78,7 +80,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
         let combined = liftA2StatefulPublisher(+)(bump(), bump())
         var state = 0
         let publisher = combined.run(&state)
-        #expect(await vals(publisher) == [3])   // (1) + (2)
+        #expect(await vals(publisher) == [3]) // (1) + (2)
         #expect(state == 2)
     }
 }

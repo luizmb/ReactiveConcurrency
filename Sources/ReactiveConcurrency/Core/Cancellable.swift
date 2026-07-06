@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public protocol Cancellable: Sendable {
     func cancel()
 }
@@ -25,12 +27,12 @@ public final class AnyCancellable: Cancellable, Hashable {
     public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
 }
 
-extension AnyCancellable {
-    public func store(in collection: inout some RangeReplaceableCollection<AnyCancellable>) {
+public extension AnyCancellable {
+    func store(in collection: inout some RangeReplaceableCollection<AnyCancellable>) {
         collection.append(self)
     }
 
-    public func store(in set: inout Set<AnyCancellable>) {
+    func store(in set: inout Set<AnyCancellable>) {
         set.insert(self)
     }
 }

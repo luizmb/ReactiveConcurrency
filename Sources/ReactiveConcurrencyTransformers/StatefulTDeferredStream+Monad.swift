@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // StatefulTDeferredStream: outer = Stateful, inner = DeferredStream
 // Type: Stateful<S, DeferredStream<A>>
 //

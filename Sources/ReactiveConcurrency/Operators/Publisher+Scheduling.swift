@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Opens the `any Actor` existential to satisfy `isolated A`, running `body` on
 // that actor's executor. Swift 5.7+ opens existentials for generic calls (SE-0352).
 private func _hop<T: Sendable>(to actor: any Actor, _ body: @Sendable () -> T) async -> T {
@@ -7,9 +9,9 @@ private func _hop<T: Sendable>(to actor: any Actor, _ body: @Sendable () -> T) a
 
 // MARK: - receive(on:) / subscribe(on:)
 
-extension Publisher {
+public extension Publisher {
     // Delivers values and completion to downstream on the specified actor's executor.
-    public func receive(on actor: any Actor) -> Publisher<Output, Failure> {
+    func receive(on actor: any Actor) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {
             let upstream = selfFactory()
@@ -32,7 +34,7 @@ extension Publisher {
     }
 
     // Performs the upstream subscription (factory call) on the specified actor's executor.
-    public func subscribe(on actor: any Actor) -> Publisher<Output, Failure> {
+    func subscribe(on actor: any Actor) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {
             AsyncStream<Result<Output, Failure>> { raw in
@@ -40,9 +42,9 @@ extension Publisher {
                     let upstream = await _hop(to: actor) { selfFactory() }
                     for await result in upstream {
                         switch result {
-                        case .success(let v):
+                        case let .success(v):
                             if case .terminated = raw.yield(.success(v)) { return }
-                        case .failure(let e):
+                        case let .failure(e):
                             _ = raw.yield(.failure(e)); raw.finish(); return
                         }
                     }

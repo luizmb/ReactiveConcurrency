@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // DeferredStream<Element>: a lazy AsyncSequence whose producer starts only at first iteration.
 // Contrast with AsyncStream: its body/Task runs at init time.
 // DeferredStream defers the factory call to makeAsyncIterator().

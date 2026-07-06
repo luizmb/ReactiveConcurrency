@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public extension DeferredTask {
     // bind / flatMap :: DeferredTask a -> (a -> DeferredTask b) -> DeferredTask b
     func flatMap<B: Sendable>(_ fn: @escaping @Sendable (Success) -> DeferredTask<B>) -> DeferredTask<B> {

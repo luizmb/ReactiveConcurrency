@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 private enum _CombineEvent<A: Sendable, B: Sendable>: Sendable {
     case fromA(A?)
     case fromB(B?)
@@ -5,8 +7,8 @@ private enum _CombineEvent<A: Sendable, B: Sendable>: Sendable {
 
 // MARK: - merge
 
-extension Publisher {
-    public func merge(with other: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
+public extension Publisher {
+    func merge(with other: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         let otherFactory = other._stream.factory
         return Publisher<Output, Failure>(DeferredStream {
@@ -46,14 +48,14 @@ extension Publisher {
         })
     }
 
-    public func merge(
+    func merge(
         with b: Publisher<Output, Failure>,
         _ c: Publisher<Output, Failure>
     ) -> Publisher<Output, Failure> {
         merge(with: b).merge(with: c)
     }
 
-    public func merge(
+    func merge(
         with b: Publisher<Output, Failure>,
         _ c: Publisher<Output, Failure>,
         _ d: Publisher<Output, Failure>
@@ -64,8 +66,8 @@ extension Publisher {
 
 // MARK: - zip
 
-extension Publisher {
-    public func zip<B: Sendable>(
+public extension Publisher {
+    func zip<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
         let selfFactory = _stream.factory
@@ -78,17 +80,17 @@ extension Publisher {
                     var otherIter = otherStream.makeAsyncIterator()
                     for await sr in selfStream {
                         switch sr {
-                        case .success(let a):
+                        case let .success(a):
                             guard let or = await otherIter.next() else {
                                 raw.finish(); return
                             }
                             switch or {
-                            case .success(let b):
+                            case let .success(b):
                                 if case .terminated = raw.yield(Result.success((a, b))) { return }
-                            case .failure(let e):
+                            case let .failure(e):
                                 _ = raw.yield(Result.failure(e)); raw.finish(); return
                             }
-                        case .failure(let e):
+                        case let .failure(e):
                             _ = raw.yield(Result.failure(e)); raw.finish(); return
                         }
                     }
@@ -99,14 +101,14 @@ extension Publisher {
         })
     }
 
-    public func zip<B: Sendable, C: Sendable>(
+    func zip<B: Sendable, C: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>
     ) -> Publisher<(Output, B, C), Failure> {
         zip(b).zip(c).map { ($0.0.0, $0.0.1, $0.1) }
     }
 
-    public func zip<B: Sendable, C: Sendable, D: Sendable>(
+    func zip<B: Sendable, C: Sendable, D: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ d: Publisher<D, Failure>
@@ -116,14 +118,14 @@ extension Publisher {
 
     // Transform-closure overloads.
 
-    public func zip<B: Sendable, T: Sendable>(
+    func zip<B: Sendable, T: Sendable>(
         _ other: Publisher<B, Failure>,
         _ transform: @escaping @Sendable (Output, B) -> T
     ) -> Publisher<T, Failure> {
         zip(other).map(transform)
     }
 
-    public func zip<B: Sendable, C: Sendable, T: Sendable>(
+    func zip<B: Sendable, C: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ transform: @escaping @Sendable (Output, B, C) -> T
@@ -131,7 +133,7 @@ extension Publisher {
         zip(b, c).map { transform($0.0, $0.1, $0.2) }
     }
 
-    public func zip<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
+    func zip<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ d: Publisher<D, Failure>,
@@ -143,9 +145,9 @@ extension Publisher {
 
 // MARK: - combineLatest
 
-extension Publisher {
+public extension Publisher {
     // swiftlint:disable:next cyclomatic_complexity
-    public func combineLatest<B: Sendable>(
+    func combineLatest<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
         let selfFactory = _stream.factory
@@ -173,26 +175,26 @@ extension Publisher {
 
                         while aOpen || bOpen, let event = await group.next() {
                             switch event {
-                            case .fromA(.some(let result)):
+                            case let .fromA(.some(result)):
                                 switch result {
-                                case .success(let a):
+                                case let .success(a):
                                     latestA = a
                                     if let b = latestB {
                                         if case .terminated = raw.yield(Result.success((a, b))) { return }
                                     }
                                     group.addTask { .fromA(await selfBox.next()) }
-                                case .failure(let e):
+                                case let .failure(e):
                                     _ = raw.yield(Result.failure(e)); raw.finish(); return
                                 }
-                            case .fromB(.some(let result)):
+                            case let .fromB(.some(result)):
                                 switch result {
-                                case .success(let b):
+                                case let .success(b):
                                     latestB = b
                                     if let a = latestA {
                                         if case .terminated = raw.yield(Result.success((a, b))) { return }
                                     }
                                     group.addTask { .fromB(await otherBox.next()) }
-                                case .failure(let e):
+                                case let .failure(e):
                                     _ = raw.yield(Result.failure(e)); raw.finish(); return
                                 }
                             // If a source closes without ever emitting, no tuple can ever
@@ -213,14 +215,14 @@ extension Publisher {
         })
     }
 
-    public func combineLatest<B: Sendable, C: Sendable>(
+    func combineLatest<B: Sendable, C: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>
     ) -> Publisher<(Output, B, C), Failure> {
         combineLatest(b).combineLatest(c).map { ($0.0.0, $0.0.1, $0.1) }
     }
 
-    public func combineLatest<B: Sendable, C: Sendable, D: Sendable>(
+    func combineLatest<B: Sendable, C: Sendable, D: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ d: Publisher<D, Failure>
@@ -230,14 +232,14 @@ extension Publisher {
 
     // Transform-closure overloads (syntactic sugar over .map on the tuple result).
 
-    public func combineLatest<B: Sendable, T: Sendable>(
+    func combineLatest<B: Sendable, T: Sendable>(
         _ other: Publisher<B, Failure>,
         _ transform: @escaping @Sendable (Output, B) -> T
     ) -> Publisher<T, Failure> {
         combineLatest(other).map(transform)
     }
 
-    public func combineLatest<B: Sendable, C: Sendable, T: Sendable>(
+    func combineLatest<B: Sendable, C: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ transform: @escaping @Sendable (Output, B, C) -> T
@@ -245,7 +247,7 @@ extension Publisher {
         combineLatest(b, c).map { transform($0.0, $0.1, $0.2) }
     }
 
-    public func combineLatest<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
+    func combineLatest<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
         _ d: Publisher<D, Failure>,

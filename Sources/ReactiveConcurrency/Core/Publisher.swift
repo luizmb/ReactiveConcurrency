@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Publisher<Output, Failure> — a cold, lazy, composable stream backed by DeferredStream.
 //
 // Internal representation:
@@ -56,14 +58,14 @@ public struct Publisher<Output: Sendable, Failure: Error>: Sendable {
 
 // MARK: - Continuation
 
-extension Publisher {
+public extension Publisher {
     // Passed to the Publisher.init body. Mirrors AsyncStream.Continuation but:
     //   - yield(_:)         wraps in .success
     //   - fail(_:)          wraps in .failure and seals the stream
     //   - yieldAll(sync)    checks isCancelled between elements — no try needed
     //   - yieldAll(async)   cooperative cancellation propagates through for-await
     //   - suspendUntilCancelled() parks the body when driven by external callbacks
-    public struct Continuation: Sendable {
+    struct Continuation: Sendable {
         private let _raw: AsyncStream<Result<Output, Failure>>.Continuation
 
         init(_ raw: AsyncStream<Result<Output, Failure>>.Continuation) {
@@ -99,7 +101,7 @@ extension Publisher {
         // AsyncSequence.Failure is macOS 15+ / iOS 18+; gate accordingly.
         @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
         public func yieldAll<S: AsyncSequence & Sendable>(_ sequence: S) async
-            where S.Element == Output, S.Failure == Never {
+        where S.Element == Output, S.Failure == Never {
             for await value in sequence {
                 yield(value)
             }
@@ -122,36 +124,36 @@ extension Publisher {
 
 public typealias AnyPublisher<Output: Sendable, Failure: Error> = Publisher<Output, Failure>
 
-extension Publisher {
+public extension Publisher {
     // Publisher is already type-erased; this is a no-op for API compatibility.
-    public func eraseToAnyPublisher() -> Publisher<Output, Failure> { self }
+    func eraseToAnyPublisher() -> Publisher<Output, Failure> { self }
 }
 
 // MARK: - Convenience constructors
 
-extension Publisher {
-    public static func just(_ value: Output) -> Publisher<Output, Failure> {
+public extension Publisher {
+    static func just(_ value: Output) -> Publisher<Output, Failure> {
         Publisher { continuation in
             continuation.yield(value)
         }
     }
 
-    public static func empty() -> Publisher<Output, Failure> {
+    static func empty() -> Publisher<Output, Failure> {
         Publisher { _ in }
     }
 }
 
-extension Publisher where Failure == Never {
-    public static func sequence<S: Sequence & Sendable>(_ sequence: S) -> Publisher<Output, Never>
-        where S.Element == Output {
+public extension Publisher where Failure == Never {
+    static func sequence<S: Sequence & Sendable>(_ sequence: S) -> Publisher<Output, Never>
+    where S.Element == Output {
         Publisher { continuation in
             continuation.yieldAll(sequence)
         }
     }
 }
 
-extension Publisher {
-    public static func fail(_ error: Failure) -> Publisher<Output, Failure> {
+public extension Publisher {
+    static func fail(_ error: Failure) -> Publisher<Output, Failure> {
         Publisher { continuation in
             continuation.fail(error)
         }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Hourglass
 @testable import ReactiveConcurrency
 import Testing
@@ -5,7 +7,9 @@ import Testing
 // Yields enough times for tasks spawned inside other tasks to register their state.
 // 12 yields is the safe margin under concurrent Swift Testing parallel execution.
 private func settle() async {
-    for _ in 0..<12 { await Task.yield() }
+    for _ in 0..<12 {
+        await Task.yield()
+    }
 }
 
 // Polls a condition rather than relying on a fixed number of yields: after a TestClock
@@ -45,7 +49,7 @@ private func drainSentValues() async {
         for await r in Publisher<Int, Never>.sequence(1...3)
             .delay(for: .seconds(10), clock: ImmediateClock())
             ._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }
@@ -114,7 +118,7 @@ private func drainSentValues() async {
             .timer(every: .seconds(1), clock: ImmediateClock())
             .prefix(3)._stream
         for await r in stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.count == 3)
     }
@@ -243,7 +247,7 @@ private func drainSentValues() async {
         for await r in Publisher<Int, Never>.sequence([1, 2, 3])
             .collect(every: .seconds(10), clock: clock)
             ._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [[1, 2, 3]])
     }
@@ -275,7 +279,7 @@ private func drainSentValues() async {
         for await r in Publisher<Int, Never>.sequence(1...3)
             .collect(every: .seconds(1), clock: ImmediateClock())
             ._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(!result.isEmpty)
         #expect(result.flatMap { $0 }.sorted() == [1, 2, 3])
@@ -296,13 +300,13 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
         let sub = subject.eraseToPublisher()
             .timeout(.seconds(1), clock: clock, error: .timedOut)
             .sink(
-                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveCompletion: { if case let .failure(e) = $0 { failures.append(e) } },
                 receiveValue: { values.append($0) }
             )
 
         await settle()
-        await clock.waitForSleepers()          // timeout's internal deadline armed
-        await clock.advance(by: .seconds(1))   // no value arrived → fire
+        await clock.waitForSleepers() // timeout's internal deadline armed
+        await clock.advance(by: .seconds(1)) // no value arrived → fire
         await poll { !failures.values.isEmpty }
         #expect(values.values.isEmpty)
         #expect(failures.values == [.timedOut])
@@ -319,17 +323,17 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
         let sub = subject.eraseToPublisher()
             .timeout(.seconds(1), clock: clock, error: .timedOut)
             .sink(
-                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveCompletion: { if case let .failure(e) = $0 { failures.append(e) } },
                 receiveValue: { values.append($0) }
             )
 
         await settle()
         subject.send(1)
-        await poll { values.values.count >= 1 }   // forwarded; deadline re-armed
+        await poll { values.values.count >= 1 } // forwarded; deadline re-armed
         #expect(failures.values.isEmpty)
 
         await clock.waitForSleepers()
-        await clock.advance(by: .seconds(1))       // now silent past the window → fire
+        await clock.advance(by: .seconds(1)) // now silent past the window → fire
         await poll { !failures.values.isEmpty }
         #expect(values.values == [1])
         #expect(failures.values == [.timedOut])
@@ -350,7 +354,7 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
                 receiveCompletion: {
                     switch $0 {
                     case .finished: finished.increment()
-                    case .failure(let e): failures.append(e)
+                    case let .failure(e): failures.append(e)
                     }
                 },
                 receiveValue: { values.append($0) }
@@ -376,14 +380,14 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
         let sub = subject.eraseToPublisher()
             .timeout(.seconds(1), clock: clock, error: .timedOut)
             .sink(
-                receiveCompletion: { if case .failure(let e) = $0 { failures.append(e) } },
+                receiveCompletion: { if case let .failure(e) = $0 { failures.append(e) } },
                 receiveValue: { _ in }
             )
 
         await settle()
         subject.send(completion: .failure(.upstreamBoom))
         await poll { !failures.values.isEmpty }
-        #expect(failures.values == [.upstreamBoom])   // upstream error, not the timeout error
+        #expect(failures.values == [.upstreamBoom]) // upstream error, not the timeout error
 
         sub.cancel()
     }
@@ -401,7 +405,7 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
             .sink { windows.append($0) }
 
         await settle()
-        subject.send(1); subject.send(2); subject.send(3)  // count reached — flush without advancing
+        subject.send(1); subject.send(2); subject.send(3) // count reached — flush without advancing
         await poll { windows.values.count >= 1 }
         #expect(windows.values == [[1, 2, 3]])
         sub.cancel()

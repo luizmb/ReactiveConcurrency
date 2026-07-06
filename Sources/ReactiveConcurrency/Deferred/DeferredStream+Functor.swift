@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public extension DeferredStream {
     // fmap :: (a -> b) -> DeferredStream a -> DeferredStream b
     func map<B: Sendable>(_ fn: @escaping @Sendable (Element) -> B) -> DeferredStream<B> {
-        let outerFactory = self.factory
+        let outerFactory = factory
         return DeferredStream<B> {
             let upstream = outerFactory()
             return AsyncStream<B> { continuation in

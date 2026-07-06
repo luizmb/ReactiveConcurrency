@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // DeferredTask<Success>: a lazy IO-like computation that runs only when .run() is called.
 // Nothing executes until run() — analogous to Haskell's IO monad or Scala's cats-effect IO.
 

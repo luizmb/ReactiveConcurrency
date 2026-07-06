@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import ReactiveConcurrency
+
 // DeferredTaskTResult: Alternative
 // Type: DeferredTask<Result<A, E>>
 

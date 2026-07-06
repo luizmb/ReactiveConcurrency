@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import ReactiveConcurrency
 import Testing
@@ -5,7 +7,9 @@ import Testing
 // Lets pending Tasks (upstream subscription registration, pump start-up) run before we
 // send into a hot subject. Yields generously to stay deterministic under parallel CI load.
 private func settle() async {
-    for _ in 0..<20 { await Task.yield() }
+    for _ in 0..<20 {
+        await Task.yield()
+    }
 }
 
 // Polls a condition instead of sleeping a fixed amount: the upstream→core pump is async and

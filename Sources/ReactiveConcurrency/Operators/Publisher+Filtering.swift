@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // MARK: - first / last
 
-extension Publisher {
-    public func first() -> Publisher<Output, Failure> {
+public extension Publisher {
+    func first() -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     _ = raw.yield(.success(v)); raw.finish(); return
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -15,17 +17,17 @@ extension Publisher {
         }
     }
 
-    public func first(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
+    func first(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
         filter(predicate).first()
     }
 
-    public func last() -> Publisher<Output, Failure> {
+    func last() -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             var lastValue: Output?
             for await result in upstream {
                 switch result {
-                case .success(let v): lastValue = v
-                case .failure(let e):
+                case let .success(v): lastValue = v
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -34,25 +36,25 @@ extension Publisher {
         }
     }
 
-    public func last(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
+    func last(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
         filter(predicate).last()
     }
 }
 
 // MARK: - prefix / dropFirst / drop(while:) / prefix(while:)
 
-extension Publisher {
-    public func prefix(_ maxLength: Int) -> Publisher<Output, Failure> {
+public extension Publisher {
+    func prefix(_ maxLength: Int) -> Publisher<Output, Failure> {
         guard maxLength > 0 else { return .empty() }
         return _operator { raw, upstream in
             var emitted = 0
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if case .terminated = raw.yield(.success(v)) { return }
                     emitted += 1
                     if emitted >= maxLength { raw.finish(); return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -60,14 +62,14 @@ extension Publisher {
         }
     }
 
-    public func prefix(while predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
+    func prefix(while predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     guard predicate(v) else { raw.finish(); return }
                     if case .terminated = raw.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -75,16 +77,16 @@ extension Publisher {
         }
     }
 
-    public func dropFirst(_ count: Int = 1) -> Publisher<Output, Failure> {
+    func dropFirst(_ count: Int = 1) -> Publisher<Output, Failure> {
         guard count > 0 else { return self }
         return _operator { raw, upstream in
             var dropped = 0
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if dropped < count { dropped += 1; continue }
                     if case .terminated = raw.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -92,18 +94,18 @@ extension Publisher {
         }
     }
 
-    public func drop(while predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
+    func drop(while predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             var dropping = true
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if dropping {
                         if predicate(v) { continue }
                         dropping = false
                     }
                     if case .terminated = raw.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -114,12 +116,12 @@ extension Publisher {
 
 // MARK: - output(at:) / output(in:)
 
-extension Publisher {
-    public func output(at index: Int) -> Publisher<Output, Failure> {
+public extension Publisher {
+    func output(at index: Int) -> Publisher<Output, Failure> {
         dropFirst(index).first()
     }
 
-    public func output(in range: Range<Int>) -> Publisher<Output, Failure> {
+    func output(in range: Range<Int>) -> Publisher<Output, Failure> {
         guard !range.isEmpty else { return .empty() }
         return dropFirst(range.lowerBound).prefix(range.count)
     }
@@ -127,8 +129,8 @@ extension Publisher {
 
 // MARK: - ignoreOutput
 
-extension Publisher {
-    public func ignoreOutput() -> Publisher<Never, Failure> {
+public extension Publisher {
+    func ignoreOutput() -> Publisher<Never, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Never, Failure>(DeferredStream {
             let upstream = selfFactory()
@@ -137,7 +139,7 @@ extension Publisher {
                     for await result in upstream {
                         switch result {
                         case .success: continue
-                        case .failure(let e):
+                        case let .failure(e):
                             _ = raw.yield(.failure(e)); raw.finish(); return
                         }
                     }
@@ -151,25 +153,25 @@ extension Publisher {
 
 // MARK: - removeDuplicates
 
-extension Publisher where Output: Equatable {
-    public func removeDuplicates() -> Publisher<Output, Failure> {
+public extension Publisher where Output: Equatable {
+    func removeDuplicates() -> Publisher<Output, Failure> {
         removeDuplicates(by: ==)
     }
 }
 
-extension Publisher {
-    public func removeDuplicates(
+public extension Publisher {
+    func removeDuplicates(
         by predicate: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             var last: Output?
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if let l = last, predicate(l, v) { continue }
                     last = v
                     if case .terminated = raw.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -180,22 +182,22 @@ extension Publisher {
 
 // MARK: - contains / allSatisfy
 
-extension Publisher where Output: Equatable {
-    public func contains(_ value: Output) -> Publisher<Bool, Failure> {
+public extension Publisher where Output: Equatable {
+    func contains(_ value: Output) -> Publisher<Bool, Failure> {
         contains(where: { $0 == value })
     }
 }
 
-extension Publisher {
-    public func contains(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Bool, Failure> {
+public extension Publisher {
+    func contains(where predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Bool, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if predicate(v) {
                         _ = raw.yield(.success(true)); raw.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -204,46 +206,46 @@ extension Publisher {
         }
     }
 
-    public func allSatisfy(_ predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Bool, Failure> {
+    func allSatisfy(_ predicate: @escaping @Sendable (Output) -> Bool) -> Publisher<Bool, Failure> {
         contains(where: { !predicate($0) }).map { !$0 }
     }
 }
 
 // MARK: - min / max
 
-extension Publisher where Output: Comparable {
-    public func min() -> Publisher<Output, Failure> {
+public extension Publisher where Output: Comparable {
+    func min() -> Publisher<Output, Failure> {
         _extremum(isLess: { @Sendable a, b in a < b })
     }
 
-    public func max() -> Publisher<Output, Failure> {
+    func max() -> Publisher<Output, Failure> {
         _extremum(isLess: { @Sendable a, b in a > b })
     }
 }
 
-extension Publisher {
-    public func min(
+public extension Publisher {
+    func min(
         by areInIncreasingOrder: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {
         _extremum(isLess: areInIncreasingOrder)
     }
 
-    public func max(
+    func max(
         by areInIncreasingOrder: @escaping @Sendable (Output, Output) -> Bool
     ) -> Publisher<Output, Failure> {
         _extremum(isLess: { areInIncreasingOrder($1, $0) })
     }
 
     // Emits `output` if the upstream completes without having produced any values.
-    public func replaceEmpty(with output: Output) -> Publisher<Output, Failure> {
+    func replaceEmpty(with output: Output) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             var emitted = false
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     emitted = true
                     if case .terminated = raw.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -259,9 +261,9 @@ extension Publisher {
             var best: Output?
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if let b = best { if isLess(v, b) { best = v } } else { best = v }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }

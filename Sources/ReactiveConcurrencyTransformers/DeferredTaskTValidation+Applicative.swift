@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import CoreFP
 import DataStructure
 import ReactiveConcurrency
@@ -27,8 +29,8 @@ public func applyTDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B
         let va = await values.run()
         return switch (vf, va) {
         case let (.success(f), .success(a)): Validation<E, B>.success(f(a))
-        case let (.failure(e), .success):    Validation<E, B>.failure(e)
-        case let (.success, .failure(e)):    Validation<E, B>.failure(e)
+        case let (.failure(e), .success): Validation<E, B>.failure(e)
+        case let (.success, .failure(e)): Validation<E, B>.failure(e)
         case let (.failure(e1), .failure(e2)): Validation<E, B>.failure(E.combine(e1, e2))
         }
     }

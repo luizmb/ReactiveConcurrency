@@ -1,16 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Try variants follow the same two-overload pattern as tryMap:
 //   • Failure == Never  → closure introduces a new typed error E  (_tryOperator)
 //   • Failure != Never  → closure throws the same Failure type    (_operator)
 
 // MARK: - tryFilter
 
-extension Publisher where Failure == Never {
-    public func tryFilter<E: Error>(
+public extension Publisher where Failure == Never {
+    func tryFilter<E: Error>(
         _ predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     do throws(E) {
                         if try predicate(value) {
                             if case .terminated = downstream.yield(.success(value)) { return }
@@ -25,14 +27,14 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryFilter(
+public extension Publisher {
+    func tryFilter(
         _ predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     do throws(Failure) {
                         if try predicate(value) {
                             if case .terminated = downstream.yield(.success(value)) { return }
@@ -40,7 +42,7 @@ extension Publisher {
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -51,13 +53,13 @@ extension Publisher {
 
 // MARK: - tryCompactMap
 
-extension Publisher where Failure == Never {
-    public func tryCompactMap<T: Sendable, E: Error>(
+public extension Publisher where Failure == Never {
+    func tryCompactMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) throws(E) -> T?
     ) -> Publisher<T, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     do throws(E) {
                         if let mapped = try transform(value) {
                             if case .terminated = downstream.yield(.success(mapped)) { return }
@@ -72,14 +74,14 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryCompactMap<T: Sendable>(
+public extension Publisher {
+    func tryCompactMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) throws(Failure) -> T?
     ) -> Publisher<T, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     do throws(Failure) {
                         if let mapped = try transform(value) {
                             if case .terminated = downstream.yield(.success(mapped)) { return }
@@ -87,7 +89,7 @@ extension Publisher {
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -98,15 +100,15 @@ extension Publisher {
 
 // MARK: - tryScan
 
-extension Publisher where Failure == Never {
-    public func tryScan<T: Sendable, E: Error>(
+public extension Publisher where Failure == Never {
+    func tryScan<T: Sendable, E: Error>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(E) -> T
     ) -> Publisher<T, E> {
         _tryOperator { downstream, upstream in
             var acc = initial
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     do throws(E) {
                         acc = try next(acc, value)
                         if case .terminated = downstream.yield(.success(acc)) { return }
@@ -120,8 +122,8 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryScan<T: Sendable>(
+public extension Publisher {
+    func tryScan<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(Failure) -> T
     ) -> Publisher<T, Failure> {
@@ -129,14 +131,14 @@ extension Publisher {
             var acc = initial
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     do throws(Failure) {
                         acc = try next(acc, value)
                         if case .terminated = downstream.yield(.success(acc)) { return }
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -147,15 +149,15 @@ extension Publisher {
 
 // MARK: - tryReduce
 
-extension Publisher where Failure == Never {
-    public func tryReduce<T: Sendable, E: Error>(
+public extension Publisher where Failure == Never {
+    func tryReduce<T: Sendable, E: Error>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(E) -> T
     ) -> Publisher<T, E> {
         _tryOperator { downstream, upstream in
             var acc = initial
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     do throws(E) {
                         acc = try next(acc, value)
                     } catch {
@@ -169,8 +171,8 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryReduce<T: Sendable>(
+public extension Publisher {
+    func tryReduce<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(Failure) -> T
     ) -> Publisher<T, Failure> {
@@ -178,13 +180,13 @@ extension Publisher {
             var acc = initial
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     do throws(Failure) {
                         acc = try next(acc, value)
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -196,28 +198,28 @@ extension Publisher {
 
 // MARK: - tryFirst / tryLast
 
-extension Publisher where Failure == Never {
-    public func tryFirst<E: Error>(
+public extension Publisher where Failure == Never {
+    func tryFirst<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         tryFilter(predicate).first()
     }
 
-    public func tryLast<E: Error>(
+    func tryLast<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         tryFilter(predicate).last()
     }
 }
 
-extension Publisher {
-    public func tryFirst(
+public extension Publisher {
+    func tryFirst(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         tryFilter(predicate).first()
     }
 
-    public func tryLast(
+    func tryLast(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         tryFilter(predicate).last()
@@ -226,14 +228,14 @@ extension Publisher {
 
 // MARK: - tryDrop / tryPrefix
 
-extension Publisher where Failure == Never {
-    public func tryDrop<E: Error>(
+public extension Publisher where Failure == Never {
+    func tryDrop<E: Error>(
         while predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         _tryOperator { downstream, upstream in
             var dropping = true
             for await result in upstream {
-                if case .success(let v) = result {
+                if case let .success(v) = result {
                     if dropping {
                         do throws(E) {
                             if try predicate(v) { continue }
@@ -249,12 +251,12 @@ extension Publisher where Failure == Never {
         }
     }
 
-    public func tryPrefix<E: Error>(
+    func tryPrefix<E: Error>(
         while predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let v) = result {
+                if case let .success(v) = result {
                     do throws(E) {
                         guard try predicate(v) else { downstream.finish(); return }
                     } catch {
@@ -268,15 +270,15 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryDrop(
+public extension Publisher {
+    func tryDrop(
         while predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { downstream, upstream in
             var dropping = true
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if dropping {
                         do throws(Failure) {
                             if try predicate(v) { continue }
@@ -286,7 +288,7 @@ extension Publisher {
                         }
                     }
                     if case .terminated = downstream.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -294,20 +296,20 @@ extension Publisher {
         }
     }
 
-    public func tryPrefix(
+    func tryPrefix(
         while predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     do throws(Failure) {
                         guard try predicate(v) else { downstream.finish(); return }
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
                     if case .terminated = downstream.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -318,13 +320,13 @@ extension Publisher {
 
 // MARK: - tryContains / tryAllSatisfy / tryRemoveDuplicates
 
-extension Publisher where Failure == Never {
-    public func tryContains<E: Error>(
+public extension Publisher where Failure == Never {
+    func tryContains<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Bool, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let v) = result {
+                if case let .success(v) = result {
                     do throws(E) {
                         if try predicate(v) {
                             if case .terminated = downstream.yield(.success(true)) { return }
@@ -340,12 +342,12 @@ extension Publisher where Failure == Never {
         }
     }
 
-    public func tryAllSatisfy<E: Error>(
+    func tryAllSatisfy<E: Error>(
         _ predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Bool, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let v) = result {
+                if case let .success(v) = result {
                     do throws(E) {
                         if !(try predicate(v)) {
                             if case .terminated = downstream.yield(.success(false)) { return }
@@ -361,13 +363,13 @@ extension Publisher where Failure == Never {
         }
     }
 
-    public func tryRemoveDuplicates<E: Error>(
+    func tryRemoveDuplicates<E: Error>(
         by predicate: @escaping @Sendable (Output, Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         _tryOperator { downstream, upstream in
             var last: Output?
             for await result in upstream {
-                if case .success(let v) = result {
+                if case let .success(v) = result {
                     do throws(E) {
                         if let l = last, try predicate(l, v) { continue }
                     } catch {
@@ -382,14 +384,14 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryContains(
+public extension Publisher {
+    func tryContains(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Bool, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     do throws(Failure) {
                         if try predicate(v) {
                             if case .terminated = downstream.yield(.success(true)) { return }
@@ -398,7 +400,7 @@ extension Publisher {
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -407,13 +409,13 @@ extension Publisher {
         }
     }
 
-    public func tryAllSatisfy(
+    func tryAllSatisfy(
         _ predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Bool, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     do throws(Failure) {
                         if !(try predicate(v)) {
                             if case .terminated = downstream.yield(.success(false)) { return }
@@ -422,7 +424,7 @@ extension Publisher {
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -431,14 +433,14 @@ extension Publisher {
         }
     }
 
-    public func tryRemoveDuplicates(
+    func tryRemoveDuplicates(
         by predicate: @escaping @Sendable (Output, Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         _operator { downstream, upstream in
             var last: Output?
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     do throws(Failure) {
                         if let l = last, try predicate(l, v) { continue }
                     } catch {
@@ -446,7 +448,7 @@ extension Publisher {
                     }
                     last = v
                     if case .terminated = downstream.yield(.success(v)) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -457,9 +459,9 @@ extension Publisher {
 
 // MARK: - tryCatch
 
-extension Publisher {
+public extension Publisher {
     // Like catch, but the recovery handler can throw E. If it does, E propagates downstream.
-    public func tryCatch<E: Error>(
+    func tryCatch<E: Error>(
         _ handler: @escaping @Sendable (Failure) throws(E) -> Publisher<Output, E>
     ) -> Publisher<Output, E> {
         let selfFactory = _stream.factory
@@ -469,19 +471,19 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let v):
+                        case let .success(v):
                             if case .terminated = raw.yield(.success(v)) { return }
-                        case .failure(let e):
+                        case let .failure(e):
                             let outcome: Result<Publisher<Output, E>, E> = {
                                 do throws(E) { return .success(try handler(e)) } catch { return .failure(error) }
                             }()
                             switch outcome {
-                            case .success(let recovery):
+                            case let .success(recovery):
                                 for await r in recovery._stream.factory() {
                                     if case .terminated = raw.yield(r) { return }
                                     if case .failure = r { raw.finish(); return }
                                 }
-                            case .failure(let typedError):
+                            case let .failure(typedError):
                                 _ = raw.yield(.failure(typedError)); raw.finish(); return
                             }
                             raw.finish(); return

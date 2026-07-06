@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import ReactiveConcurrency
+
 // DeferredStreamTArray: outer = DeferredStream, inner = Array
 // Type: DeferredStream<[A]>
 

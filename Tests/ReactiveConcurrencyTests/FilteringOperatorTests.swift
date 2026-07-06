@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import ReactiveConcurrency
 import Testing
@@ -18,7 +20,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func firstEmitsOnlyFirstValue() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).first()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1])
     }
@@ -26,7 +28,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func firstWhereFindsFirst() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).first(where: { $0 > 3 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [4])
     }
@@ -34,7 +36,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func lastEmitsOnlyLastValue() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).last()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [5])
     }
@@ -42,7 +44,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func lastWhereFindsLast() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).last(where: { $0 < 4 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [3])
     }
@@ -52,7 +54,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func prefixTakesFirstN() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...10).prefix(3)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }
@@ -60,7 +62,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func prefixWhileStopsWhenFalse() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...10).prefix(while: { $0 < 4 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }
@@ -68,7 +70,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func dropFirstSkipsN() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).dropFirst(2)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [3, 4, 5])
     }
@@ -76,7 +78,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func dropWhileSkipsWhileTrue() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...5).drop(while: { $0 < 3 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [3, 4, 5])
     }
@@ -86,7 +88,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func outputAtIndex() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(10...15).output(at: 2)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [12])
     }
@@ -94,7 +96,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func outputInRange() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(0...9).output(in: 2..<5)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [2, 3, 4])
     }
@@ -120,7 +122,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func removeDuplicatesFiltersConsecutive() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence([1, 1, 2, 2, 3, 1]).removeDuplicates()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3, 1])
     }
@@ -130,7 +132,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         // Treat values differing by less than 3 as duplicates
         for await r in Publisher<Int, Never>.sequence([1, 2, 5, 6, 10])
             .removeDuplicates(by: { abs($0 - $1) < 3 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 5, 10])
     }
@@ -140,7 +142,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func containsFindsValue() async {
         var result: [Bool] = []
         for await r in Publisher<Int, Never>.sequence(1...5).contains(3)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [true])
     }
@@ -148,7 +150,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func containsReturnsFalseWhenAbsent() async {
         var result: [Bool] = []
         for await r in Publisher<Int, Never>.sequence(1...5).contains(9)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [false])
     }
@@ -156,7 +158,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func allSatisfyTrueWhenAllMatch() async {
         var result: [Bool] = []
         for await r in Publisher<Int, Never>.sequence(2...6).allSatisfy({ $0 > 0 })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [true])
     }
@@ -164,7 +166,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func allSatisfyFalseWhenOneFails() async {
         var result: [Bool] = []
         for await r in Publisher<Int, Never>.sequence(1...5).allSatisfy({ $0.isMultiple(of: 2) })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [false])
     }
@@ -174,7 +176,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func minEmitsSmallest() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence([3, 1, 4, 1, 5]).min()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1])
     }
@@ -182,7 +184,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func maxEmitsLargest() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence([3, 1, 4, 1, 5]).max()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [5])
     }
@@ -191,7 +193,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [String] = []
         for await r in Publisher<String, Never>.sequence(["bb", "a", "ccc"])
             .min(by: { $0.count < $1.count })._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == ["a"])
     }
@@ -199,7 +201,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func emptyStreamProducesNoMinMax() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.empty().min()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.isEmpty)
     }
@@ -209,7 +211,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func replaceEmptyEmitsDefaultWhenStreamIsEmpty() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.empty().replaceEmpty(with: 42)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [42])
     }
@@ -217,7 +219,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func replaceEmptyPassesThroughWhenNotEmpty() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...3).replaceEmpty(with: 99)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }
@@ -230,7 +232,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Int] = []
         let points = [Point(x: 1, y: 10), Point(x: 2, y: 20)]
         for await r in Publisher<Point, Never>.sequence(points).map(\.x)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2])
     }
@@ -239,7 +241,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [(Int, Int)] = []
         let points = [Point(x: 1, y: 10), Point(x: 2, y: 20)]
         for await r in Publisher<Point, Never>.sequence(points).map(\.x, \.y)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.map(\.0) == [1, 2])
         #expect(result.map(\.1) == [10, 20])
@@ -250,7 +252,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [(Int, Int, Int)] = []
         let items = [Triple(a: 1, b: 2, c: 3)]
         for await r in Publisher<Triple, Never>.sequence(items).map(\.a, \.b, \.c)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.count == 1)
         #expect(result[0].0 == 1 && result[0].1 == 2 && result[0].2 == 3)
@@ -261,7 +263,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func countEmitsTotalCount() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...7).count()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [7])
     }
@@ -269,7 +271,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func countOfEmptyIsZero() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.empty().count()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [0])
     }
@@ -277,7 +279,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func collectByCountGroupsElements() async {
         var result: [[Int]] = []
         for await r in Publisher<Int, Never>.sequence(1...7).collect(3)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [[1, 2, 3], [4, 5, 6], [7]])
     }
@@ -289,7 +291,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...3)
             .setFailureType(to: MyError.self)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }
@@ -298,7 +300,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Int] = []
         for await r in Publisher<Int?, Never>.sequence([1, nil, 3, nil, 5])
             .replaceNil(with: 0)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 0, 3, 0, 5])
     }
@@ -315,7 +317,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Data] = []
         for await r in Publisher<Int, Never>.sequence([1, 2, 3])
             .encode(encoder: encoder)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result.count == 3)
         #expect(result[0] == Data([0, 0, 0, 1]))
@@ -326,7 +328,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [CodecError] = []
         for await r in Publisher<Int, Never>.sequence([1])
             .encode(encoder: encoder)._stream {
-            if case .failure(let e) = r { result.append(e) }
+            if case let .failure(e) = r { result.append(e) }
         }
         #expect(result == [.encodingFailed])
     }
@@ -342,7 +344,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Int] = []
         for await r in Publisher<Data, Never>.sequence(encoded)
             .decode(decoder: decoder)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [42])
     }
@@ -358,7 +360,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         for await r in Publisher<Int, Never>.sequence([10, 20, 30])
             .encode(encoder: encoder)
             .decode(decoder: decoder)._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [10, 20, 30])
     }
@@ -372,8 +374,8 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var errors: [CodecError] = []
         for await r in stream {
             switch r {
-            case .success(let v): values.append(v)
-            case .failure(let e): errors.append(e)
+            case let .success(v): values.append(v)
+            case let .failure(e): errors.append(e)
             }
         }
         #expect(values == [10])
@@ -386,7 +388,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         let record = Record<Int, Never>(recording: .init(output: [10, 20, 30]))
         var result: [Int] = []
         for await r in record.eraseToPublisher()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [10, 20, 30])
     }
@@ -399,7 +401,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         }
         var result: [Int] = []
         for await r in record.eraseToPublisher()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2])
     }
@@ -409,10 +411,10 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var first: [Int] = []
         var second: [Int] = []
         for await r in record.eraseToPublisher()._stream {
-            if case .success(let v) = r { first.append(v) }
+            if case let .success(v) = r { first.append(v) }
         }
         for await r in record.eraseToPublisher()._stream {
-            if case .success(let v) = r { second.append(v) }
+            if case let .success(v) = r { second.append(v) }
         }
         #expect(first == [7, 8])
         #expect(second == [7, 8])
@@ -430,7 +432,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return v % 2 == 1
             }._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append(-1)
             }
         }
@@ -445,7 +447,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return v.isMultiple(of: 2) ? nil : "\(v)"
             }._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append("err")
             }
         }
@@ -460,7 +462,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
                 return acc + v
             }._stream {
             switch r {
-            case .success(let v): result.append(v)
+            case let .success(v): result.append(v)
             case .failure: result.append(-99)
             }
         }
@@ -471,7 +473,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...3)
             .tryReduce(0) { acc, v throws(TestError) -> Int in acc + v }._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [6])
     }
@@ -497,7 +499,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     @Test func assertNoFailurePassesValues() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...3).assertNoFailure()._stream {
-            if case .success(let v) = r { result.append(v) }
+            if case let .success(v) = r { result.append(v) }
         }
         #expect(result == [1, 2, 3])
     }

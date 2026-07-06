@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: CurrentValueCore<Output, Failure>
 
@@ -44,6 +46,7 @@ final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
         var completion: Subscribers.Completion<Failure>?
         var nextID: Int = 0
     }
+
     private let _state: Locked<_State>
 
     init(_ initial: Output) {
@@ -55,11 +58,11 @@ final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
     func subscribe() -> (id: Int, stream: AsyncStream<Result<Output, Failure>>) {
         _state.withLock { state in
             let (stream, cont) = AsyncStream<Result<Output, Failure>>.makeStream()
-            cont.yield(Result.success(state.current))  // replay current value synchronously
+            cont.yield(Result.success(state.current)) // replay current value synchronously
             if let completion = state.completion {
                 switch completion {
                 case .finished: cont.finish()
-                case .failure(let e): cont.yield(Result.failure(e)); cont.finish()
+                case let .failure(e): cont.yield(Result.failure(e)); cont.finish()
                 }
                 let id = state.nextID; state.nextID += 1
                 return (id, stream)
@@ -81,7 +84,9 @@ final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
         _state.withLock { state in
             guard state.completion == nil else { return }
             state.current = value
-            for cont in state.subscribers.values { cont.yield(Result.success(value)) }
+            for cont in state.subscribers.values {
+                cont.yield(Result.success(value))
+            }
         }
     }
 
@@ -92,7 +97,7 @@ final class CurrentValueCore<Output: Sendable, Failure: Error>: Sendable {
             switch c {
             case .finished:
                 state.subscribers.values.forEach { $0.finish() }
-            case .failure(let e):
+            case let .failure(e):
                 state.subscribers.values.forEach { $0.yield(Result.failure(e)); $0.finish() }
             }
             state.subscribers.removeAll()

@@ -1,15 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 
-extension Publisher {
-    public func map<T: Sendable>(
+public extension Publisher {
+    func map<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> T
     ) -> Publisher<T, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let v):
+                case let .success(v):
                     if case .terminated = raw.yield(.success(transform(v))) { return }
-                case .failure(let e):
+                case let .failure(e):
                     _ = raw.yield(.failure(e)); raw.finish(); return
                 }
             }
@@ -17,17 +19,17 @@ extension Publisher {
         }
     }
 
-    public func compactMap<T: Sendable>(
+    func compactMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> T?
     ) -> Publisher<T, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     if let mapped = transform(value) {
                         if case .terminated = raw.yield(.success(mapped)) { return }
                     }
-                case .failure(let error):
+                case let .failure(error):
                     _ = raw.yield(.failure(error)); raw.finish(); return
                 }
             }
@@ -35,7 +37,7 @@ extension Publisher {
         }
     }
 
-    public func mapError<E: Error>(
+    func mapError<E: Error>(
         _ transform: @escaping @Sendable (Failure) -> E
     ) -> Publisher<Output, E> {
         let selfFactory = _stream.factory
@@ -45,9 +47,9 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let v):
+                        case let .success(v):
                             if case .terminated = raw.yield(.success(v)) { return }
-                        case .failure(let e):
+                        case let .failure(e):
                             _ = raw.yield(.failure(transform(e))); raw.finish(); return
                         }
                     }
@@ -61,19 +63,19 @@ extension Publisher {
 
 // MARK: - KeyPath map overloads
 
-extension Publisher {
-    public func map<T: Sendable>(_ keyPath: KeyPath<Output, T> & Sendable) -> Publisher<T, Failure> {
+public extension Publisher {
+    func map<T: Sendable>(_ keyPath: KeyPath<Output, T> & Sendable) -> Publisher<T, Failure> {
         map { $0[keyPath: keyPath] }
     }
 
-    public func map<T: Sendable, U: Sendable>(
+    func map<T: Sendable, U: Sendable>(
         _ kp1: KeyPath<Output, T> & Sendable,
         _ kp2: KeyPath<Output, U> & Sendable
     ) -> Publisher<(T, U), Failure> {
         map { ($0[keyPath: kp1], $0[keyPath: kp2]) }
     }
 
-    public func map<T: Sendable, U: Sendable, V: Sendable>(
+    func map<T: Sendable, U: Sendable, V: Sendable>(
         _ kp1: KeyPath<Output, T> & Sendable,
         _ kp2: KeyPath<Output, U> & Sendable,
         _ kp3: KeyPath<Output, V> & Sendable
@@ -84,15 +86,15 @@ extension Publisher {
 
 // MARK: - setFailureType / replaceNil
 
-extension Publisher where Failure == Never {
-    public func setFailureType<E: Error>(to failureType: E.Type) -> Publisher<Output, E> {
+public extension Publisher where Failure == Never {
+    func setFailureType<E: Error>(to failureType: E.Type) -> Publisher<Output, E> {
         let selfFactory = _stream.factory
         return Publisher<Output, E>(DeferredStream {
             let upstream = selfFactory()
             return AsyncStream<Result<Output, E>> { raw in
                 let task = Task {
                     for await result in upstream {
-                        if case .success(let v) = result {
+                        if case let .success(v) = result {
                             if case .terminated = raw.yield(.success(v)) { return }
                         }
                     }
@@ -104,8 +106,8 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func replaceNil<T: Sendable>(with value: T) -> Publisher<T, Failure> where Output == T? {
+public extension Publisher {
+    func replaceNil<T: Sendable>(with value: T) -> Publisher<T, Failure> where Output == T? {
         map { $0 ?? value }
     }
 }
@@ -116,13 +118,13 @@ extension Publisher {
 // Result-returning variants are the non-throwing equivalent — useful when the
 // transform already produces a Result (e.g. a decoder) rather than throwing.
 
-extension Publisher where Failure == Never {
-    public func tryMap<T: Sendable, E: Error>(
+public extension Publisher where Failure == Never {
+    func tryMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) throws(E) -> T
     ) -> Publisher<T, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     do throws(E) {
                         let mapped = try transform(value)
                         if case .terminated = downstream.yield(.success(mapped)) { return }
@@ -135,16 +137,16 @@ extension Publisher where Failure == Never {
         }
     }
 
-    public func tryMap<T: Sendable, E: Error>(
+    func tryMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) -> Result<T, E>
     ) -> Publisher<T, E> {
         _tryOperator { downstream, upstream in
             for await result in upstream {
-                if case .success(let value) = result {
+                if case let .success(value) = result {
                     switch transform(value) {
-                    case .success(let mapped):
+                    case let .success(mapped):
                         if case .terminated = downstream.yield(.success(mapped)) { return }
-                    case .failure(let e):
+                    case let .failure(e):
                         _ = downstream.yield(.failure(e)); downstream.finish(); return
                     }
                 }
@@ -154,21 +156,21 @@ extension Publisher where Failure == Never {
     }
 }
 
-extension Publisher {
-    public func tryMap<T: Sendable>(
+public extension Publisher {
+    func tryMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) throws(Failure) -> T
     ) -> Publisher<T, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     do throws(Failure) {
                         let mapped = try transform(value)
                         if case .terminated = downstream.yield(.success(mapped)) { return }
                     } catch {
                         _ = downstream.yield(.failure(error)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -176,20 +178,20 @@ extension Publisher {
         }
     }
 
-    public func tryMap<T: Sendable>(
+    func tryMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> Result<T, Failure>
     ) -> Publisher<T, Failure> {
         _operator { downstream, upstream in
             for await result in upstream {
                 switch result {
-                case .success(let value):
+                case let .success(value):
                     switch transform(value) {
-                    case .success(let mapped):
+                    case let .success(mapped):
                         if case .terminated = downstream.yield(.success(mapped)) { return }
-                    case .failure(let e):
+                    case let .failure(e):
                         _ = downstream.yield(.failure(e)); downstream.finish(); return
                     }
-                case .failure(let e):
+                case let .failure(e):
                     _ = downstream.yield(.failure(e)); downstream.finish(); return
                 }
             }
@@ -200,32 +202,32 @@ extension Publisher {
 
 // MARK: - encode / decode
 
-extension Publisher where Failure == Never {
-    public func encode<E: Error>(
+public extension Publisher where Failure == Never {
+    func encode<E: Error>(
         encoder: @escaping @Sendable (Output) -> Result<Data, E>
     ) -> Publisher<Data, E> {
         tryMap(encoder)
     }
 }
 
-extension Publisher {
-    public func encode(
+public extension Publisher {
+    func encode(
         encoder: @escaping @Sendable (Output) -> Result<Data, Failure>
     ) -> Publisher<Data, Failure> {
         tryMap(encoder)
     }
 }
 
-extension Publisher where Output == Data, Failure == Never {
-    public func decode<T: Sendable, E: Error>(
+public extension Publisher where Output == Data, Failure == Never {
+    func decode<T: Sendable, E: Error>(
         decoder: @escaping @Sendable (Data) -> Result<T, E>
     ) -> Publisher<T, E> {
         tryMap(decoder)
     }
 }
 
-extension Publisher where Output == Data {
-    public func decode<T: Sendable>(
+public extension Publisher where Output == Data {
+    func decode<T: Sendable>(
         decoder: @escaping @Sendable (Data) -> Result<T, Failure>
     ) -> Publisher<T, Failure> {
         tryMap(decoder)

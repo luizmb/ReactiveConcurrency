@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Boxes an AsyncStream iterator for use across multiple @Sendable task-group closures.
 // Only used by the combineLatest FIFO pattern where one shared iterator is advanced by
 // successive task-group children — exactly one child calls next() at a time, never concurrently.

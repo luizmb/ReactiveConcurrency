@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import ReactiveConcurrency
 import Testing
@@ -75,13 +77,17 @@ private func poll(_ condition: @Sendable () -> Bool) async {
 @Suite struct SequencePublisherTests {
     @Test func arrayPublisherEmitsAllElements() async {
         var out: [Int] = []
-        for await v in [1, 2, 3].publisher.values { out.append(v) }
+        for await v in [1, 2, 3].publisher.values {
+            out.append(v)
+        }
         #expect(out == [1, 2, 3])
     }
 
     @Test func rangePublisherEmitsAllElements() async {
         var out: [Int] = []
-        for await v in (1...4).publisher.values { out.append(v) }
+        for await v in (1...4).publisher.values {
+            out.append(v)
+        }
         #expect(out == [1, 2, 3, 4])
     }
 }

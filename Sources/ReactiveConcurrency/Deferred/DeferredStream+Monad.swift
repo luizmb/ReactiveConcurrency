@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 public extension DeferredStream {
     // bind / flatMap :: DeferredStream a -> (a -> DeferredStream b) -> DeferredStream b
     // concatMap: sequential, lawful
     func flatMap<B: Sendable>(_ fn: @escaping @Sendable (Element) -> DeferredStream<B>) -> DeferredStream<B> {
-        let outerFactory = self.factory
+        let outerFactory = factory
         return DeferredStream<B> {
             let upstream = outerFactory()
             return AsyncStream<B> { continuation in
@@ -35,8 +37,12 @@ public extension DeferredStream {
             let rhsStream = rhsFactory()
             return AsyncStream<Element> { continuation in
                 let task = Task { @Sendable in
-                    for await element in lhsStream { continuation.yield(element) }
-                    for await element in rhsStream { continuation.yield(element) }
+                    for await element in lhsStream {
+                        continuation.yield(element)
+                    }
+                    for await element in rhsStream {
+                        continuation.yield(element)
+                    }
                     continuation.finish()
                 }
                 continuation.onTermination = { _ in task.cancel() }

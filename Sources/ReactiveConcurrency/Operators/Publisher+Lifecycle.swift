@@ -1,5 +1,7 @@
-extension Publisher {
-    public func handleEvents(
+// SPDX-License-Identifier: Apache-2.0
+
+public extension Publisher {
+    func handleEvents(
         receiveSubscription: (@Sendable () -> Void)? = nil,
         receiveOutput: (@Sendable (Output) -> Void)? = nil,
         receiveCompletion: (@Sendable (Subscribers.Completion<Failure>) -> Void)? = nil,
@@ -13,13 +15,13 @@ extension Publisher {
                 let task = Task {
                     for await result in upstream {
                         switch result {
-                        case .success(let value):
+                        case let .success(value):
                             receiveOutput?(value)
                             if case .terminated = raw.yield(Result.success(value)) {
                                 receiveCancel?()
                                 return
                             }
-                        case .failure(let error):
+                        case let .failure(error):
                             receiveCompletion?(.failure(error))
                             _ = raw.yield(Result.failure(error))
                             raw.finish()
