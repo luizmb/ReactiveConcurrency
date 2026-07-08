@@ -1,0 +1,19 @@
+@Tutorials(name: "Meet ReactiveConcurrency") {
+    @Intro(title: "Meet ReactiveConcurrency") {
+        Build reactive pipelines on Swift Concurrency. Pipelines are pure, lazy values — nothing
+        runs until you `sink` or iterate — with typed errors and `Sendable` everywhere, on Apple
+        platforms, Linux, Windows, and Android.
+    }
+
+    @Chapter(name: "Building Pipelines") {
+        Compose publishers, run them, react to time, handle typed errors, and share one upstream
+        across many subscribers.
+
+        @Image(source: "rc-chapter", alt: "The ReactiveConcurrency icon.")
+
+        @TutorialReference(tutorial: "doc:BuildYourFirstPipeline")
+        @TutorialReference(tutorial: "doc:SearchAsYouType")
+        @TutorialReference(tutorial: "doc:TypedErrorsAndRetry")
+        @TutorialReference(tutorial: "doc:ShareOneUpstream")
+    }
+}

@@ -4,13 +4,15 @@
 // is internally a DeferredStream<Result<Output, Failure>>, so these conversions are cheap.
 
 public extension DeferredStream {
-    // DeferredStream<Element> -> Publisher<Element, Never>: every element is a success.
+    /// Bridges this `DeferredStream` into an infallible `Publisher<Element, Never>` where every
+    /// element becomes a success.
     func eraseToPublisher() -> Publisher<Element, Never> {
         Publisher<Element, Never>(map { Result<Element, Never>.success($0) })
     }
 
-    // DeferredStream<Result<A, E>> -> Publisher<A, E>: surface the Result events on the
-    // Publisher's value/failure channels. E may be Never. The exact inverse of `Publisher.results`.
+    /// Bridges a `DeferredStream` of `Result` into a `Publisher<A, E>`, surfacing each `Result` on
+    /// the publisher's value/failure channels (`E` may be `Never`). The exact inverse of
+    /// `Publisher.results`.
     func eraseToThrowingPublisher<A: Sendable, E: Error>() -> Publisher<A, E>
     where Element == Result<A, E> {
         Publisher<A, E>(self)

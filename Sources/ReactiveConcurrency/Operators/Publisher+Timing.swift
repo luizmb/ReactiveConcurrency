@@ -10,6 +10,9 @@ import Hourglass
 public extension Publisher {
     /// Delays forwarding elements (and completion) by `interval`. Failures are delayed too,
     /// matching Combine — the whole Result stream is shifted by Hourglass's `delay`.
+    ///
+    /// The `clock` is explicit (there is no ambient scheduler), so tests can drive timing with a
+    /// fake clock rather than sleeping in real time.
     func delay<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C
@@ -22,6 +25,8 @@ public extension Publisher {
 
     /// Emits a value only after the upstream has been quiet for `interval`; the timer resets
     /// on each new value. A failure preempts any pending value and terminates immediately.
+    ///
+    /// The `clock` is explicit (no ambient scheduler), keeping timing testable with a fake clock.
     func debounce<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C
@@ -31,6 +36,8 @@ public extension Publisher {
 
     /// Emits the first value in each `interval` window (leading edge) when `latest` is false,
     /// or the most recent value at the end of each window when `latest` is true.
+    ///
+    /// The `clock` is explicit (no ambient scheduler), keeping window timing testable.
     func throttle<C: Clock & Sendable>(
         for interval: C.Instant.Duration,
         clock: C,
@@ -39,7 +46,8 @@ public extension Publisher {
         _timed { $0.throttle(for: interval, clock: clock, latest: latest) }
     }
 
-    /// Replaces each value with the elapsed duration since the previous value (or subscription).
+    /// Replaces each value with the elapsed duration since the previous value (or subscription),
+    /// measured on the explicit `clock` (no ambient scheduler; testable with a fake clock).
     func measureInterval<C: Clock & Sendable>(
         using clock: C
     ) -> Publisher<C.Instant.Duration, Failure> {
@@ -48,6 +56,8 @@ public extension Publisher {
 
     /// Groups values into arrays, flushing at the end of each time window. Empty windows are
     /// skipped; a partial window is flushed when the upstream completes.
+    ///
+    /// The `clock` is explicit (no ambient scheduler), keeping window timing testable.
     func collect<C: Clock & Sendable>(
         every interval: C.Instant.Duration,
         clock: C
@@ -58,6 +68,8 @@ public extension Publisher {
     /// Groups values into arrays, flushing when the time window elapses OR the buffer reaches
     /// `count`, whichever comes first; each flush resets the window. A partial window is flushed
     /// when the upstream completes.
+    ///
+    /// The `clock` is explicit (no ambient scheduler), keeping window timing testable.
     func collect<C: Clock & Sendable>(
         every interval: C.Instant.Duration,
         orCount count: Int,

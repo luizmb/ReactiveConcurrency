@@ -6,6 +6,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> Stateful<s, DeferredTask<a>> -> Stateful<s, DeferredTask<b>>
+
+/// Functor map lifted through the transformer (function on the left) for the Stateful-over-DeferredTask stack. Operator form of `mapT`.
 public func <£^> <S, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ stateful: Stateful<S, DeferredTask<A>>
@@ -14,6 +16,8 @@ public func <£^> <S, A: Sendable, B: Sendable>(
 }
 
 // (<&^>) :: Stateful<s, DeferredTask<a>> -> (a -> b) -> Stateful<s, DeferredTask<b>>
+
+/// Functor map lifted through the transformer (container on the left) for the Stateful-over-DeferredTask stack. Operator form of `mapT`.
 public func <&^> <S, A: Sendable, B: Sendable>(
     _ stateful: Stateful<S, DeferredTask<A>>,
     _ fn: @escaping @Sendable (A) -> B

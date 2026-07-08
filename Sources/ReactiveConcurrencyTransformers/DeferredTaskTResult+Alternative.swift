@@ -10,6 +10,7 @@ import ReactiveConcurrency
 // never run. Only when `lhs` is `.failure` is `rhs` run (its result — success or the "last"
 // failure — is returned). Sequential and deterministic, so it is the instance `<|>` maps to.
 // For the concurrent "first success, cancel the loser" behaviour use `raceDeferredTaskResult`.
+/// Left-biased Alternative for the DeferredTask-over-Result stack — lhs wins if .success, else rhs (sequential, lawful; the `<|>` instance).
 public func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
     _ lhs: DeferredTask<Result<A, E>>,
     _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
@@ -27,6 +28,7 @@ public func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
 // Runs both tasks concurrently; returns the first `.success` and cancels the loser. If both fail,
 // returns the last failure. NOT a lawful Alternative — the winner is scheduling-dependent, so it
 // is exposed under `race`, not `<|>`.
+/// Concurrent race for the DeferredTask-over-Result stack — first .success wins, loser cancelled (scheduling-dependent, NOT a lawful Alternative).
 public func raceDeferredTaskResult<A: Sendable, E: Error & Sendable>(
     _ lhs: DeferredTask<Result<A, E>>,
     _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
+    /// Injects side-effecting hooks into the stream's lifecycle without altering the events:
+    /// subscription, each output, completion (finished or failure), and cancellation.
     func handleEvents(
         receiveSubscription: (@Sendable () -> Void)? = nil,
         receiveOutput: (@Sendable (Output) -> Void)? = nil,

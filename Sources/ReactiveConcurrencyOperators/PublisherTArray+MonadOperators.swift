@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: Publisher<[a], f> -> (a -> Publisher<[b], f>) -> Publisher<[b], f>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the Publisher-over-Array stack. Operator form of `flatMap`.
 public func >>- <A: Sendable, B: Sendable, F: Error>(
     _ publisher: Publisher<[A], F>,
     _ fn: @escaping @Sendable (A) -> Publisher<[B], F>
@@ -13,6 +15,8 @@ public func >>- <A: Sendable, B: Sendable, F: Error>(
 }
 
 // (-<<) :: (a -> Publisher<[b], f>) -> Publisher<[a], f> -> Publisher<[b], f>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the Publisher-over-Array stack. Operator form of `flatMap`.
 public func -<< <A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> Publisher<[B], F>,
     _ publisher: Publisher<[A], F>
@@ -21,6 +25,8 @@ public func -<< <A: Sendable, B: Sendable, F: Error>(
 }
 
 // (>=>) :: (a -> Publisher<[b], f>) -> (b -> Publisher<[c], f>) -> a -> Publisher<[c], f>
+
+/// Left-to-right Kleisli composition of two effectful functions for the Publisher-over-Array stack.
 public func >=> <A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<[B], F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<[C], F>
@@ -29,6 +35,8 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable, F: Error>(
 }
 
 // (<=<) :: (b -> Publisher<[c], f>) -> (a -> Publisher<[b], f>) -> a -> Publisher<[c], f>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the Publisher-over-Array stack.
 public func <=< <A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn2: @escaping @Sendable (B) -> Publisher<[C], F>,
     _ fn1: @escaping @Sendable (A) -> Publisher<[B], F>

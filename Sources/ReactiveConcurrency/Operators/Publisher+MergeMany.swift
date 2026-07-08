@@ -5,6 +5,11 @@
 // (from any source) seals the stream.
 
 public extension Publisher {
+    /// Interleaves the elements of an arbitrary number of publishers, emitting them in arrival order.
+    ///
+    /// All sources run concurrently; the first failure from any source seals the stream.
+    /// - Parameter publishers: The publishers to merge.
+    /// - Returns: A publisher that emits from every source.
     static func merge(_ publishers: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
         let factories = publishers.map(\._stream.factory)
         return Publisher<Output, Failure>(DeferredStream {
@@ -34,6 +39,11 @@ public extension Publisher {
         })
     }
 
+    /// Interleaves this publisher with an array of others, emitting elements in arrival order.
+    ///
+    /// All sources run concurrently; the first failure from any source seals the stream.
+    /// - Parameter others: The additional publishers to merge with this one.
+    /// - Returns: A publisher that emits from this publisher and every other.
     func merge(with others: [Publisher<Output, Failure>]) -> Publisher<Output, Failure> {
         Publisher.merge([self] + others)
     }

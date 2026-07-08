@@ -7,6 +7,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<*>) :: DeferredTask<Writer<w, (a -> b)>> -> DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>>
+
+/// Applicative apply for the DeferredTask-over-Writer stack.
 public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ wf: DeferredTask<Writer<W, @Sendable (A) -> B>>,
     _ wa: DeferredTask<Writer<W, A>>
@@ -15,6 +17,8 @@ public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
 }
 
 // (*>) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, b>>
+
+/// Sequences two effects, keeping the right result for the DeferredTask-over-Writer stack. Operator form of `seqRight`.
 public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>
@@ -23,6 +27,8 @@ public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
 }
 
 // (<*) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, a>>
+
+/// Sequences two effects, keeping the left result for the DeferredTask-over-Writer stack. Operator form of `seqLeft`.
 public func <* <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>

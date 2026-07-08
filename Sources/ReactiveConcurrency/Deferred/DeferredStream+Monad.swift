@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension DeferredStream {
-    // bind / flatMap :: DeferredStream a -> (a -> DeferredStream b) -> DeferredStream b
-    // concatMap: sequential, lawful
+    /// Maps each element to a stream and concatenates them in order (concatMap; the monadic `bind`).
+    ///
+    /// This is the sequential, lawful product — use it for the cartesian product across streams.
     func flatMap<B: Sendable>(_ fn: @escaping @Sendable (Element) -> DeferredStream<B>) -> DeferredStream<B> {
         let outerFactory = factory
         return DeferredStream<B> {
@@ -21,14 +22,14 @@ public extension DeferredStream {
         }
     }
 
+    /// The curried, free-function form of `flatMap` for point-free composition.
     static func flatMap<B: Sendable>(
         _ fn: @escaping @Sendable (Element) -> DeferredStream<B>
     ) -> @Sendable (DeferredStream<Element>) -> DeferredStream<B> {
         { @Sendable stream in stream.flatMap(fn) }
     }
 
-    // alt :: DeferredStream a -> DeferredStream a -> DeferredStream a
-    // Concatenation: yield all elements from lhs, then all from rhs.
+    /// Concatenates two streams: yields all of `lhs`, then all of `rhs`. Forms a monoid with ``empty()``.
     static func alt(_ lhs: DeferredStream<Element>, _ rhs: @autoclosure () -> DeferredStream<Element>) -> DeferredStream<Element> {
         let lhsFactory = lhs.factory
         let rhsFactory = rhs().factory
@@ -50,26 +51,23 @@ public extension DeferredStream {
         }
     }
 
-    // empty :: DeferredStream a
-    // The identity element for `alt` (concat): a stream that completes immediately with no
-    // elements. `alt(empty, s) == s == alt(s, empty)`, so (DeferredStream, alt, empty) is a
-    // lawful monoid — the identity that `alt` previously lacked.
+    /// The empty stream (finishes immediately with no elements); the identity for ``alt(_:_:)``.
     static func empty() -> DeferredStream<Element> {
         DeferredStream<Element> { AsyncStream { $0.finish() } }
     }
 
-    // join :: DeferredStream (DeferredStream a) -> DeferredStream a
+    /// Flattens a stream of streams into a single stream (monadic `join`).
     static func join<A: Sendable>(_ nested: DeferredStream<DeferredStream<A>>) -> DeferredStream<A>
     where Element == DeferredStream<A> {
         nested.flatMap { $0 }
     }
 
-    // void :: DeferredStream a -> DeferredStream ()
+    /// Discards each element's value, yielding a `DeferredStream<Void>`.
     func void() -> DeferredStream<Void> {
         map { _ in }
     }
 
-    // kleisli :: (a -> DeferredStream b) -> (b -> DeferredStream c) -> (a -> DeferredStream c)
+    /// Left-to-right Kleisli composition: `f` then `g`, threading the stream through both.
     static func kleisli<B: Sendable, C: Sendable>(
         _ f: @escaping @Sendable (Element) -> DeferredStream<B>,
         _ g: @escaping @Sendable (B) -> DeferredStream<C>
@@ -77,8 +75,7 @@ public extension DeferredStream {
         { @Sendable a in f(a).flatMap(g) }
     }
 
-    // kleisliBack :: (b -> DeferredStream c) -> (a -> DeferredStream b) -> (a -> DeferredStream c)
-    // Reverse Kleisli composition: f first, then g.
+    /// Right-to-left Kleisli composition: applies `f` first, then `g`.
     static func kleisliBack<X: Sendable, B: Sendable>(
         _ g: @escaping @Sendable (Element) -> DeferredStream<B>,
         _ f: @escaping @Sendable (X) -> DeferredStream<Element>

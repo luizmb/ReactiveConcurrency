@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension DeferredTask {
-    // pure :: a -> DeferredTask a
+    /// Lifts a plain value into an already-resolved task (the applicative `pure`).
     static func pure(_ value: Success) -> DeferredTask<Success> {
         DeferredTask { value }
     }
 
-    // seqRight :: DeferredTask a -> DeferredTask b -> DeferredTask b
+    /// Runs `self` then `rhs` sequentially, keeping only `rhs`'s result.
     func seqRight<B: Sendable>(_ rhs: DeferredTask<B>) -> DeferredTask<B> {
         liftA2DeferredTask { _, b in b }(self, rhs)
     }
 
-    // seqLeft :: DeferredTask a -> DeferredTask b -> DeferredTask a
+    /// Runs `self` then `rhs` sequentially, keeping only `self`'s result.
     func seqLeft<B: Sendable>(_ rhs: DeferredTask<B>) -> DeferredTask<Success> {
         liftA2DeferredTask { a, _ in a }(self, rhs)
     }
 
-    // zip :: DeferredTask a -> DeferredTask b -> … -> DeferredTask (a, b, …)
-    // Runs tasks sequentially left-to-right, collecting results into a tuple.
+    /// Runs the given tasks sequentially left-to-right, collecting their results into a tuple.
     static func zip<B: Sendable, each C: Sendable>(
         _ first: DeferredTask<Success>,
         _ second: DeferredTask<B>,
@@ -29,8 +28,11 @@ public extension DeferredTask {
     }
 }
 
-// apply :: DeferredTask (a -> b) -> DeferredTask a -> DeferredTask b
-// Sequential (lawful): equivalent to fns >>= { f in values >>= { a in pure(f(a)) } }
+///
+/// Sequential and lawful: runs `fns` then `values`, equivalent to
+/// `fns >>= { f in values >>= { a in pure(f(a)) } }`.
+
+/// Applies a deferred function to a deferred value (applicative `<*>`).
 public func applyDeferredTask<A: Sendable, B: Sendable>(
     _ fns: DeferredTask<@Sendable (A) -> B>,
     _ values: DeferredTask<A>
@@ -42,7 +44,7 @@ public func applyDeferredTask<A: Sendable, B: Sendable>(
     }
 }
 
-// liftA2 :: (a -> b -> c) -> DeferredTask a -> DeferredTask b -> DeferredTask c
+/// Combines two deferred tasks with a binary function, running them sequentially left-to-right.
 public func liftA2DeferredTask<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<A>, DeferredTask<B>) -> DeferredTask<C> {

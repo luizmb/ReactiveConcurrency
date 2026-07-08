@@ -8,6 +8,7 @@ import ReactiveConcurrency
 
 // flatMapT: .left propagates; .right(a) proceeds through fn. Sequential (maxPublishers: 1)
 // preserves element order, matching the DeferredStream transformer's concat semantics.
+/// Monadic bind for the Publisher-over-Either stack: .left short-circuits; .right threads through fn.
 public func flatMapTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
     _ publisher: Publisher<Either<L, A>, F>,
     _ fn: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>
@@ -20,6 +21,7 @@ public func flatMapTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Er
     }
 }
 
+/// Monadic bind (point-free) for the Publisher-over-Either stack: .left short-circuits; .right threads through fn.
 public func bindTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>
 ) -> @Sendable (Publisher<Either<L, A>, F>) -> Publisher<Either<L, B>, F> {
@@ -27,6 +29,7 @@ public func bindTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error
 }
 
 // Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+/// Left-to-right Kleisli composition for the Publisher-over-Either stack.
 public func kleisliTPublisherEither<L: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<Either<L, C>, F>

@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: DeferredStream<a?> -> (a -> DeferredStream<b?>) -> DeferredStream<b?>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the DeferredStream-over-Optional stack. Operator form of `flatMap`.
 public func >>- <A: Sendable, B: Sendable>(
     _ stream: DeferredStream<A?>,
     _ fn: @escaping @Sendable (A) -> DeferredStream<B?>
@@ -13,6 +15,8 @@ public func >>- <A: Sendable, B: Sendable>(
 }
 
 // (-<<) :: (a -> DeferredStream<b?>) -> DeferredStream<a?> -> DeferredStream<b?>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the DeferredStream-over-Optional stack. Operator form of `flatMap`.
 public func -<< <A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> DeferredStream<B?>,
     _ stream: DeferredStream<A?>
@@ -21,6 +25,8 @@ public func -<< <A: Sendable, B: Sendable>(
 }
 
 // (>=>) :: (a -> DeferredStream<b?>) -> (b -> DeferredStream<c?>) -> a -> DeferredStream<c?>
+
+/// Left-to-right Kleisli composition of two effectful functions for the DeferredStream-over-Optional stack.
 public func >=> <A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> DeferredStream<B?>,
     _ fn2: @escaping @Sendable (B) -> DeferredStream<C?>
@@ -29,6 +35,8 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable>(
 }
 
 // (<=<) :: (b -> DeferredStream<c?>) -> (a -> DeferredStream<b?>) -> a -> DeferredStream<c?>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the DeferredStream-over-Optional stack.
 public func <=< <A: Sendable, B: Sendable, C: Sendable>(
     _ fn2: @escaping @Sendable (B) -> DeferredStream<C?>,
     _ fn1: @escaping @Sendable (A) -> DeferredStream<B?>

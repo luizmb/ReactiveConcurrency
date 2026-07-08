@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // PublisherTOptional: outer = Publisher, inner = Optional
 // Type: Publisher<A?, F>. nil propagates.
 
+/// Applicative liftA2 for the Publisher-over-Optional stack: runs both effects and combines their results with fn.
 public func liftA2TPublisherOptional<A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Publisher<A?, F>, Publisher<B?, F>) -> Publisher<C?, F> {
@@ -16,6 +17,7 @@ public func liftA2TPublisherOptional<A: Sendable, B: Sendable, C: Sendable, F: E
     }
 }
 
+/// Applicative apply for the Publisher-over-Optional stack (zippy).
 public func applyTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
     _ fns: Publisher<(@Sendable (A) -> B)?, F>,
     _ values: Publisher<A?, F>

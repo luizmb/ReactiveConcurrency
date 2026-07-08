@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // DeferredStreamTResult: outer = DeferredStream, inner = Result
 // Type: DeferredStream<Result<A, E>>
 
+/// Applicative liftA2 for the DeferredStream-over-Result stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredStreamResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<Result<A, E>>, DeferredStream<Result<B, E>>) -> DeferredStream<Result<C, E>> {
@@ -19,6 +20,7 @@ public func liftA2TDeferredStreamResult<A: Sendable, B: Sendable, C: Sendable, E
     }
 }
 
+/// Applicative apply for the DeferredStream-over-Result stack.
 public func applyTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fns: DeferredStream<Result<@Sendable (A) -> B, E>>,
     _ values: DeferredStream<Result<A, E>>

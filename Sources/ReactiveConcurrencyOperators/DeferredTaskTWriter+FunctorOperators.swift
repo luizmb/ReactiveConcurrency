@@ -7,6 +7,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>>
+
+/// Functor map lifted through the transformer (function on the left) for the DeferredTask-over-Writer stack. Operator form of `mapT`.
 public func <£^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ task: DeferredTask<Writer<W, A>>
@@ -15,6 +17,8 @@ public func <£^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
 }
 
 // (<&^>) :: DeferredTask<Writer<w, a>> -> (a -> b) -> DeferredTask<Writer<w, b>>
+
+/// Functor map lifted through the transformer (container on the left) for the DeferredTask-over-Writer stack. Operator form of `mapT`.
 public func <&^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ task: DeferredTask<Writer<W, A>>,
     _ fn: @escaping @Sendable (A) -> B

@@ -12,6 +12,7 @@ import ReactiveConcurrency
 // shape discarded the continuation's log.
 
 public extension Publisher {
+    /// Monadic bind for the Publisher-over-Writer stack: threads the value through fn and combines the accumulated logs via the Monoid.
     func flatMapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> Publisher<Writer<W, B>, Failure>
     ) -> Publisher<Writer<W, B>, Failure>
@@ -21,6 +22,7 @@ public extension Publisher {
         }
     }
 
+    /// Monadic bind (point-free) for the Publisher-over-Writer stack: threads the value through fn and combines the accumulated logs via the Monoid.
     static func bindT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> Publisher<Writer<W, B>, Failure>
     ) -> @Sendable (Publisher<Writer<W, Inner>, Failure>) -> Publisher<Writer<W, B>, Failure> {
@@ -28,6 +30,7 @@ public extension Publisher {
     }
 }
 
+/// Left-to-right Kleisli composition for the Publisher-over-Writer stack.
 public func kleisliTPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>

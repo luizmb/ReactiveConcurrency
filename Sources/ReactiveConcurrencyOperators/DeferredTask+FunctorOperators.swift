@@ -4,6 +4,8 @@ import CoreFPOperators
 import ReactiveConcurrency
 
 // (<£>) :: (a -> b) -> DeferredTask a -> DeferredTask b
+
+/// Functor map (function on the left). Operator form of `map`.
 public func <£> <A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ task: DeferredTask<A>
@@ -12,6 +14,8 @@ public func <£> <A: Sendable, B: Sendable>(
 }
 
 // (<&>) :: DeferredTask a -> (a -> b) -> DeferredTask b
+
+/// Functor map (container on the left). Operator form of `map`.
 public func <&> <A: Sendable, B: Sendable>(
     _ task: DeferredTask<A>,
     _ fn: @escaping @Sendable (A) -> B
@@ -20,6 +24,8 @@ public func <&> <A: Sendable, B: Sendable>(
 }
 
 // (£>) :: DeferredTask a -> b -> DeferredTask b
+
+/// Replaces every value with a constant (container on the left). Operator form of `replace`.
 public func £> <A: Sendable, B: Sendable>(
     _ task: DeferredTask<A>,
     _ value: B
@@ -28,6 +34,8 @@ public func £> <A: Sendable, B: Sendable>(
 }
 
 // (<£) :: b -> DeferredTask a -> DeferredTask b
+
+/// Replaces every value with a constant (constant on the left). Operator form of `replace`.
 public func <£ <A: Sendable, B: Sendable>(
     _ value: B,
     _ task: DeferredTask<A>

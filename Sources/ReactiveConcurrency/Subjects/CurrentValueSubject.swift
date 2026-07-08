@@ -1,22 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
+///
+/// Each new subscriber immediately receives the current value, then all subsequent sends. The
+/// latest value is also readable synchronously via `value`. Delivery is asynchronous, so
+/// reentrancy anomalies cannot occur.
 
+/// A hot subject that holds a current value, replaying the latest to every new subscriber.
 public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: CurrentValueCore<Output, Failure>
 
+    /// Creates the subject seeded with an initial current value.
     public init(_ value: Output) {
         _core = CurrentValueCore(value)
     }
 
+    /// The latest value, readable synchronously.
     public var value: Output { _core.currentValue }
 
+    /// Updates the current value and broadcasts it to all current subscribers.
     public func send(_ value: Output) {
         _core.send(value)
     }
 
+    /// Terminates the subject with a completion; subsequent sends are ignored.
     public func send(completion: Subscribers.Completion<Failure>) {
         _core.complete(completion)
     }
 
+    /// Exposes this subject as a read-only `Publisher` that replays the current value on subscribe.
     public func eraseToPublisher() -> Publisher<Output, Failure> {
         let core = _core
         return Publisher<Output, Failure>(DeferredStream {

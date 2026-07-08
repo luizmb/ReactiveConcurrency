@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // DeferredTaskTResult: outer = DeferredTask, inner = Result
 // Type: DeferredTask<Result<A, E>>
 
+/// Applicative liftA2 for the DeferredTask-over-Result stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredTaskResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<Result<A, E>>, DeferredTask<Result<B, E>>) -> DeferredTask<Result<C, E>> {
@@ -19,6 +20,7 @@ public func liftA2TDeferredTaskResult<A: Sendable, B: Sendable, C: Sendable, E: 
     }
 }
 
+/// Applicative apply for the DeferredTask-over-Result stack.
 public func applyTDeferredTaskResult<A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fns: DeferredTask<Result<@Sendable (A) -> B, E>>,
     _ values: DeferredTask<Result<A, E>>

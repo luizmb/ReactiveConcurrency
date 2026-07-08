@@ -8,17 +8,18 @@
 // MARK: - Functor
 
 public extension Publisher {
-    // replace :: Publisher a e -> b -> Publisher b e
+    /// Replaces every emitted value with the constant `value` (Functor `<$`).
     func replace<B: Sendable>(_ value: B) -> Publisher<B, Failure> {
         map { _ in value }
     }
 
-    // void :: Publisher a e -> Publisher () e
+    /// Discards each value, keeping only the stream's shape as `Publisher<Void, Failure>`.
     func void() -> Publisher<Void, Failure> {
         map { _ in }
     }
 
-    // bimap :: (a -> b) -> (e -> f) -> Publisher a e -> Publisher b f
+    /// Maps both channels at once: `transformOutput` over values and `transformError` over the
+    /// failure (Bifunctor `bimap`).
     func bimap<T: Sendable, E: Error>(
         transformOutput: @escaping @Sendable (Output) -> T,
         transformError: @escaping @Sendable (Failure) -> E
@@ -26,7 +27,8 @@ public extension Publisher {
         map(transformOutput).mapError(transformError)
     }
 
-    // fmap :: (a -> b) -> Publisher a e -> Publisher b e
+    /// Curried, free-function form of `map`: lifts `transform` into a function on publishers
+    /// (Functor `fmap`), for point-free composition.
     static func fmap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> T
     ) -> @Sendable (Publisher<Output, Failure>) -> Publisher<T, Failure> {
@@ -46,23 +48,26 @@ public extension Publisher {
 // `flatMap` when you want the cartesian, monad-consistent product.
 
 public extension Publisher {
-    // pure :: a -> Publisher a e — single-element (ZipList pure is the identity element for
-    // the zippy product only up to length 1; a lawful ZipList pure would repeat infinitely).
+    /// Lifts a single value into a one-element publisher (Applicative `pure`). Note this is a
+    /// single-shot element, so it acts as the zippy product's identity only up to length 1.
     static func pure(_ value: Output) -> Publisher<Output, Failure> {
         just(value)
     }
 
-    // seqRight :: Publisher a e -> Publisher b e -> Publisher b e (zippy: pairs positionally)
+    /// Zips positionally with `rhs` and keeps the right value at each position (`*>`); truncates
+    /// to the shorter side.
     func seqRight<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<B, Failure> {
         zip(rhs).map { _, b in b }
     }
 
-    // seqLeft :: Publisher a e -> Publisher b e -> Publisher a e (zippy: pairs positionally)
+    /// Zips positionally with `rhs` and keeps the left value at each position (`<*`); truncates
+    /// to the shorter side.
     func seqLeft<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<Output, Failure> {
         zip(rhs).map { a, _ in a }
     }
 
-    // zip :: Publisher a e -> Publisher b e -> Publisher (a, b) e
+    /// Free-function form of the instance `zip`: pairs `pa` and `pb` positionally into a publisher
+    /// of tuples, truncating to the shorter side.
     static func zip<B: Sendable>(
         _ pa: Publisher<Output, Failure>,
         _ pb: Publisher<B, Failure>
@@ -71,9 +76,10 @@ public extension Publisher {
     }
 }
 
-// apply :: Publisher (a -> b) e -> Publisher a e -> Publisher b e
-// Zippy (ZipList-style): pairs each fn with each value positionally and truncates at the shorter
-// side. NOT the cartesian, monad-consistent product — see the section note above.
+/// `values` at the same position and applies it, truncating to the shorter side. This is the
+/// zippy (ZipList-style) product, not the cartesian, monad-consistent one — see the section note.
+
+/// Applicative apply (`<*>`) for publishers: pairs each function in `fns` with the value in
 public func applyPublisher<A: Sendable, B: Sendable, E: Error>(
     _ fns: Publisher<@Sendable (A) -> B, E>,
     _ values: Publisher<A, E>
@@ -84,26 +90,28 @@ public func applyPublisher<A: Sendable, B: Sendable, E: Error>(
 // MARK: - Monad
 
 public extension Publisher {
-    // flatMap (static, curried) :: (a -> Publisher b e) -> Publisher a e -> Publisher b e
+    /// Curried, free-function form of `flatMap`: lifts `transform` into a function on publishers
+    /// (Monad bind), for point-free composition.
     static func flatMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> Publisher<T, Failure>
     ) -> @Sendable (Publisher<Output, Failure>) -> Publisher<T, Failure> {
         { @Sendable publisher in publisher.flatMap(transform) }
     }
 
-    // join :: Publisher (Publisher a e) e -> Publisher a e
+    /// Flattens a publisher of publishers by one level (Monad `join`).
     func join<A: Sendable>() -> Publisher<A, Failure> where Output == Publisher<A, Failure> {
         flatMap { $0 }
     }
 
-    // join (static) :: Publisher (Publisher a e) e -> Publisher a e
+    /// Free-function form of `join`: flattens `nested` by one level.
     static func join<A: Sendable>(
         _ nested: Publisher<Publisher<A, Failure>, Failure>
     ) -> Publisher<A, Failure> where Output == Publisher<A, Failure> {
         nested.flatMap { $0 }
     }
 
-    // kleisli :: (a -> Publisher b e) -> (b -> Publisher c e) -> (a -> Publisher c e)
+    /// Left-to-right Kleisli composition (`>=>`): composes two publisher-returning functions
+    /// into one.
     static func kleisli<B: Sendable, C: Sendable>(
         _ f: @escaping @Sendable (Output) -> Publisher<B, Failure>,
         _ g: @escaping @Sendable (B) -> Publisher<C, Failure>
@@ -111,8 +119,8 @@ public extension Publisher {
         { @Sendable a in f(a).flatMap(g) }
     }
 
-    // kleisliBack :: (b -> Publisher c e) -> (a -> Publisher b e) -> (a -> Publisher c e)
-    // Right-to-left Kleisli composition (mirrors DeferredTask/DeferredStream base).
+    /// Right-to-left Kleisli composition (`<=<`): composes two publisher-returning functions,
+    /// mirroring the DeferredTask/DeferredStream base.
     static func kleisliBack<X: Sendable, B: Sendable>(
         _ g: @escaping @Sendable (Output) -> Publisher<B, Failure>,
         _ f: @escaping @Sendable (X) -> Publisher<Output, Failure>
@@ -124,9 +132,9 @@ public extension Publisher {
 // MARK: - Alternative
 
 public extension Publisher {
-    // alt :: Publisher a e -> Publisher a e -> Publisher a e
-    // Concatenation: emit every value from self, then (only if self finished without failing)
-    // every value from other. A failure on either side propagates and seals the stream.
+    /// Alternative `<|>` as concatenation: emits every value from `self`, then (only if `self`
+    /// finished without failing) every value from `other`. A failure on either side propagates
+    /// and seals the stream.
     func alt(_ other: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
         let otherFactory = other._stream.factory
         return _operator { downstream, upstream in
@@ -150,7 +158,7 @@ public extension Publisher {
         }
     }
 
-    // alt (static) :: Publisher a e -> Publisher a e -> Publisher a e
+    /// Free-function form of `alt`: `lhs` concatenated with the lazily-evaluated `rhs`.
     static func alt(
         _ lhs: Publisher<Output, Failure>,
         _ rhs: @autoclosure () -> Publisher<Output, Failure>

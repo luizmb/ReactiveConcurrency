@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
-    // Limits concurrent inner publishers to maxPublishers.
-    // Upstream consumption pauses when all slots are taken, providing natural backpressure.
-    // Uses an AsyncStream as a counting semaphore: pre-populated with maxPublishers tokens,
-    // each inner publisher consumes one on start and yields one back on completion.
+    /// Maps each element to a publisher and flattens their outputs, bounding concurrency to `maxPublishers`.
+    ///
+    /// Upstream consumption pauses when all slots are taken, providing natural backpressure.
+    /// - Parameters:
+    ///   - maxPublishers: The maximum number of inner publishers active at once.
+    ///   - transform: A closure mapping each element to an inner publisher.
+    /// - Returns: A publisher that emits the flattened inner outputs in arrival order.
     func flatMap<T: Sendable>(
         maxPublishers: Int,
         _ transform: @escaping @Sendable (Output) -> Publisher<T, Failure>
@@ -55,8 +58,11 @@ public extension Publisher {
 }
 
 public extension Publisher {
-    // All inner publishers run concurrently; outputs merged in arrival order.
-    // First failure (upstream or any inner) immediately seals the downstream.
+    /// Maps each element to a publisher and flattens all of their outputs, with unbounded concurrency.
+    ///
+    /// All inner publishers run concurrently; the first failure (upstream or any inner) seals the downstream.
+    /// - Parameter transform: A closure mapping each element to an inner publisher.
+    /// - Returns: A publisher that emits the flattened inner outputs in arrival order.
     func flatMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> Publisher<T, Failure>
     ) -> Publisher<T, Failure> {
@@ -92,8 +98,10 @@ public extension Publisher {
         })
     }
 
-    // Cancels the current inner publisher whenever a new upstream value arrives.
-    // Only the most recent inner publisher's values reach downstream.
+    /// Flattens a publisher of publishers, forwarding only the most recent inner publisher's elements.
+    ///
+    /// Cancels the current inner publisher whenever a new upstream value arrives.
+    /// - Returns: A publisher that emits values from the latest inner publisher.
     func switchToLatest<T: Sendable>() -> Publisher<T, Failure>
     where Output == Publisher<T, Failure> {
         _operator { raw, upstream in

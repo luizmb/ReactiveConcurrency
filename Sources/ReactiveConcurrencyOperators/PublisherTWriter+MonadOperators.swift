@@ -7,6 +7,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: Publisher<Writer<w, a>, f> -> (a -> Publisher<Writer<w, b>, f>) -> Publisher<Writer<w, b>, f>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the Publisher-over-Writer stack. Operator form of `flatMap`.
 public func >>- <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ publisher: Publisher<Writer<W, A>, F>,
     _ fn: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>
@@ -15,6 +17,8 @@ public func >>- <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
 }
 
 // (-<<) :: (a -> Publisher<Writer<w, b>, f>) -> Publisher<Writer<w, a>, f> -> Publisher<Writer<w, b>, f>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the Publisher-over-Writer stack. Operator form of `flatMap`.
 public func -<< <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
     _ publisher: Publisher<Writer<W, A>, F>
@@ -23,6 +27,8 @@ public func -<< <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
 }
 
 // (>=>) :: (a -> Publisher<Writer<w, b>, f>) -> (b -> Publisher<Writer<w, c>, f>) -> a -> Publisher<Writer<w, c>, f>
+
+/// Left-to-right Kleisli composition of two effectful functions for the Publisher-over-Writer stack.
 public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>
@@ -31,6 +37,8 @@ public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F:
 }
 
 // (<=<) :: (b -> Publisher<Writer<w, c>, f>) -> (a -> Publisher<Writer<w, b>, f>) -> a -> Publisher<Writer<w, c>, f>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the Publisher-over-Writer stack.
 public func <=< <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>,
     _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>

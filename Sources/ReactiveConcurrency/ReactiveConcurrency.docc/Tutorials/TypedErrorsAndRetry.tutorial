@@ -1,0 +1,37 @@
+@Tutorial(time: 15) {
+    @Intro(title: "Typed errors and retry") {
+        A publisher carries its failure type, and the error surfaces as a *value* at the boundary.
+        Handle it with `retry`, `catch`, and `replaceError` — all fully typed.
+    }
+
+    @Section(title: "Fail, recover, and observe") {
+        @ContentAndMedia {
+            There is no untyped `any Error`: ``Publisher`` is `Publisher<Output, Failure>`, and the
+            error is a `Result` at the iteration boundary or a `.failure` completion at the sink.
+        }
+
+        @Steps {
+            @Step {
+                Build a publisher whose typed `Failure` is your own error enum.
+                @Code(name: "Loader.swift", file: errors-01.swift)
+            }
+
+            @Step {
+                `retry` re-subscribes on failure; `replaceError` provides a typed fallback value.
+                @Code(name: "Loader.swift", file: errors-02.swift)
+            }
+
+            @Step {
+                Or `catch` the typed error and recover with a fallback publisher, branching on the
+                specific case.
+                @Code(name: "Loader.swift", file: errors-03.swift)
+            }
+
+            @Step {
+                At the boundary, read the error as a `.failure` completion, or iterate `results`
+                where each element is a `Result`.
+                @Code(name: "Loader.swift", file: errors-04.swift)
+            }
+        }
+    }
+}

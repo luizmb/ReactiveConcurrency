@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<*>) :: DeferredTask<(a->b)?> -> DeferredTask<a?> -> DeferredTask<b?>
+
+/// Applicative apply for the DeferredTask-over-Optional stack.
 public func <*> <A: Sendable, B: Sendable>(
     _ fns: DeferredTask<(@Sendable (A) -> B)?>,
     _ values: DeferredTask<A?>

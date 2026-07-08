@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension DeferredStream {
-    // pure :: a -> DeferredStream a
+    /// Lifts a single value into a one-element stream (applicative `pure`).
     static func pure(_ value: Element) -> DeferredStream<Element> {
         DeferredStream { AsyncStream { continuation in
             continuation.yield(value)
@@ -10,18 +10,17 @@ public extension DeferredStream {
         }
     }
 
-    // seqRight :: DeferredStream a -> DeferredStream b -> DeferredStream b
+    /// Zips positionally with `rhs`, keeping only `rhs`'s elements; truncates to the shorter stream.
     func seqRight<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<B> {
         liftA2DeferredStream { _, b in b }(self, rhs)
     }
 
-    // seqLeft :: DeferredStream a -> DeferredStream b -> DeferredStream a
+    /// Zips positionally with `rhs`, keeping only `self`'s elements; truncates to the shorter stream.
     func seqLeft<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<Element> {
         liftA2DeferredStream { a, _ in a }(self, rhs)
     }
 
-    // zip :: DeferredStream a -> DeferredStream b -> DeferredStream (a, b)
-    // Pairs elements positionally; stops when either stream ends.
+    /// Pairs elements of two streams positionally, stopping when either stream ends.
     static func zip<B: Sendable>(
         _ sa: DeferredStream<Element>,
         _ sb: DeferredStream<B>
@@ -43,8 +42,7 @@ public extension DeferredStream {
         }
     }
 
-    // zip3 :: DeferredStream a -> DeferredStream b -> DeferredStream c -> DeferredStream (a, b, c)
-    // Pairs elements positionally; stops when any stream ends.
+    /// Pairs elements of three streams positionally, stopping when any stream ends.
     static func zip3<B: Sendable, C: Sendable>(
         _ sa: DeferredStream<Element>,
         _ sb: DeferredStream<B>,
@@ -69,8 +67,7 @@ public extension DeferredStream {
         }
     }
 
-    // zip4 :: DeferredStream a -> … -> DeferredStream d -> DeferredStream (a, b, c, d)
-    // Pairs elements positionally; stops when any stream ends.
+    /// Pairs elements of four streams positionally, stopping when any stream ends.
     static func zip4<B: Sendable, C: Sendable, D: Sendable>(
         _ sa: DeferredStream<Element>,
         _ sb: DeferredStream<B>,
@@ -100,14 +97,15 @@ public extension DeferredStream {
     }
 }
 
-// apply :: DeferredStream (a -> b) -> DeferredStream a -> DeferredStream b
-//
-// Zippy Semigroupal (ZipList-style): pairs each fn with each value positionally and truncates at
-// the shorter side. This is the product users want from a stream, but it is NOT the Applicative
-// derived from the monad (`flatMap` = concatMap = cartesian). The Applicative *identity* law
-// `pure(id) <*> v == v` fails for |v| > 1 (pure yields one element, zip truncates v to length 1).
-// Use `flatMap` for the cartesian, monad-consistent product. `pure`/`seqLeft`/`seqRight` above are
-// zippy for the same reason.
+///
+/// Zippy Semigroupal (ZipList-style): pairs each fn with each value positionally and truncates at
+/// the shorter side. This is the product users want from a stream, but it is NOT the applicative
+/// derived from the monad (`flatMap` = concatMap = cartesian). The applicative
+/// *identity* law `pure(id) <*> v == v` fails for `|v| > 1` (pure yields one element, zip truncates
+/// `v` to length 1). Use `flatMap` for the cartesian, monad-consistent product.
+/// `pure` / `seqLeft` / `seqRight` are zippy for the same reason.
+
+/// Applies a stream of functions to a stream of values, positionally (applicative `<*>`).
 public func applyDeferredStream<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>
@@ -129,7 +127,7 @@ public func applyDeferredStream<A: Sendable, B: Sendable>(
     }
 }
 
-// liftA2 :: (a -> b -> c) -> DeferredStream a -> DeferredStream b -> DeferredStream c
+/// Combines two streams element-wise with a binary function; truncates to the shorter stream.
 public func liftA2DeferredStream<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<A>, DeferredStream<B>) -> DeferredStream<C> {

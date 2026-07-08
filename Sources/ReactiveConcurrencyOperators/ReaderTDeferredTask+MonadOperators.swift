@@ -6,6 +6,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: Reader<env, DeferredTask<a>> -> (a -> Reader<env, DeferredTask<b>>) -> Reader<env, DeferredTask<b>>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the Reader-over-DeferredTask stack. Operator form of `flatMap`.
 public func >>- <Env: Sendable, A: Sendable, B: Sendable>(
     _ reader: Reader<Env, DeferredTask<A>>,
     _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>
@@ -14,6 +16,8 @@ public func >>- <Env: Sendable, A: Sendable, B: Sendable>(
 }
 
 // (-<<) :: (a -> Reader<env, DeferredTask<b>>) -> Reader<env, DeferredTask<a>> -> Reader<env, DeferredTask<b>>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the Reader-over-DeferredTask stack. Operator form of `flatMap`.
 public func -<< <Env: Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>,
     _ reader: Reader<Env, DeferredTask<A>>
@@ -22,6 +26,8 @@ public func -<< <Env: Sendable, A: Sendable, B: Sendable>(
 }
 
 // (>=>) :: (a -> Reader<env, DeferredTask<b>>) -> (b -> Reader<env, DeferredTask<c>>) -> a -> Reader<env, DeferredTask<c>>
+
+/// Left-to-right Kleisli composition of two effectful functions for the Reader-over-DeferredTask stack.
 public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredTask<C>>
@@ -30,6 +36,8 @@ public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
 }
 
 // (<=<) :: (b -> Reader<env, DeferredTask<c>>) -> (a -> Reader<env, DeferredTask<b>>) -> a -> Reader<env, DeferredTask<c>>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the Reader-over-DeferredTask stack.
 public func <=< <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredTask<C>>,
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>

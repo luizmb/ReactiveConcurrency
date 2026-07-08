@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<*>) :: Publisher<[a->b], f> -> Publisher<[a], f> -> Publisher<[b], f>
+
+/// Applicative apply for the Publisher-over-Array stack.
 public func <*> <A: Sendable, B: Sendable, F: Error>(
     _ fns: Publisher<[@Sendable (A) -> B], F>,
     _ values: Publisher<[A], F>

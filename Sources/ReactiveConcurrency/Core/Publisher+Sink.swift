@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
+    /// Subscribes with closures for each value and for completion (finished or failure), starting
+    /// the stream immediately.
+    /// - Returns: An `AnyCancellable` that cancels the subscription when deallocated or cancelled.
     func sink(
         receiveCompletion: @escaping @Sendable (Subscribers.Completion<Failure>) -> Void,
         receiveValue: @escaping @Sendable (Output) -> Void
@@ -32,6 +35,9 @@ public extension Publisher {
 }
 
 public extension Publisher where Failure == Never {
+    /// Subscribes with a value closure only, available because the publisher cannot fail
+    /// (`Failure == Never`). Starts the stream immediately.
+    /// - Returns: An `AnyCancellable` that cancels the subscription when deallocated or cancelled.
     func sink(receiveValue: @escaping @Sendable (Output) -> Void) -> AnyCancellable {
         let stream = _stream.factory()
         let task = Task {

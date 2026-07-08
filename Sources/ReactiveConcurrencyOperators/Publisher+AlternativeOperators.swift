@@ -5,6 +5,8 @@ import ReactiveConcurrency
 
 // (<|>) :: Publisher a e -> Publisher a e -> Publisher a e
 // Concatenation: all of lhs, then all of rhs (only if lhs finished without failing).
+
+/// Alternative — first non-empty/successful of the two, a lawful monoid with `empty`.
 public func <|> <A: Sendable, E: Error>(
     _ lhs: Publisher<A, E>,
     _ rhs: @autoclosure () -> Publisher<A, E>

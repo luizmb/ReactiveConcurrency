@@ -11,6 +11,8 @@ import ReactiveConcurrency
 // zip truncates at the shorter side, so the right-identity law fails for |x| > 1. It is therefore
 // exposed as a named function only — there is deliberately no `<|>` operator for it (that operator
 // is reserved for lawful monoids like `Publisher.alt` / `DeferredStream.alt`, which use concat).
+/// (deterministic but NOT a lawful Alternative; no `<|>`).
+/// Zippy element-wise Alternative for the Publisher-over-Optional stack — positional zip taking the left value when present, else the right
 public func altPublisherOptional<A: Sendable, F: Error>(
     _ lhs: Publisher<A?, F>,
     _ rhs: @autoclosure () -> Publisher<A?, F>

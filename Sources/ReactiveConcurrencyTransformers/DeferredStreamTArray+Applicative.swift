@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // DeferredStreamTArray: outer = DeferredStream, inner = Array
 // Type: DeferredStream<[A]>
 
+/// Applicative liftA2 for the DeferredStream-over-Array stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredStreamArray<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<[A]>, DeferredStream<[B]>) -> DeferredStream<[C]> {
@@ -15,6 +16,7 @@ public func liftA2TDeferredStreamArray<A: Sendable, B: Sendable, C: Sendable>(
     }
 }
 
+/// Applicative apply for the DeferredStream-over-Array stack.
 public func applyTDeferredStreamArray<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<[@Sendable (A) -> B]>,
     _ values: DeferredStream<[A]>
