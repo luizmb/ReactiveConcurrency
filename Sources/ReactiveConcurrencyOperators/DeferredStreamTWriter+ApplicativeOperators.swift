@@ -11,7 +11,7 @@ public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ wf: DeferredStream<Writer<W, @Sendable (A) -> B>>,
     _ wa: DeferredStream<Writer<W, A>>
 ) -> DeferredStream<Writer<W, B>> {
-    applyWriterDeferredStream(wf, wa)
+    applyDeferredStreamWriter(wf, wa)
 }
 
 // (*>) :: DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>> -> DeferredStream<Writer<w, b>>
@@ -19,7 +19,7 @@ public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredStream<Writer<W, A>>,
     _ rhs: DeferredStream<Writer<W, B>>
 ) -> DeferredStream<Writer<W, B>> {
-    seqRightWriterDeferredStream(lhs, rhs)
+    seqRightDeferredStreamWriter(lhs, rhs)
 }
 
 // (<*) :: DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>> -> DeferredStream<Writer<w, a>>
@@ -27,5 +27,5 @@ public func <* <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredStream<Writer<W, A>>,
     _ rhs: DeferredStream<Writer<W, B>>
 ) -> DeferredStream<Writer<W, A>> {
-    seqLeftWriterDeferredStream(lhs, rhs)
+    seqLeftDeferredStreamWriter(lhs, rhs)
 }

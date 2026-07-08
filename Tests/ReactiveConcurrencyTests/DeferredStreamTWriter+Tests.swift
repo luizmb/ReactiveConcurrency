@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import CoreFPOperators
 import DataStructure
-import DataStructureOperators
 import ReactiveConcurrency
-import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
+// Builds a DeferredStream<Writer<[String], T>> from a list of (value, log) pairs.
 private func writerStream<T: Sendable>(
     _ elements: [(T, [String])]
 ) -> DeferredStream<Writer<[String], T>> {
@@ -29,34 +27,31 @@ private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>)
     return out
 }
 
-@Suite(.timeLimit(.minutes(1))) struct WriterTDeferredStreamOperatorsTests {
-    @Test func fmap() async {
+@Suite(.timeLimit(.minutes(1))) struct DeferredStreamTWriterTests {
+    // MARK: - DeferredStream<Writer<W, A>> — WriterT over DeferredStream (log carried inside the effect)
+
+    @Test func mapT() async {
         let w = writerStream([(1, ["log"]), (2, ["log"])])
-        let results = await collect({ $0 * 3 } <£^> w)
+        let mapped = w.mapT { $0 * 3 }
+        let results = await collect(mapped)
         #expect(results.map(\.value) == [3, 6])
         #expect(results.map(\.log) == [["log"], ["log"]])
     }
 
-    @Test func flippedFmap() async {
-        let w = writerStream([(1, ["log"]), (2, ["log"])])
-        let results = await collect(w <&^> { $0 * 3 })
-        #expect(results.map(\.value) == [3, 6])
-        #expect(results.map(\.log) == [["log"], ["log"]])
-    }
-
-    // Bind combines logs (lawful WriterT): outer <> inner.
-    @Test func bind() async {
-        let w = writerStream([(4, ["outer"])])
-        let result = w >>- { (n: Int) in writerStream([("\(n * 2)", ["inner"])]) }
+    // Bind now combines each element's log with the continuation's log (lawful WriterT).
+    @Test func flatMapTCombinesLogs() async {
+        let w = writerStream([(5, ["outer"])])
+        let result = w.flatMapT { (n: Int) in writerStream([("\(n)", ["inner"])]) }
         let results = await collect(result)
-        #expect(results.map(\.value) == ["8"])
+        #expect(results.map(\.value) == ["5"])
         #expect(results.map(\.log) == [["outer", "inner"]])
     }
 
-    @Test func apply() async {
+    @Test func applicativeLogsAccumulate() async {
         let wf = writerStream([({ (n: Int) in "\(n)" } as @Sendable (Int) -> String, ["fn"])])
         let wa = writerStream([(7, ["val"])])
-        let results = await collect(wf <*> wa)
+        let result = applyDeferredStreamWriter(wf, wa)
+        let results = await collect(result)
         #expect(results.map(\.value) == ["7"])
         #expect(results.map(\.log) == [["fn", "val"]])
     }
@@ -64,7 +59,7 @@ private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>)
     @Test func seqRight() async {
         let lhs = writerStream([(1, ["a"])])
         let rhs = writerStream([("hello", ["b"])])
-        let results = await collect(lhs *> rhs)
+        let results = await collect(seqRightDeferredStreamWriter(lhs, rhs))
         #expect(results.map(\.value) == ["hello"])
         #expect(results.map(\.log) == [["a", "b"]])
     }
@@ -72,7 +67,7 @@ private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>)
     @Test func seqLeft() async {
         let lhs = writerStream([(99, ["a"])])
         let rhs = writerStream([("ignored", ["b"])])
-        let results = await collect(lhs <* rhs)
+        let results = await collect(seqLeftDeferredStreamWriter(lhs, rhs))
         #expect(results.map(\.value) == [99])
         #expect(results.map(\.log) == [["a", "b"]])
     }

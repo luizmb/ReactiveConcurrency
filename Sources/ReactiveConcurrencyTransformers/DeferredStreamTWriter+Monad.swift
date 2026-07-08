@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// DeferredStreamTWriter: the WriterT monad transformer over DeferredStream.
 // Representation: DeferredStream<Writer<W, A>>
 //
 // flatMapT concatMaps the stream and combines each element's log with the continuation's log

@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: the WriterT monad transformer over Publisher.
+// PublisherTWriter: the WriterT monad transformer over Publisher.
 // Representation: Publisher<Writer<W, A>, F>
 //
 // flatMapT flattens sequentially (flatMap maxPublishers: 1 — lawful ordered bind) and combines

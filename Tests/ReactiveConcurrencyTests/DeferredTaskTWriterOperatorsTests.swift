@@ -8,7 +8,7 @@ import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite(.timeLimit(.minutes(1))) struct WriterTDeferredTaskOperatorsTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredTaskTWriterOperatorsTests {
     @Test func fmap() async {
         let w = DeferredTask { Writer<[String], Int>(5, ["log"]) }
         let result = { $0 * 2 } <£^> w

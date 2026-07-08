@@ -4,14 +4,14 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// DeferredStreamTWriter: the WriterT monad transformer over DeferredStream.
 // Representation: DeferredStream<Writer<W, A>>
 //
 // The streams are combined via the (zippy) DeferredStream applicative and the logs are combined
 // via the Writer applicative — logs accumulate left-to-right inside each paired element.
 
 /// apply for WriterT over DeferredStream.
-public func applyWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func applyDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ wf: DeferredStream<Writer<W, @Sendable (A) -> B>>,
     _ wa: DeferredStream<Writer<W, A>>
 ) -> DeferredStream<Writer<W, B>> {
@@ -19,7 +19,7 @@ public func applyWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Send
 }
 
 /// liftA2 for WriterT over DeferredStream.
-public func liftA2WriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+public func liftA2DeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<Writer<W, A>>, DeferredStream<Writer<W, B>>) -> DeferredStream<Writer<W, C>> {
     { wa, wb in
@@ -28,7 +28,7 @@ public func liftA2WriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sen
 }
 
 /// seqRight for WriterT over DeferredStream.
-public func seqRightWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func seqRightDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredStream<Writer<W, A>>,
     _ rhs: DeferredStream<Writer<W, B>>
 ) -> DeferredStream<Writer<W, B>> {
@@ -36,7 +36,7 @@ public func seqRightWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: S
 }
 
 /// seqLeft for WriterT over DeferredStream.
-public func seqLeftWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func seqLeftDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredStream<Writer<W, A>>,
     _ rhs: DeferredStream<Writer<W, B>>
 ) -> DeferredStream<Writer<W, A>> {

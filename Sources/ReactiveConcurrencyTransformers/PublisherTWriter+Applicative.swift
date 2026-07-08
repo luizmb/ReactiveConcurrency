@@ -4,20 +4,20 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: the WriterT monad transformer over Publisher.
+// PublisherTWriter: the WriterT monad transformer over Publisher.
 // Representation: Publisher<Writer<W, A>, F>
 //
 // The publishers are combined via Publisher.zip and the logs via the Writer applicative —
 // so logs accumulate left-to-right inside each paired element.
 
-public func applyWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+public func applyPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ wf: Publisher<Writer<W, @Sendable (A) -> B>, F>,
     _ wa: Publisher<Writer<W, A>, F>
 ) -> Publisher<Writer<W, B>, F> {
     wf.zip(wa).map { Writer<W, B>.apply($0.0, $0.1) }
 }
 
-public func liftA2WriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+public func liftA2PublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Publisher<Writer<W, A>, F>, Publisher<Writer<W, B>, F>) -> Publisher<Writer<W, C>, F> {
     { wa, wb in
@@ -25,14 +25,14 @@ public func liftA2WriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable
     }
 }
 
-public func seqRightWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+public func seqRightPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Publisher<Writer<W, A>, F>,
     _ rhs: Publisher<Writer<W, B>, F>
 ) -> Publisher<Writer<W, B>, F> {
     lhs.zip(rhs).map { $0.0.seqRight($0.1) }
 }
 
-public func seqLeftWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+public func seqLeftPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Publisher<Writer<W, A>, F>,
     _ rhs: Publisher<Writer<W, B>, F>
 ) -> Publisher<Writer<W, A>, F> {

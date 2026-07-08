@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// DeferredTaskTWriter: the WriterT monad transformer over DeferredTask.
 // Representation: DeferredTask<Writer<W, A>>
 //
 // flatMapT runs the outer effect to obtain (a, w1), runs the continuation fn(a) to obtain
