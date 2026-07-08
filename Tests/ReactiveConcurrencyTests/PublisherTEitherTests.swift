@@ -25,7 +25,7 @@ private func tags<L: Sendable, A: Sendable, F: Error>(
     return out
 }
 
-@Suite struct PublisherTEitherTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTEitherTests {
     @Test func mapTOverRight() async {
         let p = Publisher<Either<String, Int>, Never>.just(.right(3))
         #expect(await tags(mapTPublisherEither({ $0 * 2 }, p)) == ["R6"])

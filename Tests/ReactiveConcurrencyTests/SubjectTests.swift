@@ -14,7 +14,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct PassthroughSubjectTests {
+@Suite(.timeLimit(.minutes(1))) struct PassthroughSubjectTests {
     @Test func sendDeliversValueToSubscriber() async {
         let subject = PassthroughSubject<Int, Never>()
         let values = Collector<Int>()
@@ -135,7 +135,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct CurrentValueSubjectTests {
+@Suite(.timeLimit(.minutes(1))) struct CurrentValueSubjectTests {
     @Test func replayInitialValueOnSubscription() async {
         let subject = CurrentValueSubject<Int, Never>(42)
         let values = Collector<Int>()
@@ -196,7 +196,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct AnySubjectTests {
+@Suite(.timeLimit(.minutes(1))) struct AnySubjectTests {
     @Test func eraseToAnySubjectForwardsSendAndCompletion() async {
         let subject = PassthroughSubject<Int, Never>()
         let anySubject = subject.eraseToAnySubject()

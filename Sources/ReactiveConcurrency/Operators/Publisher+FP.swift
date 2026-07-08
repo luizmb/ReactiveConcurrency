@@ -34,20 +34,30 @@ public extension Publisher {
     }
 }
 
-// MARK: - Applicative
+// MARK: - Zippy Semigroupal (ZipList-style)
+
+//
+// `apply`/`seqLeft`/`seqRight` here form a *zippy* product: they pair elements positionally
+// (like ZipList) and truncate at the shorter side. This is the product users want from a
+// stream — but it is NOT the Applicative derived from the monad (`flatMap`, which is a
+// cartesian merge). In particular the Applicative *identity* law `pure(id) <*> v == v` fails
+// for |v| > 1, because `pure` yields a single element and the zip truncates `v` to length 1.
+// Treat these as a zippy Semigroupal (`zip`/`zipWith`), not a lawful Applicative; reach for
+// `flatMap` when you want the cartesian, monad-consistent product.
 
 public extension Publisher {
-    // pure :: a -> Publisher a e
+    // pure :: a -> Publisher a e — single-element (ZipList pure is the identity element for
+    // the zippy product only up to length 1; a lawful ZipList pure would repeat infinitely).
     static func pure(_ value: Output) -> Publisher<Output, Failure> {
         just(value)
     }
 
-    // seqRight :: Publisher a e -> Publisher b e -> Publisher b e
+    // seqRight :: Publisher a e -> Publisher b e -> Publisher b e (zippy: pairs positionally)
     func seqRight<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<B, Failure> {
         zip(rhs).map { _, b in b }
     }
 
-    // seqLeft :: Publisher a e -> Publisher b e -> Publisher a e
+    // seqLeft :: Publisher a e -> Publisher b e -> Publisher a e (zippy: pairs positionally)
     func seqLeft<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<Output, Failure> {
         zip(rhs).map { a, _ in a }
     }
@@ -62,7 +72,8 @@ public extension Publisher {
 }
 
 // apply :: Publisher (a -> b) e -> Publisher a e -> Publisher b e
-// Zip-based: pairs each fn with each value positionally.
+// Zippy (ZipList-style): pairs each fn with each value positionally and truncates at the shorter
+// side. NOT the cartesian, monad-consistent product — see the section note above.
 public func applyPublisher<A: Sendable, B: Sendable, E: Error>(
     _ fns: Publisher<@Sendable (A) -> B, E>,
     _ values: Publisher<A, E>

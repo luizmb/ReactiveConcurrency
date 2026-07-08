@@ -5,7 +5,7 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite struct StatefulTDeferredTaskTests {
+@Suite(.timeLimit(.minutes(1))) struct StatefulTDeferredTaskTests {
     // MARK: - Stateful<S, DeferredTask<A>> — State as outer, DeferredTask as inner
 
     // Note: flatMapT is not implementable for this stack.

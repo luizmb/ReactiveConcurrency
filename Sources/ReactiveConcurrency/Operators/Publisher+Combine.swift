@@ -67,31 +67,71 @@ public extension Publisher {
 // MARK: - zip
 
 public extension Publisher {
+    // swiftlint:disable:next cyclomatic_complexity
     func zip<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
         let selfFactory = _stream.factory
         let otherFactory = other._stream.factory
         return Publisher<(Output, B), Failure>(DeferredStream {
-            let selfStream = selfFactory()
-            let otherStream = otherFactory()
+            // Same FIFO task-group as combineLatest: StreamBox gives each side one shared
+            // iterator with exactly one child calling next() at a time. Unlike the old
+            // left-driven pull (which only polled `other` after `self` emitted, so a failure
+            // or empty-completion on `other` was never observed while `self` was silent —
+            // Combine-divergent and a hang source), both sides advance independently here.
+            let selfBox = StreamBox<Result<Output, Failure>>(selfFactory())
+            let otherBox = StreamBox<Result<B, Failure>>(otherFactory())
             return AsyncStream<Result<(Output, B), Failure>> { raw in
                 let task = Task {
-                    var otherIter = otherStream.makeAsyncIterator()
-                    for await sr in selfStream {
-                        switch sr {
-                        case let .success(a):
-                            guard let or = await otherIter.next() else {
+                    // Per-side FIFO buffers of values not yet paired.
+                    var queueA: [Output] = []
+                    var queueB: [B] = []
+                    typealias _Event = _CombineEvent<Result<Output, Failure>, Result<B, Failure>>
+                    await withTaskGroup(of: _Event.self) { group in
+                        group.addTask { .fromA(await selfBox.next()) }
+                        group.addTask { .fromB(await otherBox.next()) }
+
+                        var aOpen = true
+                        var bOpen = true
+
+                        while aOpen || bOpen, let event = await group.next() {
+                            switch event {
+                            case let .fromA(.some(result)):
+                                switch result {
+                                case let .success(a):
+                                    queueA.append(a)
+                                    if !queueB.isEmpty {
+                                        let pair = (queueA.removeFirst(), queueB.removeFirst())
+                                        if case .terminated = raw.yield(Result.success(pair)) { return }
+                                    }
+                                    group.addTask { .fromA(await selfBox.next()) }
+                                case let .failure(e):
+                                    _ = raw.yield(Result.failure(e)); raw.finish(); return
+                                }
+                            case let .fromB(.some(result)):
+                                switch result {
+                                case let .success(b):
+                                    queueB.append(b)
+                                    if !queueA.isEmpty {
+                                        let pair = (queueA.removeFirst(), queueB.removeFirst())
+                                        if case .terminated = raw.yield(Result.success(pair)) { return }
+                                    }
+                                    group.addTask { .fromB(await otherBox.next()) }
+                                case let .failure(e):
+                                    _ = raw.yield(Result.failure(e)); raw.finish(); return
+                                }
+                            case .fromA(.none):
+                                aOpen = false
+                            case .fromB(.none):
+                                bOpen = false
+                            }
+                            // A finished side whose buffer is drained can never contribute another
+                            // element, so no future pair can be formed → complete. This matches
+                            // Combine (zip completes as soon as either side definitively can't pair)
+                            // and resolves the silent-side/empty-side hang.
+                            if (!aOpen && queueA.isEmpty) || (!bOpen && queueB.isEmpty) {
                                 raw.finish(); return
                             }
-                            switch or {
-                            case let .success(b):
-                                if case .terminated = raw.yield(Result.success((a, b))) { return }
-                            case let .failure(e):
-                                _ = raw.yield(Result.failure(e)); raw.finish(); return
-                            }
-                        case let .failure(e):
-                            _ = raw.yield(Result.failure(e)); raw.finish(); return
                         }
                     }
                     raw.finish()

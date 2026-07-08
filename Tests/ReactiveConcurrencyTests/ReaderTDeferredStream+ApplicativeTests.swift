@@ -5,7 +5,7 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite struct ReaderTDeferredStreamApplicativeTests {
+@Suite(.timeLimit(.minutes(1))) struct ReaderTDeferredStreamApplicativeTests {
     struct Env { let value: Int }
 
     // MARK: - Reader<Env, DeferredStream<A>> — Reader as outer, DeferredStream as inner

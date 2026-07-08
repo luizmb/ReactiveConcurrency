@@ -18,7 +18,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - ReaderTPublisher
 
-@Suite struct ReaderTPublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct ReaderTPublisherTests {
     @Test func mapTThreadsEnvironment() async {
         let reader = Reader<Int, Publisher<Int, Never>> { env in .just(env) }
         let mapped = reader.mapT { $0 * 2 }
@@ -41,26 +41,40 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - WriterTPublisher
 
-@Suite struct WriterTPublisherTests {
+// Representation is now Publisher<Writer<W, A>, F> — the log is carried inside the effect.
+@Suite(.timeLimit(.minutes(1))) struct WriterTPublisherTests {
     @Test func mapTPreservesLog() async {
-        let writer = Writer<[String], Publisher<Int, Never>>(.just(3), ["start"])
+        let writer = Publisher<Writer<[String], Int>, Never>.just(Writer(3, ["start"]))
         let mapped = writer.mapT { $0 * 2 }
-        #expect(await vals(mapped.value) == [6])
-        #expect(mapped.log == ["start"])
+        let results = await vals(mapped)
+        #expect(results.map(\.value) == [6])
+        #expect(results.map(\.log) == [["start"]])
+    }
+
+    // Bind combines the outer element's log with the continuation's log (lawful WriterT).
+    @Test func flatMapTCombinesLogs() async {
+        let writer = Publisher<Writer<[String], Int>, Never>.just(Writer(3, ["outer"]))
+        let chained = writer.flatMapT { (n: Int) in
+            Publisher<Writer<[String], String>, Never>.just(Writer("\(n)", ["inner"]))
+        }
+        let results = await vals(chained)
+        #expect(results.map(\.value) == ["3"])
+        #expect(results.map(\.log) == [["outer", "inner"]])
     }
 
     @Test func applyCombinesLogs() async {
-        let wf = Writer<[String], Publisher<@Sendable (Int) -> Int, Never>>(.just { $0 + 1 }, ["f"])
-        let wa = Writer<[String], Publisher<Int, Never>>(.just(10), ["a"])
+        let wf = Publisher<Writer<[String], @Sendable (Int) -> Int>, Never>.just(Writer({ $0 + 1 }, ["f"]))
+        let wa = Publisher<Writer<[String], Int>, Never>.just(Writer(10, ["a"]))
         let result = applyWriterPublisher(wf, wa)
-        #expect(await vals(result.value) == [11])
-        #expect(result.log == ["f", "a"])
+        let results = await vals(result)
+        #expect(results.map(\.value) == [11])
+        #expect(results.map(\.log) == [["f", "a"]])
     }
 }
 
 // MARK: - StatefulTPublisher
 
-@Suite struct StatefulTPublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct StatefulTPublisherTests {
     @Test func mapTThreadsState() async {
         let stateful = Stateful<Int, Publisher<Int, Never>> { s in
             s += 1

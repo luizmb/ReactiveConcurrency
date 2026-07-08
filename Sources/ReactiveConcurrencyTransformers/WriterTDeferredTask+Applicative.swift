@@ -4,44 +4,41 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: outer = Writer, inner = DeferredTask
-// Type: Writer<W, DeferredTask<A>>
+// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// Representation: DeferredTask<Writer<W, A>>
+//
+// The effects run sequentially (DeferredTask applicative) and the logs are combined via the
+// Writer applicative — so logs accumulate left-to-right inside the effect.
 
-/// apply for Writer<W, DeferredTask>
-public func applyWriterDeferredTask<W: Monoid, A: Sendable, B: Sendable>(
-    _ wf: Writer<W, DeferredTask<@Sendable (A) -> B>>,
-    _ wa: Writer<W, DeferredTask<A>>
-) -> Writer<W, DeferredTask<B>> {
-    Writer<W, DeferredTask<B>>(
-        applyDeferredTask(wf.value, wa.value),
-        W.combine(wf.log, wa.log)
-    )
+/// apply for WriterT over DeferredTask.
+public func applyWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ wf: DeferredTask<Writer<W, @Sendable (A) -> B>>,
+    _ wa: DeferredTask<Writer<W, A>>
+) -> DeferredTask<Writer<W, B>> {
+    liftA2DeferredTask { f, a in Writer<W, B>.apply(f, a) }(wf, wa)
 }
 
-/// liftA2 for Writer<W, DeferredTask>
-public func liftA2WriterDeferredTask<W: Monoid, A: Sendable, B: Sendable, C: Sendable>(
+/// liftA2 for WriterT over DeferredTask.
+public func liftA2WriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> @Sendable (Writer<W, DeferredTask<A>>, Writer<W, DeferredTask<B>>) -> Writer<W, DeferredTask<C>> {
+) -> @Sendable (DeferredTask<Writer<W, A>>, DeferredTask<Writer<W, B>>) -> DeferredTask<Writer<W, C>> {
     { wa, wb in
-        Writer<W, DeferredTask<C>>(
-            liftA2DeferredTask(fn)(wa.value, wb.value),
-            W.combine(wa.log, wb.log)
-        )
+        liftA2DeferredTask { a, b in Writer<W, C>(fn(a.value, b.value), W.combine(a.log, b.log)) }(wa, wb)
     }
 }
 
-/// seqRight for Writer<W, DeferredTask>
-public func seqRightWriterDeferredTask<W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredTask<A>>,
-    _ rhs: Writer<W, DeferredTask<B>>
-) -> Writer<W, DeferredTask<B>> {
-    Writer<W, DeferredTask<B>>(lhs.value.seqRight(rhs.value), W.combine(lhs.log, rhs.log))
+/// seqRight for WriterT over DeferredTask.
+public func seqRightWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredTask<Writer<W, A>>,
+    _ rhs: DeferredTask<Writer<W, B>>
+) -> DeferredTask<Writer<W, B>> {
+    liftA2DeferredTask { a, b in a.seqRight(b) }(lhs, rhs)
 }
 
-/// seqLeft for Writer<W, DeferredTask>
-public func seqLeftWriterDeferredTask<W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredTask<A>>,
-    _ rhs: Writer<W, DeferredTask<B>>
-) -> Writer<W, DeferredTask<A>> {
-    Writer<W, DeferredTask<A>>(lhs.value.seqLeft(rhs.value), W.combine(lhs.log, rhs.log))
+/// seqLeft for WriterT over DeferredTask.
+public func seqLeftWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredTask<Writer<W, A>>,
+    _ rhs: DeferredTask<Writer<W, B>>
+) -> DeferredTask<Writer<W, A>> {
+    liftA2DeferredTask { a, b in a.seqLeft(b) }(lhs, rhs)
 }

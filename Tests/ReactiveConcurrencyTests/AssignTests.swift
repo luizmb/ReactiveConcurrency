@@ -37,7 +37,7 @@ private func poll(_ condition: @Sendable () -> Bool) async {
     }
 }
 
-@Suite struct AssignTests {
+@Suite(.timeLimit(.minutes(1))) struct AssignTests {
     @Test func assignWritesValuesToSendableObject() async {
         let box = Box()
         let cancellable = Publisher<Int, Never>.sequence(1...3).assign(to: \.value, on: box)
@@ -74,7 +74,7 @@ private func poll(_ condition: @Sendable () -> Bool) async {
     }
 }
 
-@Suite struct SequencePublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct SequencePublisherTests {
     @Test func arrayPublisherEmitsAllElements() async {
         var out: [Int] = []
         for await v in [1, 2, 3].publisher.values {

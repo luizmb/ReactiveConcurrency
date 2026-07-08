@@ -1,22 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: outer = Writer, inner = DeferredStream
-// Type: Writer<W, DeferredStream<A>>
+// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// Representation: DeferredStream<Writer<W, A>>
 //
-// flatMapT keeps the outer log; inner fn logs are concatenated.
+// flatMapT concatMaps the stream and combines each element's log with the continuation's log
+// INSIDE the effect (w1 <> w2). The previous shape discarded the continuation's log.
 
-public extension Writer {
-    func flatMapT<Inner: Sendable, B: Sendable>(
-        _ fn: @escaping @Sendable (Inner) -> Writer<W, DeferredStream<B>>
-    ) -> Writer<W, DeferredStream<B>>
-    where A == DeferredStream<Inner> {
-        let outerLog = log
-        let innerStream = value.flatMap { a -> DeferredStream<B> in
-            fn(a).value
+public extension DeferredStream {
+    func flatMapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
+        _ fn: @escaping @Sendable (Inner) -> DeferredStream<Writer<W, B>>
+    ) -> DeferredStream<Writer<W, B>>
+    where Element == Writer<W, Inner> {
+        flatMap { w1 in
+            fn(w1.value).map { w2 in Writer<W, B>(w2.value, W.combine(w1.log, w2.log)) }
         }
-        return Writer<W, DeferredStream<B>>(innerStream, outerLog)
+    }
+
+    static func bindT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
+        _ fn: @escaping @Sendable (Inner) -> DeferredStream<Writer<W, B>>
+    ) -> @Sendable (DeferredStream<Writer<W, Inner>>) -> DeferredStream<Writer<W, B>> {
+        { $0.flatMapT(fn) }
     }
 }

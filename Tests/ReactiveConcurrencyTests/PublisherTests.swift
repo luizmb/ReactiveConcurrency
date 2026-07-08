@@ -39,7 +39,7 @@ final class AtomicCounter: @unchecked Sendable {
     func increment() -> Int { lock.withLock { _value += 1; return _value } }
 }
 
-@Suite struct PublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTests {
     @Test func justEmitsSingleValueThenFinishes() async {
         let values = Collector<Int>()
         let completions = Collector<Subscribers.Completion<Never>>()

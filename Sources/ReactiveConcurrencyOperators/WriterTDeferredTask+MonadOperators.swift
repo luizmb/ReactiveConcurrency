@@ -6,26 +6,26 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (>>-) :: Writer<w, DeferredTask<a>> -> (a -> Writer<w, DeferredTask<b>>) -> Writer<w, DeferredTask<b>>
-public func >>- <W: Monoid, A: Sendable, B: Sendable>(
-    _ writer: Writer<W, DeferredTask<A>>,
-    _ fn: @escaping @Sendable (A) -> Writer<W, DeferredTask<B>>
-) -> Writer<W, DeferredTask<B>> {
-    writer.flatMapT(fn)
+// (>>-) :: DeferredTask<Writer<w, a>> -> (a -> DeferredTask<Writer<w, b>>) -> DeferredTask<Writer<w, b>>
+public func >>- <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ task: DeferredTask<Writer<W, A>>,
+    _ fn: @escaping @Sendable (A) -> DeferredTask<Writer<W, B>>
+) -> DeferredTask<Writer<W, B>> {
+    task.flatMapT(fn)
 }
 
-// (-<<) :: (a -> Writer<w, DeferredTask<b>>) -> Writer<w, DeferredTask<a>> -> Writer<w, DeferredTask<b>>
-public func -<< <W: Monoid, A: Sendable, B: Sendable>(
-    _ fn: @escaping @Sendable (A) -> Writer<W, DeferredTask<B>>,
-    _ writer: Writer<W, DeferredTask<A>>
-) -> Writer<W, DeferredTask<B>> {
-    writer.flatMapT(fn)
+// (-<<) :: (a -> DeferredTask<Writer<w, b>>) -> DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>>
+public func -<< <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ fn: @escaping @Sendable (A) -> DeferredTask<Writer<W, B>>,
+    _ task: DeferredTask<Writer<W, A>>
+) -> DeferredTask<Writer<W, B>> {
+    task.flatMapT(fn)
 }
 
-// (>=>) :: (a -> Writer<w, DeferredTask<b>>) -> (b -> Writer<w, DeferredTask<c>>) -> a -> Writer<w, DeferredTask<c>>
-public func >=> <W: Monoid, A: Sendable, B: Sendable, C: Sendable>(
-    _ fn1: @escaping @Sendable (A) -> Writer<W, DeferredTask<B>>,
-    _ fn2: @escaping @Sendable (B) -> Writer<W, DeferredTask<C>>
-) -> @Sendable (A) -> Writer<W, DeferredTask<C>> {
+// (>=>) :: (a -> DeferredTask<Writer<w, b>>) -> (b -> DeferredTask<Writer<w, c>>) -> a -> DeferredTask<Writer<w, c>>
+public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Writer<W, B>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Writer<W, C>>
+) -> @Sendable (A) -> DeferredTask<Writer<W, C>> {
     { a in fn1(a).flatMapT(fn2) }
 }

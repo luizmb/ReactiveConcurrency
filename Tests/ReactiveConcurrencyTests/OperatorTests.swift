@@ -27,7 +27,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct SequenceOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct SequenceOperatorTests {
     @Test func scanAccumulates() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...4).scan(0, +)._stream {
@@ -69,7 +69,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct CombineOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct CombineOperatorTests {
     @Test func mergeInterleaves() async {
         let values = Collector<Int>()
         let a = Publisher<Int, Never>.sequence([1, 3])
@@ -99,6 +99,66 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
             if case let .success(v) = r { result.append(v) }
         }
         #expect(result.count == 3)
+    }
+
+    // Regression (A1): the old left-driven zip only polled `other` after `self` emitted, so a
+    // failure on `other` while `self` was silent was never observed and downstream hung.
+    @Test func zipForwardsFailureFromOtherWhileSelfSilent() async {
+        enum E: Error, Sendable, Equatable { case boom }
+        let silent = PassthroughSubject<Int, E>()
+        let completions = Collector<Subscribers.Completion<E>>()
+        let values = Collector<Int>()
+
+        let sub = silent.eraseToPublisher()
+            .zip(Publisher<Int, E> { c in c.fail(.boom) })
+            .sink(receiveCompletion: { completions.append($0) }, receiveValue: { values.append($0.0) })
+
+        await poll { completions.values.count == 1 }
+        sub.cancel()
+
+        #expect(values.values.isEmpty)
+        #expect(completions.values == [.failure(.boom)])
+    }
+
+    // Regression (A1): `other` finishes empty while `self` is silent → the pair can never form,
+    // so zip must complete rather than hang.
+    @Test func zipCompletesWhenOtherFinishesEmptyWhileSelfSilent() async {
+        let silent = PassthroughSubject<Int, Never>()
+        let completions = Collector<Subscribers.Completion<Never>>()
+
+        let sub = silent.eraseToPublisher()
+            .zip(Publisher<Int, Never>.empty())
+            .sink(receiveCompletion: { completions.append($0) }, receiveValue: { _ in })
+
+        await poll { completions.values.count == 1 }
+        sub.cancel()
+
+        #expect(completions.values == [.finished])
+    }
+
+    // Pairwise order is preserved even when the two sides interleave arbitrarily.
+    @Test func zipPreservesPairOrderUnderInterleaving() async {
+        let a = PassthroughSubject<Int, Never>()
+        let b = PassthroughSubject<Int, Never>()
+        let result = Collector<Pair>()
+        let sub = a.eraseToPublisher()
+            .zip(b.eraseToPublisher())
+            .map { Pair(first: $0.0, second: $0.1) }
+            .sink { result.append($0) }
+
+        await settle()
+        a.send(1); a.send(2) // buffered, no partner yet
+        await settle()
+        b.send(10) // → (1, 10)
+        await poll { result.values.count >= 1 }
+        b.send(20) // → (2, 20)
+        await poll { result.values.count >= 2 }
+        b.send(30); a.send(3) // → (3, 30), regardless of arrival order
+        await poll { result.values.count >= 3 }
+        sub.cancel()
+
+        #expect(result.values.map(\.first) == [1, 2, 3])
+        #expect(result.values.map(\.second) == [10, 20, 30])
     }
 
     @Test func combineLatestEmitsOnEachUpdate() async {
@@ -194,7 +254,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct ErrorOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct ErrorOperatorTests {
     @Test func catchReplacesFailureWithRecovery() async {
         enum E: Error, Sendable { case boom }
         let values = Collector<Int>()
@@ -258,7 +318,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct FlatMapTests {
+@Suite(.timeLimit(.minutes(1))) struct FlatMapTests {
     @Test func flatMapUnboundedMergesAllInner() async {
         let stream = Publisher<Int, Never>.sequence(1...3)
             .flatMap { n in Publisher<Int, Never>.sequence([n * 10, n * 10 + 1]) }
@@ -281,9 +341,28 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         }
         #expect(result == [10, 11, 20, 21, 30, 31])
     }
+
+    // Regression (A5): when the outer completes, switchToLatest must let the still-running latest
+    // inner finish delivering — Combine completes only after the outer AND the last inner complete.
+    // The old code cancelled the inner on outer completion, silently dropping its in-flight values.
+    @Test func switchToLatestDeliversLastInnerAfterOuterFinishes() async {
+        let outer = PassthroughSubject<Publisher<Int, Never>, Never>()
+        let values = Collector<Int>()
+        let sub = outer.eraseToPublisher()
+            .switchToLatest()
+            .sink { values.append($0) }
+
+        await settle()
+        outer.send(Publisher<Int, Never>.sequence(1...3))
+        outer.send(completion: .finished) // outer completes while the inner is still delivering
+        await poll { values.values.count >= 3 }
+        sub.cancel()
+
+        #expect(values.values == [1, 2, 3])
+    }
 }
 
-@Suite struct CombineTransformTests {
+@Suite(.timeLimit(.minutes(1))) struct CombineTransformTests {
     @Test func zipWithTransformAppliesClosure() async {
         let stream = Publisher<Int, Never>.sequence(1...3)
             .zip(Publisher<Int, Never>.sequence(10...12)) { a, b in "\(a)+\(b)" }
@@ -317,7 +396,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct TryFilteringTests {
+@Suite(.timeLimit(.minutes(1))) struct TryFilteringTests {
     enum TestError: Error, Equatable { case bad }
 
     @Test func tryFirstWhereThrowsPropagatesError() async {

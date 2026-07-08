@@ -6,7 +6,7 @@ import Testing
 
 private enum TestError: Error, Equatable { case err }
 
-@Suite struct DeferredTaskTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredTaskTests {
     // MARK: - Lazy behavior
 
     @Test func doesNotRunUntilCalled() async {
@@ -242,14 +242,25 @@ private enum TestError: Error, Equatable { case err }
         #expect(result == nil)
     }
 
-    @Test func altOptionalFasterTaskWins() async {
+    // race (concurrent) returns whichever task produces a non-nil first, cancelling the slow one.
+    @Test func raceOptionalFasterTaskWins() async {
         let fast = DeferredTask<Int?> { 99 }
         let slow = DeferredTask<Int?> {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             return 1
         }
-        let result = await altDeferredTaskOptional(fast, slow).run()
+        let result = await raceDeferredTaskOptional(fast, slow).run()
         #expect(result == 99)
+    }
+
+    // alt (sequential, lawful) is left-biased: lhs non-nil wins without ever running rhs.
+    @Test func altOptionalLeftBiasedDoesNotRunRHS() async {
+        nonisolated(unsafe) var rhsRan = false
+        let lhs = DeferredTask<Int?> { 1 }
+        let rhs = DeferredTask<Int?> { rhsRan = true; return 2 }
+        let result = await altDeferredTaskOptional(lhs, rhs).run()
+        #expect(result == 1)
+        #expect(!rhsRan)
     }
 
     @Test func altOptionalIsLazy() async {
@@ -285,14 +296,25 @@ private enum TestError: Error, Equatable { case err }
         #expect(result == .failure(.err))
     }
 
-    @Test func altResultFasterSuccessWins() async {
+    // race (concurrent) returns the first .success, cancelling the slow one.
+    @Test func raceResultFasterSuccessWins() async {
         let fast = DeferredTask<Result<Int, TestError>> { .success(99) }
         let slow = DeferredTask<Result<Int, TestError>> {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             return .success(1)
         }
-        let result = await altDeferredTaskResult(fast, slow).run()
+        let result = await raceDeferredTaskResult(fast, slow).run()
         #expect(result == .success(99))
+    }
+
+    // alt (sequential, lawful) is left-biased: lhs .success wins without ever running rhs.
+    @Test func altResultLeftBiasedDoesNotRunRHS() async {
+        nonisolated(unsafe) var rhsRan = false
+        let lhs = DeferredTask<Result<Int, TestError>> { .success(7) }
+        let rhs = DeferredTask<Result<Int, TestError>> { rhsRan = true; return .success(9) }
+        let result = await altDeferredTaskResult(lhs, rhs).run()
+        #expect(result == .success(7))
+        #expect(!rhsRan)
     }
 
     @Test func altResultIsLazy() async {

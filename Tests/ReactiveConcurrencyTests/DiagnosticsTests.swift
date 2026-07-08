@@ -4,7 +4,7 @@
 import Testing
 
 // Serialized: Diagnostics is process-global, so these must not interleave.
-@Suite(.serialized) struct DiagnosticsTests {
+@Suite(.serialized, .timeLimit(.minutes(1))) struct DiagnosticsTests {
     @Test func warnsOnSendAfterCompletion() async {
         let captured = Collector<String>()
         Diagnostics.setHandler { captured.append($0) }

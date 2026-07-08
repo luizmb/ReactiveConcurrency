@@ -25,7 +25,7 @@ private func collect<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O]
 
 // MARK: - MergeMany
 
-@Suite struct MergeManyTests {
+@Suite(.timeLimit(.minutes(1))) struct MergeManyTests {
     @Test func mergesAllSources() async {
         let merged = Publisher<Int, Never>.merge([.sequence(1...2), .sequence(3...4), .sequence(5...6)])
         #expect(await collect(merged).sorted() == [1, 2, 3, 4, 5, 6])
@@ -43,7 +43,7 @@ private func collect<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O]
 
 // MARK: - buffer
 
-@Suite struct BufferTests {
+@Suite(.timeLimit(.minutes(1))) struct BufferTests {
     @Test func passesAllThroughWhenConsumerKeepsUp() async {
         let dropOldest = Publisher<Int, Never>.sequence(1...5).buffer(size: 16, whenFull: .dropOldest)
         let dropNewest = Publisher<Int, Never>.sequence(1...5).buffer(size: 16, whenFull: .dropNewest)
@@ -54,7 +54,7 @@ private func collect<O: Sendable>(_ publisher: Publisher<O, Never>) async -> [O]
 
 // MARK: - multicast
 
-@Suite struct MulticastTests {
+@Suite(.timeLimit(.minutes(1))) struct MulticastTests {
     @Test func multicastThroughPassthroughFansToSubscribers() async {
         let upstream = PassthroughSubject<Int, Never>()
         let connectable = upstream.eraseToPublisher().multicast(subject: PassthroughSubject<Int, Never>())

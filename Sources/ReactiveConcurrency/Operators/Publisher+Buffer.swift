@@ -26,8 +26,24 @@ public extension Publisher {
             return AsyncStream<Result<Output, Failure>>(bufferingPolicy: policy) { raw in
                 let task = Task {
                     for await result in upstream {
-                        if case .terminated = raw.yield(result) { return }
-                        if case .failure = result { raw.finish(); return }
+                        switch result {
+                        case .success:
+                            if case .terminated = raw.yield(result) { return }
+                        case .failure:
+                            // The terminal failure is a completion event and must not be dropped
+                            // by the buffering policy (`.dropNewest` evicts an incoming element when
+                            // the buffer is full — Combine never drops completions). Yield it
+                            // cooperatively until the buffer accepts it (as the consumer drains,
+                            // room frees) or the downstream goes away.
+                            while true {
+                                switch raw.yield(result) {
+                                case .enqueued: raw.finish(); return
+                                case .terminated: return
+                                case .dropped: await Task.yield()
+                                @unknown default: raw.finish(); return
+                                }
+                            }
+                        }
                     }
                     raw.finish()
                 }

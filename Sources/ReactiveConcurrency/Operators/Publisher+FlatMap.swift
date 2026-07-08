@@ -117,7 +117,10 @@ public extension Publisher {
                     return
                 }
             }
-            innerTask?.cancel()
+            // Outer completed normally: let the still-running latest inner finish delivering its
+            // values before completing (Combine completes only after the outer AND the last inner
+            // complete). Cancelling here — as the old code did — silently dropped in-flight values.
+            await innerTask?.value
             raw.finish()
         }
     }

@@ -279,12 +279,36 @@ final class Counter: @unchecked Sendable {
     func bump() { lock.withLock { _v += 1 } }
 }
 
-// Lock-free accumulator for the single-consumer sink callbacks (matches the AsyncStream loop's
-// plain `&+=`, so no per-element lock skews the cross-library comparison).
-final class Sum: @unchecked Sendable { var v = 0; func add(_ x: Int) { v &+= x } }
+// Accumulator for the sink callbacks. A sink's receiveValue can resume on different threads
+// across awaits, so unsynchronised access to a shared box is a data race even when calls are
+// serial (previously `var v` with a bare `@unchecked Sendable`). Guard it with a lock — matching
+// `Counter` above. Both the RC and Combine benchmarks use this same type, so the lock cost is
+// symmetric and does not skew the cross-library comparison.
+final class Sum: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _v = 0
+    var v: Int { lock.withLock { _v } }
+    func add(_ x: Int) { lock.withLock { _v &+= x } }
+}
 
 // Retain boxes: AnyCancellable cancels on deinit, so the subscription must be held until completion.
-final class CancellableBox: @unchecked Sendable { var c: ReactiveConcurrency.AnyCancellable? }
+// Lock-guarded — `c` is read/written from both the setup and the completion callback.
+final class CancellableBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _c: ReactiveConcurrency.AnyCancellable?
+    var c: ReactiveConcurrency.AnyCancellable? {
+        get { lock.withLock { _c } }
+        set { lock.withLock { _c = newValue } }
+    }
+}
+
 #if canImport(Combine)
-    final class CombineBox: @unchecked Sendable { var c: Combine.AnyCancellable? }
+    final class CombineBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _c: Combine.AnyCancellable?
+        var c: Combine.AnyCancellable? {
+            get { lock.withLock { _c } }
+            set { lock.withLock { _c = newValue } }
+        }
+    }
 #endif

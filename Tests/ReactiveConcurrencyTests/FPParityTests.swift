@@ -29,7 +29,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Functor
 
-@Suite struct PublisherFunctorTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherFunctorTests {
     @Test func staticFmap() async {
         let f = Publisher<Int, Never>.fmap { $0 * 2 }
         #expect(await values(f(.sequence(1...3))) == [2, 4, 6])
@@ -59,7 +59,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Applicative
 
-@Suite struct PublisherApplicativeTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherApplicativeTests {
     @Test func pureEmitsSingleValue() async {
         #expect(await values(Publisher<Int, Never>.pure(5)) == [5])
     }
@@ -88,7 +88,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Monad
 
-@Suite struct PublisherMonadTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherMonadTests {
     @Test func staticFlatMapAndKleisli() async {
         // flatMap merges inner publishers concurrently, so compare as a multiset.
         let twice = Publisher<Int, Never>.flatMap { Publisher<Int, Never>.sequence([$0, $0]) }
@@ -120,7 +120,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Alternative
 
-@Suite struct PublisherAlternativeTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherAlternativeTests {
     @Test func altConcatenates() async {
         let a = Publisher<Int, Never>.sequence(1...2)
         let b = Publisher<Int, Never>.sequence(3...4)
@@ -137,7 +137,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Future
 
-@Suite struct FutureTests {
+@Suite(.timeLimit(.minutes(1))) struct FutureTests {
     @Test func futureThrowingSuccess() async {
         let p = Publisher<Int, TestError>.future { 42 }
         #expect(await events(p) == [.success(42)])
@@ -158,7 +158,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - DeferredTask <-> Publisher bridges
 
-@Suite struct DeferredTaskBridgeTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredTaskBridgeTests {
     @Test func taskToPublisher() async {
         #expect(await values(DeferredTask { 11 }.eraseToPublisher()) == [11])
     }
@@ -192,7 +192,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - DeferredStream <-> Publisher bridges
 
-@Suite struct DeferredStreamBridgeTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredStreamBridgeTests {
     @Test func streamToPublisher() async {
         #expect(await values(DeferredStream<Int>.pure(5).eraseToPublisher()) == [5])
     }
@@ -233,7 +233,7 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
 
 // MARK: - Result / Optional conveniences
 
-@Suite struct ConveniencePublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct ConveniencePublisherTests {
     @Test func resultPublisher() async {
         #expect(await events(Result<Int, TestError>.success(1).publisher) == [.success(1)])
         #expect(await events(Result<Int, TestError>.failure(.boom).publisher) == [.failure(.boom)])

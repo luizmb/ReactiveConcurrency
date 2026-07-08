@@ -40,13 +40,9 @@ public func applyTDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable,
                 var fi = fns.makeAsyncIterator()
                 var vi = values.makeAsyncIterator()
                 while let vf = await fi.next(), let va = await vi.next() {
-                    let result: Validation<E, B> = switch (vf, va) {
-                    case let (.success(f), .success(a)): .success(f(a))
-                    case let (.failure(e), .success): .failure(e)
-                    case let (.success, .failure(e)): .failure(e)
-                    case let (.failure(e1), .failure(e2)): .failure(E.combine(e1, e2))
-                    }
-                    continuation.yield(result)
+                    // Delegate accumulation to Validation.apply (single source of truth) instead of
+                    // re-inlining the 4-case switch; double failure combines via E.combine.
+                    continuation.yield(Validation<E, B>.apply(vf, va))
                 }
                 continuation.finish()
             }
