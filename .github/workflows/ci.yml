@@ -10,6 +10,7 @@ jobs:
   test:
     name: Build & Test
     runs-on: macos-26
+    timeout-minutes: 20
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -49,7 +50,7 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test 2>&1
+        run: swift test --no-parallel 2>&1
 
       - name: Periphery
         run: mint run periphery scan
@@ -57,6 +58,7 @@ jobs:
   test-linux:
     name: Build & Test (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container: swift:6.3
     steps:
       - uses: actions/checkout@v7
@@ -65,11 +67,12 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test 2>&1
+        run: swift test --no-parallel 2>&1
 
   test-android:
     name: Build & Test (Android)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -88,6 +91,7 @@ jobs:
   test-windows:
     name: Build & Test (Windows)
     runs-on: windows-latest
+    timeout-minutes: 25
     steps:
       # Installs the Swift toolchain for Windows (uses the Visual Studio C++ tools preinstalled on
       # the runner). Toolchain setup must come before checkout/build.
@@ -102,7 +106,7 @@ jobs:
         run: swift build
 
       - name: Test
-        run: swift test
+        run: swift test --no-parallel
 
   # Builds against the LATEST versions allowed by Package.swift (not the pinned Package.resolved),
   # so a source-breaking dependency minor (FP/Hourglass) fails here — at the source — instead of
@@ -110,6 +114,7 @@ jobs:
   test-latest-deps:
     name: Build & Test (latest dependencies)
     runs-on: macos-26
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -123,4 +128,4 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test 2>&1
+        run: swift test --no-parallel 2>&1
