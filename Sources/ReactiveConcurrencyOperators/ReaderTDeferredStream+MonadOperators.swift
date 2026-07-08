@@ -6,6 +6,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: Reader<env, DeferredStream<a>> -> (a -> Reader<env, DeferredStream<b>>) -> Reader<env, DeferredStream<b>>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the Reader-over-DeferredStream stack. Operator form of `flatMap`.
 public func >>- <Env: Sendable, A: Sendable, B: Sendable>(
     _ reader: Reader<Env, DeferredStream<A>>,
     _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>
@@ -14,6 +16,8 @@ public func >>- <Env: Sendable, A: Sendable, B: Sendable>(
 }
 
 // (-<<) :: (a -> Reader<env, DeferredStream<b>>) -> Reader<env, DeferredStream<a>> -> Reader<env, DeferredStream<b>>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the Reader-over-DeferredStream stack. Operator form of `flatMap`.
 public func -<< <Env: Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>,
     _ reader: Reader<Env, DeferredStream<A>>
@@ -22,6 +26,8 @@ public func -<< <Env: Sendable, A: Sendable, B: Sendable>(
 }
 
 // (>=>) :: (a -> Reader<env, DeferredStream<b>>) -> (b -> Reader<env, DeferredStream<c>>) -> a -> Reader<env, DeferredStream<c>>
+
+/// Left-to-right Kleisli composition of two effectful functions for the Reader-over-DeferredStream stack.
 public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>
@@ -30,6 +36,8 @@ public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
 }
 
 // (<=<) :: (b -> Reader<env, DeferredStream<c>>) -> (a -> Reader<env, DeferredStream<b>>) -> a -> Reader<env, DeferredStream<c>>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the Reader-over-DeferredStream stack.
 public func <=< <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>,
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>

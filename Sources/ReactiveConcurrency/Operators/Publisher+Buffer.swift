@@ -5,7 +5,9 @@
 //
 // Combine's `prefetch` is omitted (it's a demand concept; this library is pull-based with no
 // backpressure-demand model), as is `.customError` (AsyncStream exposes no overflow hook).
+/// of undelivered elements is full.
 
+/// Policy for `buffer(size:whenFull:)` deciding which element to discard once the bounded buffer
 public enum BufferStrategy: Sendable {
     /// Drop the oldest buffered element to make room for a new one (keep newest `size`).
     case dropOldest
@@ -14,6 +16,8 @@ public enum BufferStrategy: Sendable {
 }
 
 public extension Publisher {
+    /// Bounds the number of undelivered elements to `size`, discarding per `strategy` when the
+    /// downstream can't keep up. A terminal failure is never dropped by the buffering policy.
     func buffer(size: Int, whenFull strategy: BufferStrategy) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         let policy: AsyncStream<Result<Output, Failure>>.Continuation.BufferingPolicy =

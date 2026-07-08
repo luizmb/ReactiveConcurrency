@@ -6,6 +6,7 @@ import ReactiveConcurrency
 // Type: DeferredStream<A?>
 
 // liftA2T: combines two DeferredStream<A?> applicatively — nil propagates
+/// Applicative liftA2 for the DeferredStream-over-Optional stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredStreamOptional<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<A?>, DeferredStream<B?>) -> DeferredStream<C?> {
@@ -17,6 +18,7 @@ public func liftA2TDeferredStreamOptional<A: Sendable, B: Sendable, C: Sendable>
     }
 }
 
+/// Applicative apply for the DeferredStream-over-Optional stack.
 public func applyTDeferredStreamOptional<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<(@Sendable (A) -> B)?>,
     _ values: DeferredStream<A?>

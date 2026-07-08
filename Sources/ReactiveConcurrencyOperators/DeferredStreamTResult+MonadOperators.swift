@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: DeferredStream<Result<a,e>> -> (a -> DeferredStream<Result<b,e>>) -> DeferredStream<Result<b,e>>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the DeferredStream-over-Result stack. Operator form of `flatMap`.
 public func >>- <A: Sendable, B: Sendable, E: Error & Sendable>(
     _ stream: DeferredStream<Result<A, E>>,
     _ fn: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>
@@ -13,6 +15,8 @@ public func >>- <A: Sendable, B: Sendable, E: Error & Sendable>(
 }
 
 // (-<<) :: (a -> DeferredStream<Result<b,e>>) -> DeferredStream<Result<a,e>> -> DeferredStream<Result<b,e>>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the DeferredStream-over-Result stack. Operator form of `flatMap`.
 public func -<< <A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fn: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>,
     _ stream: DeferredStream<Result<A, E>>
@@ -21,6 +25,8 @@ public func -<< <A: Sendable, B: Sendable, E: Error & Sendable>(
 }
 
 // (>=>) :: (a -> DeferredStream<Result<b,e>>) -> (b -> DeferredStream<Result<c,e>>) -> a -> DeferredStream<Result<c,e>>
+
+/// Left-to-right Kleisli composition of two effectful functions for the DeferredStream-over-Result stack.
 public func >=> <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
     _ fn1: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>,
     _ fn2: @escaping @Sendable (B) -> DeferredStream<Result<C, E>>
@@ -29,6 +35,8 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
 }
 
 // (<=<) :: (b -> DeferredStream<Result<c,e>>) -> (a -> DeferredStream<Result<b,e>>) -> a -> DeferredStream<Result<c,e>>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the DeferredStream-over-Result stack.
 public func <=< <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
     _ fn2: @escaping @Sendable (B) -> DeferredStream<Result<C, E>>,
     _ fn1: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>

@@ -1,0 +1,37 @@
+@Tutorial(time: 15) {
+    @Intro(title: "Search as you type") {
+        Turn a stream of keystrokes into live search results — debounced, de-duplicated, and
+        cancelling stale requests — with `debounce`, `removeDuplicates`, and `switchToLatest`.
+    }
+
+    @Section(title: "Debounce, de-dupe, and switch") {
+        @ContentAndMedia {
+            Rapid typing shouldn't fire a request per keystroke, and an outdated request shouldn't
+            overwrite a newer one. Three operators solve exactly that.
+        }
+
+        @Steps {
+            @Step {
+                Feed keystrokes into a hot ``PassthroughSubject``.
+                @Code(name: "Search.swift", file: search-01.swift)
+            }
+
+            @Step {
+                Settle the input: `debounce` waits for a pause, `removeDuplicates` drops repeats.
+                Timing operators take an explicit `Clock`, so they're fully testable.
+                @Code(name: "Search.swift", file: search-02.swift)
+            }
+
+            @Step {
+                Map each settled term to a search publisher and `switchToLatest` — a new term
+                cancels the previous in-flight search.
+                @Code(name: "Search.swift", file: search-03.swift)
+            }
+
+            @Step {
+                Sink the results. Typing "s", "sw", "swift" quickly runs only the final search.
+                @Code(name: "Search.swift", file: search-04.swift)
+            }
+        }
+    }
+}

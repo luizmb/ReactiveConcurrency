@@ -8,6 +8,8 @@ private enum _CombineEvent<A: Sendable, B: Sendable>: Sendable {
 // MARK: - merge
 
 public extension Publisher {
+    /// Interleaves the elements of this publisher and another, emitting them in arrival order.
+    /// - Returns: A publisher that emits from both sources; the first failure seals the stream.
     func merge(with other: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         let otherFactory = other._stream.factory
@@ -48,6 +50,8 @@ public extension Publisher {
         })
     }
 
+    /// Interleaves the elements of this publisher and two others, emitting them in arrival order.
+    /// - Returns: A publisher that emits from all three sources; the first failure seals the stream.
     func merge(
         with b: Publisher<Output, Failure>,
         _ c: Publisher<Output, Failure>
@@ -55,6 +59,8 @@ public extension Publisher {
         merge(with: b).merge(with: c)
     }
 
+    /// Interleaves the elements of this publisher and three others, emitting them in arrival order.
+    /// - Returns: A publisher that emits from all four sources; the first failure seals the stream.
     func merge(
         with b: Publisher<Output, Failure>,
         _ c: Publisher<Output, Failure>,
@@ -67,7 +73,12 @@ public extension Publisher {
 // MARK: - zip
 
 public extension Publisher {
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable cyclomatic_complexity
+    /// Pairs each element of this publisher positionally with the corresponding element of another into a typed tuple.
+    ///
+    /// Zippy and index-aligned: the *n*-th output pairs each side's *n*-th element; completion occurs as soon as
+    /// either side can no longer form a pair.
+    /// - Returns: A publisher of `(Output, B)` tuples.
     func zip<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
@@ -141,6 +152,9 @@ public extension Publisher {
         })
     }
 
+    // swiftlint:enable cyclomatic_complexity
+    /// Positionally pairs elements of this publisher with two others into a typed `(Output, B, C)` tuple.
+    /// - Returns: A publisher of three-element tuples, index-aligned across all sources.
     func zip<B: Sendable, C: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>
@@ -148,6 +162,8 @@ public extension Publisher {
         zip(b).zip(c).map { ($0.0.0, $0.0.1, $0.1) }
     }
 
+    /// Positionally pairs elements of this publisher with three others into a typed `(Output, B, C, D)` tuple.
+    /// - Returns: A publisher of four-element tuples, index-aligned across all sources.
     func zip<B: Sendable, C: Sendable, D: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
@@ -158,6 +174,10 @@ public extension Publisher {
 
     // Transform-closure overloads.
 
+    /// Zips this publisher with another, combining each positional pair through `transform`.
+    /// - Parameters:
+    ///   - other: The publisher to zip with.
+    ///   - transform: A closure combining each aligned pair into a single value.
     func zip<B: Sendable, T: Sendable>(
         _ other: Publisher<B, Failure>,
         _ transform: @escaping @Sendable (Output, B) -> T
@@ -165,6 +185,7 @@ public extension Publisher {
         zip(other).map(transform)
     }
 
+    /// Zips this publisher with two others, combining each positional triple through `transform`.
     func zip<B: Sendable, C: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
@@ -173,6 +194,7 @@ public extension Publisher {
         zip(b, c).map { transform($0.0, $0.1, $0.2) }
     }
 
+    /// Zips this publisher with three others, combining each positional quadruple through `transform`.
     func zip<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
@@ -186,7 +208,11 @@ public extension Publisher {
 // MARK: - combineLatest
 
 public extension Publisher {
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable cyclomatic_complexity
+    /// Emits a tuple of the most recent element from each publisher whenever either one emits.
+    ///
+    /// Requires both sources to have emitted at least once before the first tuple is produced.
+    /// - Returns: A publisher of `(Output, B)` tuples of the latest values.
     func combineLatest<B: Sendable>(
         _ other: Publisher<B, Failure>
     ) -> Publisher<(Output, B), Failure> {
@@ -255,6 +281,9 @@ public extension Publisher {
         })
     }
 
+    // swiftlint:enable cyclomatic_complexity
+    /// Emits a tuple of the most recent element from this publisher and two others whenever any of them emits.
+    /// - Returns: A publisher of `(Output, B, C)` tuples of the latest values.
     func combineLatest<B: Sendable, C: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>
@@ -262,6 +291,8 @@ public extension Publisher {
         combineLatest(b).combineLatest(c).map { ($0.0.0, $0.0.1, $0.1) }
     }
 
+    /// Emits a tuple of the most recent element from this publisher and three others whenever any of them emits.
+    /// - Returns: A publisher of `(Output, B, C, D)` tuples of the latest values.
     func combineLatest<B: Sendable, C: Sendable, D: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
@@ -272,6 +303,7 @@ public extension Publisher {
 
     // Transform-closure overloads (syntactic sugar over .map on the tuple result).
 
+    /// Combines the latest element of this publisher and another through `transform` whenever either emits.
     func combineLatest<B: Sendable, T: Sendable>(
         _ other: Publisher<B, Failure>,
         _ transform: @escaping @Sendable (Output, B) -> T
@@ -279,6 +311,7 @@ public extension Publisher {
         combineLatest(other).map(transform)
     }
 
+    /// Combines the latest element of this publisher and two others through `transform` whenever any emits.
     func combineLatest<B: Sendable, C: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,
@@ -287,6 +320,7 @@ public extension Publisher {
         combineLatest(b, c).map { transform($0.0, $0.1, $0.2) }
     }
 
+    /// Combines the latest element of this publisher and three others through `transform` whenever any emits.
     func combineLatest<B: Sendable, C: Sendable, D: Sendable, T: Sendable>(
         _ b: Publisher<B, Failure>,
         _ c: Publisher<C, Failure>,

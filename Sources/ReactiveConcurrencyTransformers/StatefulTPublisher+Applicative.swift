@@ -9,6 +9,7 @@ import ReactiveConcurrency
 // (No Monad: capturing inout state across the async stream boundary isn't expressible —
 // matches StatefulTDeferredStream.)
 
+/// Applicative apply for the Stateful-over-Publisher stack.
 public func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ sf: Stateful<S, Publisher<@Sendable (A) -> B, F>>,
     _ sa: Stateful<S, Publisher<A, F>>
@@ -20,6 +21,7 @@ public func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     }
 }
 
+/// Applicative liftA2 for the Stateful-over-Publisher stack: runs both effects and combines their results with fn.
 public func liftA2StatefulPublisher<S, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Stateful<S, Publisher<A, F>>, Stateful<S, Publisher<B, F>>) -> Stateful<S, Publisher<C, F>> {
@@ -32,6 +34,7 @@ public func liftA2StatefulPublisher<S, A: Sendable, B: Sendable, C: Sendable, F:
     }
 }
 
+/// Applicative seqRight for the Stateful-over-Publisher stack: sequences both effects, keeps the right result.
 public func seqRightStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Stateful<S, Publisher<A, F>>,
     _ rhs: Stateful<S, Publisher<B, F>>
@@ -39,6 +42,7 @@ public func seqRightStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     Stateful<S, Publisher<B, F>> { s in lhs.run(&s).seqRight(rhs.run(&s)) }
 }
 
+/// Applicative seqLeft for the Stateful-over-Publisher stack: sequences both effects, keeps the left result.
 public func seqLeftStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Stateful<S, Publisher<A, F>>,
     _ rhs: Stateful<S, Publisher<B, F>>

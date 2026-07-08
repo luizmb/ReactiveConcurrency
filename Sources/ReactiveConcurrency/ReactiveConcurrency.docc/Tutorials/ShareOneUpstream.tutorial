@@ -1,0 +1,37 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Share one upstream") {
+        Publishers are cold by default — each subscriber re-runs the work. Use `share` and
+        `multicast` to run one upstream and fan its values out to many subscribers.
+    }
+
+    @Section(title: "From cold to shared") {
+        @ContentAndMedia {
+            "Cold" means fresh execution per subscription. That's the right default for purity, but
+            not when the upstream is expensive or has side effects you want to happen once.
+        }
+
+        @Steps {
+            @Step {
+                Start with an expensive cold publisher.
+                @Code(name: "Shared.swift", file: share-01.swift)
+            }
+
+            @Step {
+                Two subscribers run the work twice — often not what you want.
+                @Code(name: "Shared.swift", file: share-02.swift)
+            }
+
+            @Step {
+                `share()` multicasts one run to all subscribers, ref-counted: it starts on the first
+                subscriber and tears down when the last cancels.
+                @Code(name: "Shared.swift", file: share-03.swift)
+            }
+
+            @Step {
+                For explicit control over *when* the upstream starts, `multicast` through a subject
+                and `connect` yourself.
+                @Code(name: "Shared.swift", file: share-04.swift)
+            }
+        }
+    }
+}

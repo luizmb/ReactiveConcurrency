@@ -6,6 +6,7 @@ import ReactiveConcurrency
 // DeferredTaskTEither: outer = DeferredTask, inner = Either
 // Type: DeferredTask<Either<L, A>>
 
+/// Applicative liftA2 for the DeferredTask-over-Either stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<Either<L, A>>, DeferredTask<Either<L, B>>) -> DeferredTask<Either<L, C>> {
@@ -20,6 +21,7 @@ public func liftA2TDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable, C: 
     }
 }
 
+/// Applicative apply for the DeferredTask-over-Either stack.
 public func applyTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable>(
     _ fns: DeferredTask<Either<L, @Sendable (A) -> B>>,
     _ values: DeferredTask<Either<L, A>>

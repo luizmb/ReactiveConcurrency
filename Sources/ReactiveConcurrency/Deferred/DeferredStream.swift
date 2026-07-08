@@ -3,8 +3,6 @@
 // DeferredStream<Element>: a lazy AsyncSequence whose producer starts only at first iteration.
 // Contrast with AsyncStream: its body/Task runs at init time.
 // DeferredStream defers the factory call to makeAsyncIterator().
-
-/// A lazy `AsyncSequence` whose producer is created only when iteration begins.
 ///
 /// Unlike `AsyncStream`, whose body closure runs at initialisation time, `DeferredStream`
 /// defers the factory call to `makeAsyncIterator()`. This means:
@@ -14,8 +12,12 @@
 ///   `AsyncStream` — enabling true restartable or re-subscribable streams.
 ///
 /// `DeferredStream` is the Swift async/await counterpart to Combine's `Deferred<P>`.
-/// It is a full ``Functor``, ``Applicative``, and ``Monad`` — operator forms available in
-/// `CoreFPOperators`.
+/// It is a full functor (``map(_:)``), applicative (``applyDeferredStream(_:_:)``), and monad
+/// (`flatMap`) — operator forms available in `CoreFPOperators`.
+///
+/// Note its applicative is *zippy* (ZipList-style, positional, truncating to the shortest input),
+/// so ``applyDeferredStream(_:_:)`` / `liftA2` / `zip` are not the monad-derived product; use
+/// `flatMap` (concatMap) for the cartesian product.
 ///
 /// ## Creating a DeferredStream
 ///
@@ -47,22 +49,27 @@
 /// ```
 ///
 /// - SeeAlso: ``DeferredTask``, `AsyncStream`
+
+/// A lazy `AsyncSequence` whose producer is created only when iteration begins.
 public struct DeferredStream<Element: Sendable>: AsyncSequence, Sendable {
     public typealias AsyncIterator = AsyncStream<Element>.AsyncIterator
 
+    /// Builds a fresh `AsyncStream` on each call; invoked once per ``makeAsyncIterator()``.
     public let factory: @Sendable () -> AsyncStream<Element>
 
+    /// Wraps a stream-producing factory. The factory is not called until iteration begins.
     public init(_ factory: @escaping @Sendable () -> AsyncStream<Element>) {
         self.factory = factory
     }
 
+    /// Invokes the factory to produce a fresh underlying stream and returns its iterator.
     public func makeAsyncIterator() -> AsyncIterator {
         factory().makeAsyncIterator()
     }
 }
 
 public extension DeferredStream {
-    /// Wrap an existing eager AsyncStream (the stream is already created; use only when you own it).
+    /// Wraps an existing eager `AsyncStream` (already created; use only when you own it).
     static func wrap(_ stream: AsyncStream<Element>) -> DeferredStream<Element> {
         DeferredStream { stream }
     }

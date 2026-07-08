@@ -6,6 +6,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> Reader<env, DeferredTask<a>> -> Reader<env, DeferredTask<b>>
+
+/// Functor map lifted through the transformer (function on the left) for the Reader-over-DeferredTask stack. Operator form of `mapT`.
 public func <£^> <Env, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ reader: Reader<Env, DeferredTask<A>>
@@ -14,6 +16,8 @@ public func <£^> <Env, A: Sendable, B: Sendable>(
 }
 
 // (<&^>) :: Reader<env, DeferredTask<a>> -> (a -> b) -> Reader<env, DeferredTask<b>>
+
+/// Functor map lifted through the transformer (container on the left) for the Reader-over-DeferredTask stack. Operator form of `mapT`.
 public func <&^> <Env, A: Sendable, B: Sendable>(
     _ reader: Reader<Env, DeferredTask<A>>,
     _ fn: @escaping @Sendable (A) -> B

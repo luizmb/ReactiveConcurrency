@@ -7,6 +7,7 @@ import ReactiveConcurrency
 // Type: Reader<Env, DeferredStream<A>>
 
 public extension Reader {
+    /// Monadic bind for the Reader-over-DeferredStream stack: threads the inner value through fn, re-reading the shared environment.
     func flatMapT<A: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (A) -> Reader<Environment, DeferredStream<B>>
     ) -> Reader<Environment, DeferredStream<B>>
@@ -17,6 +18,7 @@ public extension Reader {
     }
 }
 
+/// Monadic bind (point-free) for the Reader-over-DeferredStream stack: threads the inner value through fn, re-reading the shared environment.
 public func bindTReaderDeferredStream<Env: Sendable, A: Sendable, B: Sendable>(
     _ reader: Reader<Env, DeferredStream<A>>,
     _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>
@@ -24,6 +26,7 @@ public func bindTReaderDeferredStream<Env: Sendable, A: Sendable, B: Sendable>(
     reader.flatMapT(fn)
 }
 
+/// Left-to-right Kleisli composition for the Reader-over-DeferredStream stack.
 public func kleisliTReaderDeferredStream<Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>

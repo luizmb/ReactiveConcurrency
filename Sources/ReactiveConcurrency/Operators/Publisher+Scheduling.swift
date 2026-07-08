@@ -10,7 +10,8 @@ private func _hop<T: Sendable>(to actor: any Actor, _ body: @Sendable () -> T) a
 // MARK: - receive(on:) / subscribe(on:)
 
 public extension Publisher {
-    // Delivers values and completion to downstream on the specified actor's executor.
+    /// Delivers values and completion downstream on `actor`'s executor. Takes an `any Actor`
+    /// (there is no `Scheduler` abstraction) — pass any actor, including `MainActor.shared`.
     func receive(on actor: any Actor) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {
@@ -33,7 +34,8 @@ public extension Publisher {
         })
     }
 
-    // Performs the upstream subscription (factory call) on the specified actor's executor.
+    /// Performs the upstream subscription (the factory call) on `actor`'s executor. Takes an
+    /// `any Actor` (no `Scheduler` abstraction) rather than a scheduler.
     func subscribe(on actor: any Actor) -> Publisher<Output, Failure> {
         let selfFactory = _stream.factory
         return Publisher<Output, Failure>(DeferredStream {

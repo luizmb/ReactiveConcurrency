@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // DeferredTaskTArray: outer = DeferredTask, inner = Array
 // Type: DeferredTask<[A]>
 
+/// Applicative liftA2 for the DeferredTask-over-Array stack: runs both effects and combines their results with fn.
 public func liftA2TDeferredTaskArray<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<[A]>, DeferredTask<[B]>) -> DeferredTask<[C]> {
@@ -15,6 +16,7 @@ public func liftA2TDeferredTaskArray<A: Sendable, B: Sendable, C: Sendable>(
     }
 }
 
+/// Applicative apply for the DeferredTask-over-Array stack.
 public func applyTDeferredTaskArray<A: Sendable, B: Sendable>(
     _ fns: DeferredTask<[@Sendable (A) -> B]>,
     _ values: DeferredTask<[A]>

@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> Publisher<Result<a,e>, f> -> Publisher<Result<b,e>, f>
+
+/// Functor map lifted through the transformer (function on the left) for the Publisher-over-Result stack. Operator form of `mapT`.
 public func <£^> <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B,
     _ publisher: Publisher<Result<A, E>, F>
@@ -13,6 +15,8 @@ public func <£^> <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
 }
 
 // (<&^>) :: Publisher<Result<a,e>, f> -> (a -> b) -> Publisher<Result<b,e>, f>
+
+/// Functor map lifted through the transformer (container on the left) for the Publisher-over-Result stack. Operator form of `mapT`.
 public func <&^> <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
     _ publisher: Publisher<Result<A, E>, F>,
     _ fn: @escaping @Sendable (A) -> B

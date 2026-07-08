@@ -3,7 +3,7 @@
 // Result.publisher / Optional.publisher conveniences, mirroring Combine.
 
 public extension Result where Success: Sendable {
-    // .success(v) -> single-value publisher; .failure(e) -> failing publisher.
+    /// A cold publisher: `.success(v)` emits `v` then finishes; `.failure(e)` fails with `e`.
     var publisher: ReactiveConcurrency.Publisher<Success, Failure> {
         switch self {
         case let .success(value): .just(value)
@@ -13,7 +13,7 @@ public extension Result where Success: Sendable {
 }
 
 public extension Optional where Wrapped: Sendable {
-    // .some(v) -> single-value publisher; .none -> empty publisher.
+    /// A cold publisher: `.some(v)` emits `v` then finishes; `.none` finishes immediately (empty).
     var publisher: ReactiveConcurrency.Publisher<Wrapped, Never> {
         switch self {
         case let .some(value): .just(value)

@@ -6,6 +6,7 @@ import ReactiveConcurrency
 // PublisherTEither: outer = Publisher, inner = Either
 // Type: Publisher<Either<L, A>, F>
 
+/// Applicative liftA2 for the Publisher-over-Either stack: runs both effects and combines their results with fn.
 public func liftA2TPublisherEither<L: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Publisher<Either<L, A>, F>, Publisher<Either<L, B>, F>) -> Publisher<Either<L, C>, F> {
@@ -20,6 +21,7 @@ public func liftA2TPublisherEither<L: Sendable, A: Sendable, B: Sendable, C: Sen
     }
 }
 
+/// Applicative apply for the Publisher-over-Either stack (zippy).
 public func applyTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fns: Publisher<Either<L, @Sendable (A) -> B>, F>,
     _ values: Publisher<Either<L, A>, F>

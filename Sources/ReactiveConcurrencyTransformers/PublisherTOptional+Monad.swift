@@ -7,6 +7,7 @@ import ReactiveConcurrency
 
 // flatMapT: nil elements pass through as nil; .some(a) is replaced by the elements of fn(a).
 // Sequential (maxPublishers: 1) preserves emission order.
+/// Monadic bind for the Publisher-over-Optional stack: nil short-circuits; a present value threads through fn.
 public func flatMapTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
     _ publisher: Publisher<A?, F>,
     _ fn: @escaping @Sendable (A) -> Publisher<B?, F>
@@ -16,6 +17,7 @@ public func flatMapTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
     }
 }
 
+/// Monadic bind (point-free) for the Publisher-over-Optional stack: nil short-circuits; a present value threads through fn.
 public func bindTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> Publisher<B?, F>
 ) -> @Sendable (Publisher<A?, F>) -> Publisher<B?, F> {
@@ -23,6 +25,7 @@ public func bindTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
 }
 
 // Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+/// Left-to-right Kleisli composition for the Publisher-over-Optional stack.
 public func kleisliTPublisherOptional<A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<B?, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<C?, F>

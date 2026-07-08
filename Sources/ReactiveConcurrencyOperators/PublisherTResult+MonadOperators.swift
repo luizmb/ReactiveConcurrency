@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (>>-) :: Publisher<Result<a,e>, f> -> (a -> Publisher<Result<b,e>, f>) -> Publisher<Result<b,e>, f>
+
+/// Monadic bind — sequences a dependent effect (container on the left) for the Publisher-over-Result stack. Operator form of `flatMap`.
 public func >>- <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
     _ publisher: Publisher<Result<A, E>, F>,
     _ fn: @escaping @Sendable (A) -> Publisher<Result<B, E>, F>
@@ -13,6 +15,8 @@ public func >>- <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
 }
 
 // (-<<) :: (a -> Publisher<Result<b,e>, f>) -> Publisher<Result<a,e>, f> -> Publisher<Result<b,e>, f>
+
+/// Monadic bind — sequences a dependent effect (function on the left) for the Publisher-over-Result stack. Operator form of `flatMap`.
 public func -<< <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> Publisher<Result<B, E>, F>,
     _ publisher: Publisher<Result<A, E>, F>
@@ -21,6 +25,8 @@ public func -<< <A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
 }
 
 // (>=>) :: (a -> Publisher<Result<b,e>, f>) -> (b -> Publisher<Result<c,e>, f>) -> a -> Publisher<Result<c,e>, f>
+
+/// Left-to-right Kleisli composition of two effectful functions for the Publisher-over-Result stack.
 public func >=> <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable, F: Error>(
     _ fn1: @escaping @Sendable (A) -> Publisher<Result<B, E>, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<Result<C, E>, F>
@@ -29,6 +35,8 @@ public func >=> <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable, F: 
 }
 
 // (<=<) :: (b -> Publisher<Result<c,e>, f>) -> (a -> Publisher<Result<b,e>, f>) -> a -> Publisher<Result<c,e>, f>
+
+/// Reverse Kleisli composition — `g <=< f == f >=> g` for the Publisher-over-Result stack.
 public func <=< <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable, F: Error>(
     _ fn2: @escaping @Sendable (B) -> Publisher<Result<C, E>, F>,
     _ fn1: @escaping @Sendable (A) -> Publisher<Result<B, E>, F>

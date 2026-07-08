@@ -7,6 +7,7 @@ import ReactiveConcurrency
 
 // flatMapT :: DeferredStream<[A]> -> (A -> DeferredStream<[B]>) -> DeferredStream<[B]>
 // For each emitted [A], applies fn to each element and concatenates all [B] arrays.
+/// Monadic bind for the DeferredStream-over-Array stack: binds fn across every element and concatenates the results (sequential).
 public func flatMapTDeferredStreamArray<A: Sendable, B: Sendable>(
     _ stream: DeferredStream<[A]>,
     _ fn: @escaping @Sendable (A) -> DeferredStream<[B]>
@@ -31,6 +32,7 @@ public func flatMapTDeferredStreamArray<A: Sendable, B: Sendable>(
     }
 }
 
+/// Monadic bind (point-free) for the DeferredStream-over-Array stack: binds fn across every element and concatenates the results (sequential).
 public func bindTDeferredStreamArray<A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> DeferredStream<[B]>
 ) -> @Sendable (DeferredStream<[A]>) -> DeferredStream<[B]> {
@@ -38,6 +40,7 @@ public func bindTDeferredStreamArray<A: Sendable, B: Sendable>(
 }
 
 // Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+/// Left-to-right Kleisli composition for the DeferredStream-over-Array stack.
 public func kleisliTDeferredStreamArray<A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> DeferredStream<[B]>,
     _ fn2: @escaping @Sendable (B) -> DeferredStream<[C]>

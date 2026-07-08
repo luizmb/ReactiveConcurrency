@@ -4,6 +4,7 @@ included:
 
 excluded:
   - .build
+  - Sources/ReactiveConcurrency/ReactiveConcurrency.docc
 
 opt_in_rules:
   - file_header

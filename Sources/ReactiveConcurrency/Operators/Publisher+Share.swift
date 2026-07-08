@@ -3,9 +3,9 @@
 // MARK: - share()
 
 public extension Publisher {
-    // Multicasts the upstream to multiple downstream subscribers.
-    // The upstream subscription starts with the first subscriber and is torn down
-    // when the last subscriber cancels. Subsequent re-subscriptions restart upstream.
+    /// Multicasts the upstream to multiple subscribers with reference-counted sharing: the single
+    /// upstream subscription starts on the first subscriber and is torn down when the last one
+    /// cancels. Subscribing again after teardown restarts the upstream from scratch.
     func share() -> Publisher<Output, Failure> {
         let shared = SharedState(upstream: self)
         return Publisher<Output, Failure>(DeferredStream {
@@ -142,6 +142,9 @@ public extension Publisher {
     }
 }
 
+/// fanning values out through a shared subject to all subscribers.
+
+/// A publisher that does not start its upstream until `connect()` (or `autoconnect()`) is called,
 public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     private let _upstream: Publisher<Output, Failure>
     private let _subject: AnySubject<Output, Failure>
@@ -151,8 +154,8 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
         _subject = subject
     }
 
-    // Starts the upstream and fans values into the subject (and thus to all subscribers).
-    // Returns a cancellable that disconnects when cancelled.
+    /// Starts the upstream, fanning its values into the subject (and thus to all subscribers).
+    /// - Returns: A cancellable that disconnects the upstream when cancelled.
     @discardableResult
     public func connect() -> AnyCancellable {
         let upstream = _upstream._stream.factory()
@@ -169,8 +172,9 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
         return AnyCancellable { task.cancel() }
     }
 
-    // Connects automatically on first subscription; stays connected until the source completes.
-    // Unlike share(), subscribers cancelling does not disconnect the upstream.
+    /// completes. Unlike `share()`, subscribers cancelling never disconnects the upstream.
+
+    /// Connects automatically on the first subscription and stays connected until the source
     public func autoconnect() -> Publisher<Output, Failure> {
         let state = AutoconnectState()
         let connectable = self
@@ -193,6 +197,7 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
         })
     }
 
+    /// Erases to a plain `Publisher` backed by the shared subject (without triggering `connect()`).
     public func eraseToPublisher() -> Publisher<Output, Failure> {
         _subject.eraseToPublisher()
     }

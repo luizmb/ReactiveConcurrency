@@ -6,7 +6,9 @@ import ReactiveConcurrency
 
 // PublisherTValidation: outer = Publisher, inner = Validation
 // Type: Publisher<Validation<E, A>, F>. Applicative accumulates errors (Validation's key property).
+/// error Semigroup.
 
+/// Applicative liftA2 for the Publisher-over-Validation stack: runs both effects and combines their results with fn; failures accumulate via the
 public func liftA2TPublisherValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Publisher<Validation<E, A>, F>, Publisher<Validation<E, B>, F>) -> Publisher<Validation<E, C>, F> {
@@ -15,6 +17,7 @@ public func liftA2TPublisherValidation<E: Semigroup & Sendable, A: Sendable, B: 
     }
 }
 
+/// Applicative apply for the Publisher-over-Validation stack (zippy); failures accumulate via the error Semigroup.
 public func applyTPublisherValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fns: Publisher<Validation<E, @Sendable (A) -> B>, F>,
     _ values: Publisher<Validation<E, A>, F>

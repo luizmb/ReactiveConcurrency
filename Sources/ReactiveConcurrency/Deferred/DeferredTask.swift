@@ -2,8 +2,6 @@
 
 // DeferredTask<Success>: a lazy IO-like computation that runs only when .run() is called.
 // Nothing executes until run() — analogous to Haskell's IO monad or Scala's cats-effect IO.
-
-/// A lazy, description of an async computation that executes only when ``run()`` is called.
 ///
 /// `DeferredTask<Success>` is the Swift async/await equivalent of Haskell's `IO` monad or
 /// Scala's `cats-effect IO`. It wraps an `async` closure and does nothing until explicitly
@@ -14,9 +12,9 @@
 /// run multiple times, returning independent async computations each time, and can be safely
 /// stored, passed, and transformed without triggering side effects.
 ///
-/// `DeferredTask` is the single-value complement to ``DeferredStream``. It is a full
-/// ``Functor``, ``Applicative``, and ``Monad`` — operator forms are available in
-/// `CoreFPOperators`.
+/// `DeferredTask` is the single-value complement to ``DeferredStream``. It is a full functor
+/// (``map(_:)``), applicative (``applyDeferredTask(_:_:)``), and monad (`flatMap`) —
+/// operator forms are available in `CoreFPOperators`.
 ///
 /// ## Creating a DeferredTask
 ///
@@ -58,13 +56,20 @@
 /// ```
 ///
 /// - SeeAlso: ``DeferredStream``
+
+/// A lazy, description of an async computation that executes only when ``run()`` is called.
 public struct DeferredTask<Success: Sendable>: Sendable {
+    /// The wrapped async computation; not invoked until ``run()`` (or ``eraseToTask()``) is called.
     public let body: @Sendable () async -> Success
 
+    /// Wraps an async closure into a lazy task. The closure runs only on ``run()``, never at init.
     public init(_ body: @escaping @Sendable () async -> Success) {
         self.body = body
     }
 
+    /// - Returns: A `DeferredTask` that never throws; its `Success` is `Result<S, E>`.
+
+    /// Wraps a throwing async closure, capturing success or the typed error as a `Result` value.
     public static func catching<S, E: Error>(_ body: @escaping @Sendable () async throws(E) -> S) -> DeferredTask<Result<S, E>> {
         .init {
             do throws(E) {

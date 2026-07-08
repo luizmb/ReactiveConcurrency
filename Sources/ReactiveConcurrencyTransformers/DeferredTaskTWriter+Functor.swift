@@ -10,6 +10,7 @@ import ReactiveConcurrency
 // effect and made bind unable to combine the continuation's log — see +Monad.)
 
 public extension DeferredTask {
+    /// Functor map over the DeferredTask-over-Writer stack: transforms the innermost value, leaving the DeferredTask and Writer layers intact.
     func mapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
     ) -> DeferredTask<Writer<W, B>>
@@ -17,6 +18,8 @@ public extension DeferredTask {
         map { $0.mapWriter(fn) }
     }
 
+    /// Functor map (point-free) for the DeferredTask-over-Writer stack: transforms the innermost value, leaving the DeferredTask and Writer layers
+    /// intact.
     static func fmapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
     ) -> @Sendable (DeferredTask<Writer<W, Inner>>) -> DeferredTask<Writer<W, B>> {

@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
+    /// Emits the running accumulation, applying `next` to each element and emitting each intermediate result.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A closure folding the current accumulator and the next element into a new accumulator.
+    /// - Returns: A publisher that emits every intermediate accumulator value.
     func scan<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) -> T
@@ -20,6 +25,11 @@ public extension Publisher {
         }
     }
 
+    /// Folds all elements into a single value, emitting only the final accumulator once the upstream completes.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A closure folding the current accumulator and the next element into a new accumulator.
+    /// - Returns: A publisher that emits the single final accumulator value.
     func reduce<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) -> T
@@ -39,6 +49,7 @@ public extension Publisher {
         }
     }
 
+    /// Buffers all elements and emits them as a single array once the upstream completes.
     func collect() -> Publisher<[Output], Failure> {
         _operator { raw, upstream in
             var collected: [Output] = []
@@ -55,10 +66,14 @@ public extension Publisher {
         }
     }
 
+    /// Emits the given elements before republishing the upstream's elements.
+    /// - Parameter elements: The values to emit ahead of the upstream.
     func prepend(_ elements: Output...) -> Publisher<Output, Failure> {
         prepend(ContiguousArray(elements))
     }
 
+    /// Emits the given sequence of elements before republishing the upstream's elements.
+    /// - Parameter elements: The sequence of values to emit ahead of the upstream.
     func prepend<S: Sequence & Sendable>(
         _ elements: S
     ) -> Publisher<Output, Failure> where S.Element == Output {
@@ -74,6 +89,8 @@ public extension Publisher {
         }
     }
 
+    /// Emits all of another publisher's elements before republishing the upstream's elements.
+    /// - Parameter publisher: The publisher whose elements precede the upstream's.
     func prepend(_ publisher: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             for await result in publisher._stream {
@@ -88,10 +105,14 @@ public extension Publisher {
         }
     }
 
+    /// Emits the given elements after the upstream completes successfully.
+    /// - Parameter elements: The values to emit once the upstream finishes.
     func append(_ elements: Output...) -> Publisher<Output, Failure> {
         append(ContiguousArray(elements))
     }
 
+    /// Emits the given sequence of elements after the upstream completes successfully.
+    /// - Parameter elements: The sequence of values to emit once the upstream finishes.
     func append<S: Sequence & Sendable>(
         _ elements: S
     ) -> Publisher<Output, Failure> where S.Element == Output {
@@ -107,6 +128,8 @@ public extension Publisher {
         }
     }
 
+    /// Emits all of another publisher's elements after the upstream completes successfully.
+    /// - Parameter publisher: The publisher whose elements follow the upstream's.
     func append(_ publisher: Publisher<Output, Failure>) -> Publisher<Output, Failure> {
         _operator { raw, upstream in
             for await result in upstream {
@@ -121,11 +144,14 @@ public extension Publisher {
         }
     }
 
+    /// Emits the total number of upstream elements once the upstream completes.
     func count() -> Publisher<Int, Failure> {
         reduce(0) { acc, _ in acc + 1 }
     }
 
-    // Groups elements into arrays of at most `count`; the final array may be smaller.
+    /// Groups elements into arrays of at most `count`; the final array may be smaller.
+    /// - Parameter count: The maximum size of each emitted batch.
+    /// - Returns: A publisher that emits arrays of buffered elements.
     func collect(_ count: Int) -> Publisher<[Output], Failure> {
         _operator { raw, upstream in
             var buffer: [Output] = []

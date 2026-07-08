@@ -1,0 +1,36 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Build your first pipeline") {
+        Create a cold publisher, transform it, and run it at the `sink` boundary — then consume the
+        very same pipeline as an `AsyncSequence`.
+    }
+
+    @Section(title: "Compose and run a pipeline") {
+        @ContentAndMedia {
+            A pipeline is a pure value. Operators just build a bigger value; nothing executes until
+            you `sink` or iterate it.
+        }
+
+        @Steps {
+            @Step {
+                Start from a cold sequence publisher. This is a value — it has not run.
+                @Code(name: "Pipeline.swift", file: pipeline-01.swift)
+            }
+
+            @Step {
+                Add `filter` and `map`. Still nothing runs; you have simply built a larger value.
+                @Code(name: "Pipeline.swift", file: pipeline-02.swift)
+            }
+
+            @Step {
+                Call `sink` to execute the pipeline. Keep the returned ``AnyCancellable`` alive —
+                dropping it cancels the subscription.
+                @Code(name: "Pipeline.swift", file: pipeline-03.swift)
+            }
+
+            @Step {
+                Or run the same pipeline as an `AsyncSequence` with `values`.
+                @Code(name: "Pipeline.swift", file: pipeline-04.swift)
+            }
+        }
+    }
+}

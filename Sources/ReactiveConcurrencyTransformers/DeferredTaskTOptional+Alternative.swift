@@ -10,6 +10,7 @@ import ReactiveConcurrency
 // never run. Only when `lhs` is nil is `rhs` run. Sequential and deterministic, so left identity
 // and referential transparency hold — this is the instance `<|>` maps to.
 // For the concurrent "first non-nil, cancel the loser" behaviour use `raceDeferredTaskOptional`.
+/// Left-biased Alternative for the DeferredTask-over-Optional stack — lhs wins if non-nil, else rhs (sequential, lawful; the `<|>` instance).
 public func altDeferredTaskOptional<A: Sendable>(
     _ lhs: DeferredTask<A?>,
     _ rhs: @autoclosure () -> DeferredTask<A?>
@@ -24,6 +25,7 @@ public func altDeferredTaskOptional<A: Sendable>(
 // Runs both tasks concurrently; returns the first non-nil result and cancels the loser.
 // If both return nil, returns nil. NOT a lawful Alternative — the winner is scheduling-dependent,
 // so it is exposed under `race`, not `<|>`.
+/// Concurrent race for the DeferredTask-over-Optional stack — first non-nil wins, loser cancelled (scheduling-dependent, NOT a lawful Alternative).
 public func raceDeferredTaskOptional<A: Sendable>(
     _ lhs: DeferredTask<A?>,
     _ rhs: @autoclosure () -> DeferredTask<A?>

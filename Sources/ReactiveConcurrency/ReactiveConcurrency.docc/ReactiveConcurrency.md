@@ -1,5 +1,21 @@
 # ``ReactiveConcurrency``
 
+@Metadata {
+    @DisplayName("ReactiveConcurrency")
+    @TitleHeading("Framework")
+    @PageColor(purple)
+    @Available(macOS, introduced: "13.0")
+    @Available(iOS, introduced: "16.0")
+    @Available(tvOS, introduced: "16.0")
+    @Available(watchOS, introduced: "9.0")
+    @Available(visionOS, introduced: "1.0")
+    @CallToAction(url: "doc:BuildYourFirstPipeline", purpose: link, label: "Start the tutorial")
+}
+
+@Options {
+    @TopicsVisualStyle(detailedGrid)
+}
+
 A cross-platform reactive framework built on modern Swift Concurrency and the compiler's `Sendable`
 thread-safety guarantees.
 
@@ -33,8 +49,52 @@ The package ships three products: **ReactiveConcurrency** (the named-function co
 
 ## Topics
 
-### Getting Started
-- <doc:GettingStarted>
+### Essentials
 
-### Core
+- <doc:GettingStarted>
+- <doc:CoreConcepts>
 - ``Publisher``
+
+### Working with Publishers
+
+- <doc:TransformingValues>
+- <doc:FilteringValues>
+- <doc:CombiningPublishers>
+- <doc:ControllingTiming>
+- <doc:HandlingErrors>
+- <doc:SharingAndMulticasting>
+- <doc:ConsumingPublishers>
+- <doc:BridgingAsyncSequence>
+
+### Subjects & Cancellation
+
+- <doc:Subjects>
+- ``PassthroughSubject``
+- ``CurrentValueSubject``
+- ``AnySubject``
+- ``Subject``
+- ``AnyCancellable``
+- ``Cancellable``
+
+### Deferred Effects
+
+- <doc:DeferredEffects>
+- ``DeferredTask``
+- ``DeferredStream``
+
+### Functional Algebra
+
+- <doc:FunctionalAlgebra>
+- <doc:MonadTransformers>
+
+### Publisher Types
+
+- ``AnyPublisher``
+- ``ConnectablePublisher``
+- ``Record``
+- ``BufferStrategy``
+- ``Subscribers``
+
+### Diagnostics
+
+- ``Diagnostics``

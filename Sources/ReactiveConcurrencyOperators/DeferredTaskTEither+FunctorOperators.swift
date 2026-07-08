@@ -6,6 +6,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<£^>) :: (a -> b) -> DeferredTask<Either<l,a>> -> DeferredTask<Either<l,b>>
+
+/// Functor map lifted through the transformer (function on the left) for the DeferredTask-over-Either stack. Operator form of `mapT`.
 public func <£^> <L: Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ task: DeferredTask<Either<L, A>>
@@ -14,6 +16,8 @@ public func <£^> <L: Sendable, A: Sendable, B: Sendable>(
 }
 
 // (<&^>) :: DeferredTask<Either<l,a>> -> (a -> b) -> DeferredTask<Either<l,b>>
+
+/// Functor map lifted through the transformer (container on the left) for the DeferredTask-over-Either stack. Operator form of `mapT`.
 public func <&^> <L: Sendable, A: Sendable, B: Sendable>(
     _ task: DeferredTask<Either<L, A>>,
     _ fn: @escaping @Sendable (A) -> B

@@ -3,7 +3,8 @@
 // MARK: - print
 
 public extension Publisher {
-    // Logs subscription, values, completion, and cancellation to stdout with an optional prefix.
+    /// Logs subscription, values, completion, and cancellation to stdout, each line optionally
+    /// tagged with `prefix`.
     func print(_ prefix: String = "") -> Publisher<Output, Failure> {
         let pfx = prefix.isEmpty ? "" : "\(prefix): "
         return handleEvents(
@@ -23,9 +24,8 @@ public extension Publisher {
 // MARK: - assertNoFailure
 
 public extension Publisher {
-    // Converts to an infallible publisher by asserting failures never arrive.
-    // In debug builds, triggers assertionFailure if a failure is received.
-    // In release builds, silently finishes instead.
+    /// Converts to an infallible publisher, asserting that a failure never arrives: in debug
+    /// builds a failure triggers `assertionFailure`; in release builds it silently finishes.
     func assertNoFailure(
         _ message: @autoclosure @escaping @Sendable () -> String = "",
         file: StaticString = #file,
@@ -61,14 +61,16 @@ public extension Publisher {
 // MARK: - breakpointOnError / breakpoint
 
 public extension Publisher {
-    // Raises assertionFailure (debug only) when a failure is received.
+    /// Raises `assertionFailure` (debug builds only) when a failure is received, leaving events
+    /// otherwise untouched.
     func breakpointOnError() -> Publisher<Output, Failure> {
         handleEvents(receiveCompletion: {
             if case let .failure(e) = $0 { assertionFailure("breakpointOnError: \(e)") }
         })
     }
 
-    // Raises assertionFailure (debug only) when the provided closure returns true.
+    /// Raises `assertionFailure` (debug builds only) when the provided `receiveOutput` or
+    /// `receiveCompletion` predicate returns `true`, leaving events otherwise untouched.
     func breakpoint(
         receiveOutput: (@Sendable (Output) -> Bool)? = nil,
         receiveCompletion: (@Sendable (Subscribers.Completion<Failure>) -> Bool)? = nil

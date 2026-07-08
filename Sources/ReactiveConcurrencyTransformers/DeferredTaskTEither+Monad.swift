@@ -7,6 +7,7 @@ import ReactiveConcurrency
 // Type: DeferredTask<Either<L, A>>
 
 // flatMapT: .left short-circuits; .right(a) proceeds through fn
+/// Monadic bind for the DeferredTask-over-Either stack: .left short-circuits; .right threads through fn.
 public func flatMapTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable>(
     _ task: DeferredTask<Either<L, A>>,
     _ fn: @escaping @Sendable (A) -> DeferredTask<Either<L, B>>
@@ -19,6 +20,7 @@ public func flatMapTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable>(
     }
 }
 
+/// Monadic bind (point-free) for the DeferredTask-over-Either stack: .left short-circuits; .right threads through fn.
 public func bindTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> DeferredTask<Either<L, B>>
 ) -> @Sendable (DeferredTask<Either<L, A>>) -> DeferredTask<Either<L, B>> {
@@ -26,6 +28,7 @@ public func bindTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable>(
 }
 
 // Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+/// Left-to-right Kleisli composition for the DeferredTask-over-Either stack.
 public func kleisliTDeferredTaskEither<L: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> DeferredTask<Either<L, B>>,
     _ fn2: @escaping @Sendable (B) -> DeferredTask<Either<L, C>>

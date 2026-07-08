@@ -9,6 +9,8 @@
 
 public extension Publisher {
     // future :: (() async throws(e) -> a) -> Publisher a e
+    /// A cold single-value publisher that runs `work` on each subscription, emitting its value or
+    /// failing with the typed error. Unlike Combine's `Future`, work re-runs per subscription.
     static func future(
         _ work: @escaping @Sendable () async throws(Failure) -> Output
     ) -> Publisher<Output, Failure> {
@@ -24,7 +26,8 @@ public extension Publisher {
     }
 
     // future :: (() async -> Result a e) -> Publisher a e
-    // Result-returning form for callers that already produce a Result rather than throwing.
+    /// A cold single-value publisher that runs `work` on each subscription, emitting the success or
+    /// failing with the error. Result-returning form for callers that already produce a `Result`.
     static func future(
         _ work: @escaping @Sendable () async -> Result<Output, Failure>
     ) -> Publisher<Output, Failure> {
@@ -40,14 +43,14 @@ public extension Publisher {
 // MARK: - DeferredTask <-> Future bridges
 
 public extension DeferredTask {
-    // DeferredTask<Success> -> Publisher<Success, Never>: emit the single value, then finish.
+    /// Bridges this task to a cold, non-failing publisher that emits its single value, then finishes.
     func eraseToPublisher() -> Publisher<Success, Never> {
         Publisher<Success, Never> { continuation in
             continuation.yield(await body())
         }
     }
 
-    // DeferredTask<Result<A, E>> -> Publisher<A, E>: emit the value, or fail with E.
+    /// Bridges a `Result`-producing task to a cold publisher that emits the value, or fails with `E`.
     func eraseToThrowingPublisher<A: Sendable, E: Error>() -> Publisher<A, E>
     where Success == Result<A, E> {
         Publisher<A, E> { continuation in
@@ -69,8 +72,8 @@ public extension Publisher where Failure == Never {
         return nil
     }
 
-    // Lazy form: the first emitted value as a composable DeferredTask. The inverse of
-    // DeferredTask.eraseToPublisher().
+    /// The first emitted value as a lazy, composable `DeferredTask` (`nil` if none is emitted).
+    /// The inverse of `DeferredTask.eraseToPublisher()`.
     func firstValueTask() -> DeferredTask<Output?> {
         let factory = _stream.factory
         return DeferredTask<Output?> {
@@ -92,7 +95,8 @@ public extension Publisher {
         return nil
     }
 
-    // Lazy form: the first event as a composable DeferredTask.
+    /// The first event (value or typed failure) as a lazy, composable `DeferredTask`
+    /// (`nil` if the publisher finishes without emitting).
     func firstResultTask() -> DeferredTask<Result<Output, Failure>?> {
         let factory = _stream.factory
         return DeferredTask<Result<Output, Failure>?> {

@@ -5,6 +5,7 @@ import ReactiveConcurrency
 // PublisherTResult: outer = Publisher, inner = Result
 // Type: Publisher<Result<A, E>, F>. First inner .failure wins.
 
+/// Applicative liftA2 for the Publisher-over-Result stack: runs both effects and combines their results with fn.
 public func liftA2TPublisherResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Publisher<Result<A, E>, F>, Publisher<Result<B, E>, F>) -> Publisher<Result<C, E>, F> {
@@ -19,6 +20,7 @@ public func liftA2TPublisherResult<A: Sendable, B: Sendable, C: Sendable, E: Err
     }
 }
 
+/// Applicative apply for the Publisher-over-Result stack (zippy).
 public func applyTPublisherResult<A: Sendable, B: Sendable, E: Error & Sendable, F: Error>(
     _ fns: Publisher<Result<@Sendable (A) -> B, E>, F>,
     _ values: Publisher<Result<A, E>, F>

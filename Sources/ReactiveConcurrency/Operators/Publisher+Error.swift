@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
-    // Replaces failure with a recovery publisher; downstream becomes infallible.
+    /// Recovers from a failure by switching to the publisher returned by `handler`; the resulting
+    /// publisher is infallible (`Failure == Never`).
     func `catch`(
         _ handler: @escaping @Sendable (Failure) -> Publisher<Output, Never>
     ) -> Publisher<Output, Never> {
@@ -29,7 +30,8 @@ public extension Publisher {
         })
     }
 
-    // Replaces failure with a recovery publisher of the same failure type.
+    /// Recovers from a failure by switching to the publisher returned by `handler`, which may
+    /// itself fail with the same `Failure` type.
     func `catch`(
         _ handler: @escaping @Sendable (Failure) -> Publisher<Output, Failure>
     ) -> Publisher<Output, Failure> {
@@ -51,6 +53,7 @@ public extension Publisher {
         }
     }
 
+    /// Replaces a failure with `output`, then finishes; the resulting publisher is infallible.
     func replaceError(with output: Output) -> Publisher<Output, Never> {
         let selfFactory = _stream.factory
         return Publisher<Output, Never>(DeferredStream {
@@ -74,6 +77,8 @@ public extension Publisher {
         })
     }
 
+    /// Re-subscribes to the upstream up to `times` more times on failure before forwarding the
+    /// final failure. Each retry restarts the upstream from scratch (values already emitted repeat).
     func retry(_ times: Int) -> Publisher<Output, Failure> {
         guard times > 0 else { return self }
         let selfFactory = _stream.factory

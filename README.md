@@ -4,6 +4,7 @@
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue)
 ![Swift](https://img.shields.io/badge/Swift-6.3-orange)
 ![License](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
+[![Documentation](https://img.shields.io/badge/docs-DocC-purple)](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/)
 
 A **cross-platform reactive framework** built on top of modern Swift Concurrency and the
 compiler's `Sendable` thread-safety guarantees.
@@ -38,6 +39,21 @@ modern, pragmatic view:
 > Want the design rationale and the numbers behind "built on Swift Concurrency"? See
 > [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) for a head-to-head against Combine and raw
 > `AsyncStream`, and for why synchronous reentrancy bugs can't happen in this model.
+
+---
+
+## Documentation
+
+Full API reference, guides, and interactive tutorials are published with **DocC**:
+
+**→ [luizmb.github.io/ReactiveConcurrency](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/)**
+
+Start here:
+
+- **[Getting Started](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/gettingstarted)** and **[Core Concepts](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/coreconcepts)** — the mental model.
+- **Tutorials** — [Build your first pipeline](https://luizmb.github.io/ReactiveConcurrency/tutorials/meetreactiveconcurrency), then Search-as-you-type, Typed errors & retry, and Share one upstream.
+- Guides per topic: [Transforming](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/transformingvalues) · [Filtering](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/filteringvalues) · [Combining](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/combiningpublishers) · [Timing](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/controllingtiming) · [Errors](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/handlingerrors) · [Sharing](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/sharingandmulticasting) · [Subjects](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/subjects) · [Consuming](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/consumingpublishers).
+- FP: [Functional Algebra](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/functionalalgebra) and [Monad Transformers](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/monadtransformers).
 
 ---
 

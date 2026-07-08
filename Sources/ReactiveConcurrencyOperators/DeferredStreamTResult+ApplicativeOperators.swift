@@ -5,6 +5,8 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
 // (<*>) :: DeferredStream<Result<a->b,e>> -> DeferredStream<Result<a,e>> -> DeferredStream<Result<b,e>>
+
+/// Applicative apply for the DeferredStream-over-Result stack.
 public func <*> <A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fns: DeferredStream<Result<@Sendable (A) -> B, E>>,
     _ values: DeferredStream<Result<A, E>>

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public extension Publisher {
+    /// Republishes only the elements that satisfy the given predicate.
+    /// - Parameter predicate: A closure returning `true` for elements to keep.
+    /// - Returns: A publisher that emits the elements passing the predicate.
     func filter(
         _ predicate: @escaping @Sendable (Output) -> Bool
     ) -> Publisher<Output, Failure> {

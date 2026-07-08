@@ -11,6 +11,9 @@
 public extension Publisher where Failure == Never {
     /// Writes each value into `object[keyPath:]`. `Root: Sendable` because the write happens on
     /// the subscription's task — the object is responsible for its own synchronization.
+    ///
+    /// The object is captured **weakly** (unlike Combine's strong capture): writes stop once it
+    /// is deallocated.
     func assign<Root: AnyObject & Sendable>(
         to keyPath: ReferenceWritableKeyPath<Root, Output> & Sendable,
         on object: Root
@@ -19,7 +22,8 @@ public extension Publisher where Failure == Never {
     }
 
     /// Writes each value into a main-actor-isolated `object` on the main actor, in order.
-    /// The natural binding for UI: `publisher.assign(to: \.text, on: label)`.
+    /// The natural binding for UI: `publisher.assign(to: \.text, on: label)`. Runs on the
+    /// main actor and captures the object strongly for the lifetime of the subscription.
     @MainActor
     func assignOnMain<Root: AnyObject>(
         to keyPath: ReferenceWritableKeyPath<Root, Output>,
@@ -44,7 +48,8 @@ public extension Publisher where Failure == Never {
 
 public extension Publisher {
     /// Writes each event as a `Result` into `object[keyPath:]` (`.success` per value,
-    /// `.failure` on failure). `Root: Sendable`; written on the subscription task.
+    /// `.failure` on failure). `Root: Sendable`; written on the subscription task, capturing the
+    /// object **weakly** (unlike Combine's strong capture).
     func assign<Root: AnyObject & Sendable>(
         to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>> & Sendable,
         on object: Root
@@ -58,7 +63,7 @@ public extension Publisher {
     }
 
     /// Writes each event as a `Result` into a main-actor-isolated `object`, on the main actor,
-    /// in order.
+    /// in order. Runs on the main actor and captures the object strongly.
     @MainActor
     func assignOnMain<Root: AnyObject>(
         to keyPath: ReferenceWritableKeyPath<Root, Result<Output, Failure>>,

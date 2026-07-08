@@ -7,6 +7,9 @@
 // MARK: - tryFilter
 
 public extension Publisher where Failure == Never {
+    /// Republishes only elements satisfying a throwing predicate, failing with the typed error `E` if it throws.
+    /// - Parameter predicate: A closure returning `true` to keep an element; may throw a typed error `E`.
+    /// - Returns: A publisher that fails with `E` if the predicate throws.
     func tryFilter<E: Error>(
         _ predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
@@ -28,6 +31,9 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Republishes only elements satisfying a throwing predicate whose thrown error matches the upstream `Failure`.
+    /// - Parameter predicate: A closure returning `true` to keep an element; may throw `Failure`.
+    /// - Returns: A publisher that fails with `Failure` if the predicate throws.
     func tryFilter(
         _ predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
@@ -54,6 +60,9 @@ public extension Publisher {
 // MARK: - tryCompactMap
 
 public extension Publisher where Failure == Never {
+    /// Transforms elements with a throwing closure, dropping `nil` results and failing with typed error `E` on throw.
+    /// - Parameter transform: A closure mapping an element to an optional value; may throw a typed error `E`.
+    /// - Returns: A publisher of unwrapped results that fails with `E` if the transform throws.
     func tryCompactMap<T: Sendable, E: Error>(
         _ transform: @escaping @Sendable (Output) throws(E) -> T?
     ) -> Publisher<T, E> {
@@ -75,6 +84,9 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Transforms elements with a throwing closure, dropping `nil` results; thrown errors match the upstream `Failure`.
+    /// - Parameter transform: A closure mapping an element to an optional value; may throw `Failure`.
+    /// - Returns: A publisher of unwrapped results that fails with `Failure` if the transform throws.
     func tryCompactMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) throws(Failure) -> T?
     ) -> Publisher<T, Failure> {
@@ -101,6 +113,11 @@ public extension Publisher {
 // MARK: - tryScan
 
 public extension Publisher where Failure == Never {
+    /// Emits the running accumulation from a throwing fold, failing with the typed error `E` if it throws.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A throwing closure folding the accumulator and next element; may throw a typed error `E`.
+    /// - Returns: A publisher emitting each intermediate accumulator, failing with `E` on throw.
     func tryScan<T: Sendable, E: Error>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(E) -> T
@@ -123,6 +140,11 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Emits the running accumulation from a throwing fold; thrown errors match the upstream `Failure`.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A throwing closure folding the accumulator and next element; may throw `Failure`.
+    /// - Returns: A publisher emitting each intermediate accumulator, failing with `Failure` on throw.
     func tryScan<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(Failure) -> T
@@ -150,6 +172,11 @@ public extension Publisher {
 // MARK: - tryReduce
 
 public extension Publisher where Failure == Never {
+    /// Folds all elements with a throwing closure, emitting only the final value and failing with typed error `E`.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A throwing closure folding the accumulator and next element; may throw a typed error `E`.
+    /// - Returns: A publisher emitting the single final accumulator, failing with `E` on throw.
     func tryReduce<T: Sendable, E: Error>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(E) -> T
@@ -172,6 +199,11 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Folds all elements with a throwing closure, emitting only the final value; thrown errors match `Failure`.
+    /// - Parameters:
+    ///   - initial: The starting accumulator value.
+    ///   - next: A throwing closure folding the accumulator and next element; may throw `Failure`.
+    /// - Returns: A publisher emitting the single final accumulator, failing with `Failure` on throw.
     func tryReduce<T: Sendable>(
         _ initial: T,
         _ next: @escaping @Sendable (T, Output) throws(Failure) -> T
@@ -199,12 +231,16 @@ public extension Publisher {
 // MARK: - tryFirst / tryLast
 
 public extension Publisher where Failure == Never {
+    /// Emits the first element satisfying a throwing predicate, failing with the typed error `E` if it throws.
+    /// - Parameter predicate: A closure returning `true` for the sought element; may throw a typed error `E`.
     func tryFirst<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
         tryFilter(predicate).first()
     }
 
+    /// Emits the last element satisfying a throwing predicate, failing with the typed error `E` if it throws.
+    /// - Parameter predicate: A closure returning `true` for candidate elements; may throw a typed error `E`.
     func tryLast<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
@@ -213,12 +249,16 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Emits the first element satisfying a throwing predicate; thrown errors match the upstream `Failure`.
+    /// - Parameter predicate: A closure returning `true` for the sought element; may throw `Failure`.
     func tryFirst(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
         tryFilter(predicate).first()
     }
 
+    /// Emits the last element satisfying a throwing predicate; thrown errors match the upstream `Failure`.
+    /// - Parameter predicate: A closure returning `true` for candidate elements; may throw `Failure`.
     func tryLast(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
@@ -229,6 +269,8 @@ public extension Publisher {
 // MARK: - tryDrop / tryPrefix
 
 public extension Publisher where Failure == Never {
+    /// Drops elements while a throwing predicate holds, then republishes the rest; fails with typed error `E` on throw.
+    /// - Parameter predicate: A closure returning `true` to keep dropping; may throw a typed error `E`.
     func tryDrop<E: Error>(
         while predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
@@ -251,6 +293,8 @@ public extension Publisher where Failure == Never {
         }
     }
 
+    /// Republishes elements while a throwing predicate holds, completing at the first failure; fails with `E` on throw.
+    /// - Parameter predicate: A closure returning `true` to continue emitting; may throw a typed error `E`.
     func tryPrefix<E: Error>(
         while predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
@@ -271,6 +315,8 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Drops elements while a throwing predicate holds, then republishes the rest; thrown errors match `Failure`.
+    /// - Parameter predicate: A closure returning `true` to keep dropping; may throw `Failure`.
     func tryDrop(
         while predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
@@ -296,6 +342,8 @@ public extension Publisher {
         }
     }
 
+    /// Republishes elements while a throwing predicate holds, completing at the first failure; errors match `Failure`.
+    /// - Parameter predicate: A closure returning `true` to continue emitting; may throw `Failure`.
     func tryPrefix(
         while predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
@@ -321,6 +369,8 @@ public extension Publisher {
 // MARK: - tryContains / tryAllSatisfy / tryRemoveDuplicates
 
 public extension Publisher where Failure == Never {
+    /// Emits `true` as soon as an element satisfies a throwing predicate, else `false`; fails with `E` on throw.
+    /// - Parameter predicate: A closure returning `true` for a matching element; may throw a typed error `E`.
     func tryContains<E: Error>(
         where predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Bool, E> {
@@ -342,6 +392,8 @@ public extension Publisher where Failure == Never {
         }
     }
 
+    /// Emits whether every element satisfies a throwing predicate (short-circuiting on `false`); fails with `E` on throw.
+    /// - Parameter predicate: A closure evaluated against each element; may throw a typed error `E`.
     func tryAllSatisfy<E: Error>(
         _ predicate: @escaping @Sendable (Output) throws(E) -> Bool
     ) -> Publisher<Bool, E> {
@@ -363,6 +415,8 @@ public extension Publisher where Failure == Never {
         }
     }
 
+    /// Omits consecutive duplicates as judged by a throwing predicate, failing with the typed error `E` on throw.
+    /// - Parameter predicate: A closure returning `true` when two consecutive elements are equal; may throw `E`.
     func tryRemoveDuplicates<E: Error>(
         by predicate: @escaping @Sendable (Output, Output) throws(E) -> Bool
     ) -> Publisher<Output, E> {
@@ -385,6 +439,8 @@ public extension Publisher where Failure == Never {
 }
 
 public extension Publisher {
+    /// Emits `true` as soon as an element satisfies a throwing predicate, else `false`; errors match `Failure`.
+    /// - Parameter predicate: A closure returning `true` for a matching element; may throw `Failure`.
     func tryContains(
         where predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Bool, Failure> {
@@ -409,6 +465,8 @@ public extension Publisher {
         }
     }
 
+    /// Emits whether every element satisfies a throwing predicate (short-circuiting on `false`); errors match `Failure`.
+    /// - Parameter predicate: A closure evaluated against each element; may throw `Failure`.
     func tryAllSatisfy(
         _ predicate: @escaping @Sendable (Output) throws(Failure) -> Bool
     ) -> Publisher<Bool, Failure> {
@@ -433,6 +491,8 @@ public extension Publisher {
         }
     }
 
+    /// Omits consecutive duplicates as judged by a throwing predicate; thrown errors match the upstream `Failure`.
+    /// - Parameter predicate: A closure returning `true` when two consecutive elements are equal; may throw `Failure`.
     func tryRemoveDuplicates(
         by predicate: @escaping @Sendable (Output, Output) throws(Failure) -> Bool
     ) -> Publisher<Output, Failure> {
@@ -460,7 +520,11 @@ public extension Publisher {
 // MARK: - tryCatch
 
 public extension Publisher {
-    // Like catch, but the recovery handler can throw E. If it does, E propagates downstream.
+    /// Recovers from an upstream failure with another publisher, propagating `E` if the handler itself throws.
+    ///
+    /// Like `catch`, but the recovery handler may throw the typed error `E`.
+    /// - Parameter handler: A closure mapping the upstream failure to a recovery publisher; may throw `E`.
+    /// - Returns: A publisher that continues with the recovery publisher, or fails with `E`.
     func tryCatch<E: Error>(
         _ handler: @escaping @Sendable (Failure) throws(E) -> Publisher<Output, E>
     ) -> Publisher<Output, E> {
