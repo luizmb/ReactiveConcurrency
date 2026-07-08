@@ -13,7 +13,9 @@ private func writerStream<T: Sendable>(
 ) -> DeferredStream<Writer<[String], T>> {
     DeferredStream<Writer<[String], T>> {
         AsyncStream { c in
-            for (value, log) in elements { c.yield(Writer(value, log)) }
+            for (value, log) in elements {
+                c.yield(Writer(value, log))
+            }
             c.finish()
         }
     }
@@ -21,7 +23,9 @@ private func writerStream<T: Sendable>(
 
 private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>) async -> [Writer<[String], T>] {
     var out: [Writer<[String], T>] = []
-    for await w in stream { out.append(w) }
+    for await w in stream {
+        out.append(w)
+    }
     return out
 }
 

@@ -301,6 +301,7 @@ final class CancellableBox: @unchecked Sendable {
         set { lock.withLock { _c = newValue } }
     }
 }
+
 #if canImport(Combine)
     final class CombineBox: @unchecked Sendable {
         private let lock = NSLock()

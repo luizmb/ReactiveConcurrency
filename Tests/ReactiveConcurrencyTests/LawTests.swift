@@ -21,7 +21,9 @@ private func run<A: Sendable>(_ task: DeferredTask<A>) async -> A {
 
 private func collect<A: Sendable>(_ stream: DeferredStream<A>) async -> [A] {
     var out: [A] = []
-    for await element in stream { out.append(element) }
+    for await element in stream {
+        out.append(element)
+    }
     return out
 }
 
@@ -35,13 +37,28 @@ private func collect<A: Sendable, F: Error>(_ publisher: Publisher<A, F>) async 
 
 private let inc: @Sendable (Int) -> Int = { $0 + 1 }
 private let dbl: @Sendable (Int) -> Int = { $0 * 2 }
+// Named identity so the functor-identity law reads as `map(ident)` rather than `map { $0 }`
+// (the latter trips SwiftLint's array_init rule even though the receiver is not an Array).
+private let ident: @Sendable (Int) -> Int = { $0 }
+
+// Shared builder so the nested-closure stream construction lives in one properly-formatted place.
+private func intStream(_ xs: [Int]) -> DeferredStream<Int> {
+    DeferredStream<Int> {
+        AsyncStream { c in
+            for x in xs {
+                c.yield(x)
+            }
+            c.finish()
+        }
+    }
+}
 
 // MARK: - DeferredTask (fully lawful Functor / Applicative / Monad)
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredTaskLawTests {
     @Test func functorIdentity() async {
         let t = DeferredTask { 5 }
-        #expect(await run(t.map { $0 }) == run(t))
+        #expect(await run(t.map(ident)) == run(t))
     }
 
     @Test func functorComposition() async {
@@ -95,16 +112,11 @@ private let dbl: @Sendable (Int) -> Int = { $0 * 2 }
 // MARK: - DeferredStream (lawful Functor / Monad; zippy Semigroupal; concat-alt monoid)
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamLawTests {
-    private func from(_ xs: [Int]) -> DeferredStream<Int> {
-        DeferredStream<Int> { AsyncStream { c in
-            for x in xs { c.yield(x) }
-            c.finish()
-        } }
-    }
+    private func from(_ xs: [Int]) -> DeferredStream<Int> { intStream(xs) }
 
     @Test func functorIdentity() async {
         let s = from([1, 2, 3])
-        #expect(await collect(s.map { $0 }) == collect(s))
+        #expect(await collect(s.map(ident)) == collect(s))
     }
 
     @Test func functorComposition() async {
@@ -114,9 +126,7 @@ private let dbl: @Sendable (Int) -> Int = { $0 * 2 }
 
     @Test func monadLeftIdentity() async {
         let a = 5
-        let f: @Sendable (Int) -> DeferredStream<Int> = { n in DeferredStream<Int> { AsyncStream { c in
-            c.yield(n); c.yield(n + 1); c.finish()
-        } } }
+        let f: @Sendable (Int) -> DeferredStream<Int> = { n in intStream([n, n + 1]) }
         #expect(await collect(DeferredStream.pure(a).flatMap(f)) == collect(f(a)))
     }
 
@@ -127,12 +137,8 @@ private let dbl: @Sendable (Int) -> Int = { $0 * 2 }
 
     @Test func monadAssociativity() async {
         let m = from([1, 2])
-        let f: @Sendable (Int) -> DeferredStream<Int> = { n in DeferredStream<Int> { AsyncStream { c in
-            c.yield(n); c.yield(n * 10); c.finish()
-        } } }
-        let g: @Sendable (Int) -> DeferredStream<Int> = { n in DeferredStream<Int> { AsyncStream { c in
-            c.yield(n + 100); c.finish()
-        } } }
+        let f: @Sendable (Int) -> DeferredStream<Int> = { n in intStream([n, n * 10]) }
+        let g: @Sendable (Int) -> DeferredStream<Int> = { n in intStream([n + 100]) }
         let lhs = m.flatMap(f).flatMap(g)
         let rhs = m.flatMap { a in f(a).flatMap(g) }
         #expect(await collect(lhs) == collect(rhs))
@@ -173,7 +179,7 @@ private let dbl: @Sendable (Int) -> Int = { $0 * 2 }
 
     @Test func functorIdentity() async {
         let p = from([1, 2, 3])
-        #expect(await collect(p.map { $0 }) == collect(p))
+        #expect(await collect(p.map(ident)) == collect(p))
     }
 
     @Test func functorComposition() async {

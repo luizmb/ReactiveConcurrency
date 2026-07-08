@@ -35,6 +35,7 @@ public extension Publisher {
 }
 
 // MARK: - Zippy Semigroupal (ZipList-style)
+
 //
 // `apply`/`seqLeft`/`seqRight` here form a *zippy* product: they pair elements positionally
 // (like ZipList) and truncate at the shorter side. This is the product users want from a
