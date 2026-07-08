@@ -23,3 +23,10 @@ public func bindTReaderPublisher<Env: Sendable, A: Sendable, B: Sendable, F: Err
 ) -> Reader<Env, Publisher<B, F>> {
     reader.flatMapT(fn)
 }
+
+public func kleisliTReaderPublisher<Env: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Reader<Env, Publisher<B, F>>,
+    _ fn2: @escaping @Sendable (B) -> Reader<Env, Publisher<C, F>>
+) -> @Sendable (A) -> Reader<Env, Publisher<C, F>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
+}

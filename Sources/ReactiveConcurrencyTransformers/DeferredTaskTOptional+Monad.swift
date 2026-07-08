@@ -22,3 +22,11 @@ public func bindTDeferredTaskOptional<A: Sendable, B: Sendable>(
 ) -> @Sendable (DeferredTask<A?>) -> DeferredTask<B?> {
     { @Sendable task in flatMapTDeferredTaskOptional(task, fn) }
 }
+
+// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+public func kleisliTDeferredTaskOptional<A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<B?>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<C?>
+) -> @Sendable (A) -> DeferredTask<C?> {
+    { @Sendable a in flatMapTDeferredTaskOptional(fn1(a), fn2) }
+}

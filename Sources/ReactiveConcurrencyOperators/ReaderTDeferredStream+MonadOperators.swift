@@ -26,5 +26,13 @@ public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>
 ) -> @Sendable (A) -> Reader<Env, DeferredStream<C>> {
-    { a in fn1(a).flatMapT(fn2) }
+    kleisliTReaderDeferredStream(fn1, fn2)
+}
+
+// (<=<) :: (b -> Reader<env, DeferredStream<c>>) -> (a -> Reader<env, DeferredStream<b>>) -> a -> Reader<env, DeferredStream<c>>
+public func <=< <Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredStream<C>>,
+    _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredStream<B>>
+) -> @Sendable (A) -> Reader<Env, DeferredStream<C>> {
+    fn1 >=> fn2
 }

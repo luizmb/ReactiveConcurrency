@@ -110,6 +110,15 @@ public extension Publisher {
     ) -> @Sendable (Output) -> Publisher<C, Failure> {
         { @Sendable a in f(a).flatMap(g) }
     }
+
+    // kleisliBack :: (b -> Publisher c e) -> (a -> Publisher b e) -> (a -> Publisher c e)
+    // Right-to-left Kleisli composition (mirrors DeferredTask/DeferredStream base).
+    static func kleisliBack<X: Sendable, B: Sendable>(
+        _ g: @escaping @Sendable (Output) -> Publisher<B, Failure>,
+        _ f: @escaping @Sendable (X) -> Publisher<Output, Failure>
+    ) -> @Sendable (X) -> Publisher<B, Failure> {
+        { @Sendable x in f(x).flatMap(g) }
+    }
 }
 
 // MARK: - Alternative

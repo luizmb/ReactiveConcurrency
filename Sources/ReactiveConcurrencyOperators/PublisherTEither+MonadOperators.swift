@@ -20,3 +20,19 @@ public func -<< <L: Sendable, A: Sendable, B: Sendable, F: Error>(
 ) -> Publisher<Either<L, B>, F> {
     publisher >>- fn
 }
+
+// (>=>) :: (a -> Publisher<Either<l,b>, f>) -> (b -> Publisher<Either<l,c>, f>) -> a -> Publisher<Either<l,c>, f>
+public func >=> <L: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<Either<L, C>, F>
+) -> @Sendable (A) -> Publisher<Either<L, C>, F> {
+    kleisliTPublisherEither(fn1, fn2)
+}
+
+// (<=<) :: (b -> Publisher<Either<l,c>, f>) -> (a -> Publisher<Either<l,b>, f>) -> a -> Publisher<Either<l,c>, f>
+public func <=< <L: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn2: @escaping @Sendable (B) -> Publisher<Either<L, C>, F>,
+    _ fn1: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>
+) -> @Sendable (A) -> Publisher<Either<L, C>, F> {
+    fn1 >=> fn2
+}

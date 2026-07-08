@@ -27,5 +27,13 @@ public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn1: @escaping @Sendable (A) -> DeferredStream<Writer<W, B>>,
     _ fn2: @escaping @Sendable (B) -> DeferredStream<Writer<W, C>>
 ) -> @Sendable (A) -> DeferredStream<Writer<W, C>> {
-    { a in fn1(a).flatMapT(fn2) }
+    kleisliTDeferredStreamWriter(fn1, fn2)
+}
+
+// (<=<) :: (b -> DeferredStream<Writer<w, c>>) -> (a -> DeferredStream<Writer<w, b>>) -> a -> DeferredStream<Writer<w, c>>
+public func <=< <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn2: @escaping @Sendable (B) -> DeferredStream<Writer<W, C>>,
+    _ fn1: @escaping @Sendable (A) -> DeferredStream<Writer<W, B>>
+) -> @Sendable (A) -> DeferredStream<Writer<W, C>> {
+    fn1 >=> fn2
 }

@@ -23,3 +23,10 @@ public func bindTReaderDeferredTask<Env: Sendable, A: Sendable, B: Sendable>(
 ) -> Reader<Env, DeferredTask<B>> {
     reader.flatMapT(fn)
 }
+
+public func kleisliTReaderDeferredTask<Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>,
+    _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredTask<C>>
+) -> @Sendable (A) -> Reader<Env, DeferredTask<C>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
+}

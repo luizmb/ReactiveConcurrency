@@ -26,5 +26,13 @@ public func >=> <Env: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>
     _ fn1: @escaping @Sendable (A) -> Reader<Env, Publisher<B, F>>,
     _ fn2: @escaping @Sendable (B) -> Reader<Env, Publisher<C, F>>
 ) -> @Sendable (A) -> Reader<Env, Publisher<C, F>> {
-    { a in fn1(a).flatMapT(fn2) }
+    kleisliTReaderPublisher(fn1, fn2)
+}
+
+// (<=<) :: (b -> Reader<env, Publisher<c, f>>) -> (a -> Reader<env, Publisher<b, f>>) -> a -> Reader<env, Publisher<c, f>>
+public func <=< <Env: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn2: @escaping @Sendable (B) -> Reader<Env, Publisher<C, F>>,
+    _ fn1: @escaping @Sendable (A) -> Reader<Env, Publisher<B, F>>
+) -> @Sendable (A) -> Reader<Env, Publisher<C, F>> {
+    fn1 >=> fn2
 }

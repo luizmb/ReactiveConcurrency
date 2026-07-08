@@ -24,3 +24,11 @@ public func bindTDeferredTaskResult<A: Sendable, B: Sendable, E: Error & Sendabl
 ) -> @Sendable (DeferredTask<Result<A, E>>) -> DeferredTask<Result<B, E>> {
     { @Sendable task in flatMapTDeferredTaskResult(task, fn) }
 }
+
+// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+public func kleisliTDeferredTaskResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Result<B, E>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Result<C, E>>
+) -> @Sendable (A) -> DeferredTask<Result<C, E>> {
+    { @Sendable a in flatMapTDeferredTaskResult(fn1(a), fn2) }
+}

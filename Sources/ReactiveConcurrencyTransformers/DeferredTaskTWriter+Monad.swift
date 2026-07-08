@@ -27,3 +27,10 @@ public extension DeferredTask {
         { $0.flatMapT(fn) }
     }
 }
+
+public func kleisliTDeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Writer<W, B>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Writer<W, C>>
+) -> @Sendable (A) -> DeferredTask<Writer<W, C>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
+}

@@ -26,3 +26,10 @@ public extension DeferredStream {
         { $0.flatMapT(fn) }
     }
 }
+
+public func kleisliTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredStream<Writer<W, B>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredStream<Writer<W, C>>
+) -> @Sendable (A) -> DeferredStream<Writer<W, C>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
+}

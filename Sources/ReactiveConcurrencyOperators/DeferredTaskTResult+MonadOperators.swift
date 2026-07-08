@@ -19,3 +19,19 @@ public func -<< <A: Sendable, B: Sendable, E: Error & Sendable>(
 ) -> DeferredTask<Result<B, E>> {
     task >>- fn
 }
+
+// (>=>) :: (a -> DeferredTask<Result<b,e>>) -> (b -> DeferredTask<Result<c,e>>) -> a -> DeferredTask<Result<c,e>>
+public func >=> <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Result<B, E>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Result<C, E>>
+) -> @Sendable (A) -> DeferredTask<Result<C, E>> {
+    kleisliTDeferredTaskResult(fn1, fn2)
+}
+
+// (<=<) :: (b -> DeferredTask<Result<c,e>>) -> (a -> DeferredTask<Result<b,e>>) -> a -> DeferredTask<Result<c,e>>
+public func <=< <A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Result<C, E>>,
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Result<B, E>>
+) -> @Sendable (A) -> DeferredTask<Result<C, E>> {
+    fn1 >=> fn2
+}

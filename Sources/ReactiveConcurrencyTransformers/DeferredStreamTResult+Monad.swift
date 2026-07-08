@@ -37,3 +37,11 @@ public func bindTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Senda
 ) -> @Sendable (DeferredStream<Result<A, E>>) -> DeferredStream<Result<B, E>> {
     { @Sendable stream in flatMapTDeferredStreamResult(stream, fn) }
 }
+
+// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+public func kleisliTDeferredStreamResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredStream<Result<C, E>>
+) -> @Sendable (A) -> DeferredStream<Result<C, E>> {
+    { @Sendable a in flatMapTDeferredStreamResult(fn1(a), fn2) }
+}

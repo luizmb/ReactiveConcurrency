@@ -27,3 +27,10 @@ public extension Publisher {
         { $0.flatMapT(fn) }
     }
 }
+
+public func kleisliTPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>
+) -> @Sendable (A) -> Publisher<Writer<W, C>, F> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
+}

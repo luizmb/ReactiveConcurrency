@@ -21,3 +21,11 @@ public func bindTPublisherOptional<A: Sendable, B: Sendable, F: Error>(
 ) -> @Sendable (Publisher<A?, F>) -> Publisher<B?, F> {
     { @Sendable publisher in flatMapTPublisherOptional(publisher, fn) }
 }
+
+// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+public func kleisliTPublisherOptional<A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<B?, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<C?, F>
+) -> @Sendable (A) -> Publisher<C?, F> {
+    { @Sendable a in flatMapTPublisherOptional(fn1(a), fn2) }
+}

@@ -25,3 +25,11 @@ public func bindTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error
 ) -> @Sendable (Publisher<Either<L, A>, F>) -> Publisher<Either<L, B>, F> {
     { @Sendable publisher in flatMapTPublisherEither(publisher, fn) }
 }
+
+// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
+public func kleisliTPublisherEither<L: Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<Either<L, B>, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<Either<L, C>, F>
+) -> @Sendable (A) -> Publisher<Either<L, C>, F> {
+    { @Sendable a in flatMapTPublisherEither(fn1(a), fn2) }
+}
