@@ -101,7 +101,13 @@ public extension DeferredStream {
 }
 
 // apply :: DeferredStream (a -> b) -> DeferredStream a -> DeferredStream b
-// Zip-based: pairs each fn with each value positionally
+//
+// Zippy Semigroupal (ZipList-style): pairs each fn with each value positionally and truncates at
+// the shorter side. This is the product users want from a stream, but it is NOT the Applicative
+// derived from the monad (`flatMap` = concatMap = cartesian). The Applicative *identity* law
+// `pure(id) <*> v == v` fails for |v| > 1 (pure yields one element, zip truncates v to length 1).
+// Use `flatMap` for the cartesian, monad-consistent product. `pure`/`seqLeft`/`seqRight` above are
+// zippy for the same reason.
 public func applyDeferredStream<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>

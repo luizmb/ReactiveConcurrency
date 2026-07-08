@@ -8,7 +8,7 @@ import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite struct StatefulTDeferredTaskOperatorsTests {
+@Suite(.timeLimit(.minutes(1))) struct StatefulTDeferredTaskOperatorsTests {
     @Test func fmap() async {
         let s = Stateful<Int, DeferredTask<Int>> { _ in DeferredTask { 5 } }
         let result = { $0 * 2 } <£^> s

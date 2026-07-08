@@ -6,9 +6,28 @@ import ReactiveConcurrency
 // Type: DeferredTask<Result<A, E>>
 
 // altT :: DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>>
-// Runs both tasks concurrently; returns the first .success.
-// If both fail, returns the last failure. The other task is cancelled on first win.
+// Lawful, left-biased Alternative: runs `lhs`; if it is `.success` that value wins and `rhs` is
+// never run. Only when `lhs` is `.failure` is `rhs` run (its result — success or the "last"
+// failure — is returned). Sequential and deterministic, so it is the instance `<|>` maps to.
+// For the concurrent "first success, cancel the loser" behaviour use `raceDeferredTaskResult`.
 public func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
+    _ lhs: DeferredTask<Result<A, E>>,
+    _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
+) -> DeferredTask<Result<A, E>> {
+    let captured = rhs()
+    return DeferredTask {
+        switch await lhs.run() {
+        case let .success(value): .success(value)
+        case .failure: await captured.run()
+        }
+    }
+}
+
+// raceDeferredTaskResult :: DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>>
+// Runs both tasks concurrently; returns the first `.success` and cancels the loser. If both fail,
+// returns the last failure. NOT a lawful Alternative — the winner is scheduling-dependent, so it
+// is exposed under `race`, not `<|>`.
+public func raceDeferredTaskResult<A: Sendable, E: Error & Sendable>(
     _ lhs: DeferredTask<Result<A, E>>,
     _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
 ) -> DeferredTask<Result<A, E>> {

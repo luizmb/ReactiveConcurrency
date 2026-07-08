@@ -8,7 +8,7 @@ import Testing
 // Reverse Kleisli (kleisliBack / <=<) for DeferredTask and DeferredStream — parity with the
 // forward kleisli (>=>). `g <=< f` runs f first, then g, so it equals `f >=> g`.
 
-@Suite struct ReverseKleisliTests {
+@Suite(.timeLimit(.minutes(1))) struct ReverseKleisliTests {
     @Test func deferredTaskKleisliBackComposes() async {
         let f: @Sendable (Int) -> DeferredTask<Int> = { x in DeferredTask { x + 1 } }
         let g: @Sendable (Int) -> DeferredTask<String> = { x in DeferredTask { "v\(x)" } }

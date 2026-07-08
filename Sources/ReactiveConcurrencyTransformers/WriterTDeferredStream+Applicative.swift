@@ -4,44 +4,41 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: outer = Writer, inner = DeferredStream
-// Type: Writer<W, DeferredStream<A>>
+// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// Representation: DeferredStream<Writer<W, A>>
+//
+// The streams are combined via the (zippy) DeferredStream applicative and the logs are combined
+// via the Writer applicative — logs accumulate left-to-right inside each paired element.
 
-/// apply for Writer<W, DeferredStream>
-public func applyWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
-    _ wf: Writer<W, DeferredStream<@Sendable (A) -> B>>,
-    _ wa: Writer<W, DeferredStream<A>>
-) -> Writer<W, DeferredStream<B>> {
-    Writer<W, DeferredStream<B>>(
-        applyDeferredStream(wf.value, wa.value),
-        W.combine(wf.log, wa.log)
-    )
+/// apply for WriterT over DeferredStream.
+public func applyWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ wf: DeferredStream<Writer<W, @Sendable (A) -> B>>,
+    _ wa: DeferredStream<Writer<W, A>>
+) -> DeferredStream<Writer<W, B>> {
+    liftA2DeferredStream { f, a in Writer<W, B>.apply(f, a) }(wf, wa)
 }
 
-/// liftA2 for Writer<W, DeferredStream>
-public func liftA2WriterDeferredStream<W: Monoid, A: Sendable, B: Sendable, C: Sendable>(
+/// liftA2 for WriterT over DeferredStream.
+public func liftA2WriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> @Sendable (Writer<W, DeferredStream<A>>, Writer<W, DeferredStream<B>>) -> Writer<W, DeferredStream<C>> {
+) -> @Sendable (DeferredStream<Writer<W, A>>, DeferredStream<Writer<W, B>>) -> DeferredStream<Writer<W, C>> {
     { wa, wb in
-        Writer<W, DeferredStream<C>>(
-            liftA2DeferredStream(fn)(wa.value, wb.value),
-            W.combine(wa.log, wb.log)
-        )
+        liftA2DeferredStream { a, b in Writer<W, C>(fn(a.value, b.value), W.combine(a.log, b.log)) }(wa, wb)
     }
 }
 
-/// seqRight for Writer<W, DeferredStream>
-public func seqRightWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredStream<A>>,
-    _ rhs: Writer<W, DeferredStream<B>>
-) -> Writer<W, DeferredStream<B>> {
-    Writer<W, DeferredStream<B>>(lhs.value.seqRight(rhs.value), W.combine(lhs.log, rhs.log))
+/// seqRight for WriterT over DeferredStream.
+public func seqRightWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredStream<Writer<W, A>>,
+    _ rhs: DeferredStream<Writer<W, B>>
+) -> DeferredStream<Writer<W, B>> {
+    liftA2DeferredStream { a, b in a.seqRight(b) }(lhs, rhs)
 }
 
-/// seqLeft for Writer<W, DeferredStream>
-public func seqLeftWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredStream<A>>,
-    _ rhs: Writer<W, DeferredStream<B>>
-) -> Writer<W, DeferredStream<A>> {
-    Writer<W, DeferredStream<A>>(lhs.value.seqLeft(rhs.value), W.combine(lhs.log, rhs.log))
+/// seqLeft for WriterT over DeferredStream.
+public func seqLeftWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredStream<Writer<W, A>>,
+    _ rhs: DeferredStream<Writer<W, B>>
+) -> DeferredStream<Writer<W, A>> {
+    liftA2DeferredStream { a, b in a.seqLeft(b) }(lhs, rhs)
 }

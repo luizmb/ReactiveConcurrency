@@ -8,7 +8,7 @@ import Testing
 
 private enum TestError: Error, Equatable { case err }
 
-@Suite struct DeferredTaskTOptionalAlternativeOperatorsTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredTaskTOptionalAlternativeOperatorsTests {
     @Test func altOperatorFirstNonNilWins() async {
         let lhs = DeferredTask<Int?> { nil }
         let rhs = DeferredTask<Int?> { 42 }

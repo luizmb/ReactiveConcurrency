@@ -6,26 +6,26 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (>>-) :: Writer<w, Publisher<a, f>> -> (a -> Writer<w, Publisher<b, f>>) -> Writer<w, Publisher<b, f>>
-public func >>- <W: Monoid, A: Sendable, B: Sendable, F: Error>(
-    _ writer: Writer<W, Publisher<A, F>>,
-    _ fn: @escaping @Sendable (A) -> Writer<W, Publisher<B, F>>
-) -> Writer<W, Publisher<B, F>> {
-    writer.flatMapT(fn)
+// (>>-) :: Publisher<Writer<w, a>, f> -> (a -> Publisher<Writer<w, b>, f>) -> Publisher<Writer<w, b>, f>
+public func >>- <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+    _ publisher: Publisher<Writer<W, A>, F>,
+    _ fn: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>
+) -> Publisher<Writer<W, B>, F> {
+    publisher.flatMapT(fn)
 }
 
-// (-<<) :: (a -> Writer<w, Publisher<b, f>>) -> Writer<w, Publisher<a, f>> -> Writer<w, Publisher<b, f>>
-public func -<< <W: Monoid, A: Sendable, B: Sendable, F: Error>(
-    _ fn: @escaping @Sendable (A) -> Writer<W, Publisher<B, F>>,
-    _ writer: Writer<W, Publisher<A, F>>
-) -> Writer<W, Publisher<B, F>> {
-    writer.flatMapT(fn)
+// (-<<) :: (a -> Publisher<Writer<w, b>, f>) -> Publisher<Writer<w, a>, f> -> Publisher<Writer<w, b>, f>
+public func -<< <W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+    _ fn: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
+    _ publisher: Publisher<Writer<W, A>, F>
+) -> Publisher<Writer<W, B>, F> {
+    publisher.flatMapT(fn)
 }
 
-// (>=>) :: (a -> Writer<w, Publisher<b, f>>) -> (b -> Writer<w, Publisher<c, f>>) -> a -> Writer<w, Publisher<c, f>>
-public func >=> <W: Monoid, A: Sendable, B: Sendable, C: Sendable, F: Error>(
-    _ fn1: @escaping @Sendable (A) -> Writer<W, Publisher<B, F>>,
-    _ fn2: @escaping @Sendable (B) -> Writer<W, Publisher<C, F>>
-) -> @Sendable (A) -> Writer<W, Publisher<C, F>> {
+// (>=>) :: (a -> Publisher<Writer<w, b>, f>) -> (b -> Publisher<Writer<w, c>, f>) -> a -> Publisher<Writer<w, c>, f>
+public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>
+) -> @Sendable (A) -> Publisher<Writer<W, C>, F> {
     { a in fn1(a).flatMapT(fn2) }
 }

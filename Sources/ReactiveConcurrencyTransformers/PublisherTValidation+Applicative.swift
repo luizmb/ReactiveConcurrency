@@ -19,12 +19,8 @@ public func applyTPublisherValidation<E: Semigroup & Sendable, A: Sendable, B: S
     _ fns: Publisher<Validation<E, @Sendable (A) -> B>, F>,
     _ values: Publisher<Validation<E, A>, F>
 ) -> Publisher<Validation<E, B>, F> {
-    fns.zip(values).map { pair -> Validation<E, B> in
-        switch (pair.0, pair.1) {
-        case let (.success(f), .success(a)): .success(f(a))
-        case let (.failure(e), .success): .failure(e)
-        case let (.success, .failure(e)): .failure(e)
-        case let (.failure(e1), .failure(e2)): .failure(E.combine(e1, e2))
-        }
-    }
+    // Delegate the accumulation to Validation.apply (single source of truth) rather than
+    // re-inlining the 4-case switch. NB: pairing is zippy (see Publisher.zip), so this inherits
+    // zip semantics — the accumulation itself is correct (double failure combines via E.combine).
+    fns.zip(values).map { pair in Validation<E, B>.apply(pair.0, pair.1) }
 }

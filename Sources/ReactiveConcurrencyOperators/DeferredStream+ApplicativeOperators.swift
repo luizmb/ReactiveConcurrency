@@ -4,6 +4,8 @@ import CoreFPOperators
 import ReactiveConcurrency
 
 // (<*>) :: DeferredStream (a -> b) -> DeferredStream a -> DeferredStream b
+// Zippy Semigroupal (ZipList-style), NOT the cartesian monad-derived applicative: pairs
+// positionally and truncates at the shorter side. See DeferredStream+Applicative.swift for the caveat.
 public func <*> <A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>

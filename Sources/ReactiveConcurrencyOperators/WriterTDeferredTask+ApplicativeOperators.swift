@@ -6,26 +6,26 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<*>) :: Writer<w, DeferredTask<(a -> b)>> -> Writer<w, DeferredTask<a>> -> Writer<w, DeferredTask<b>>
-public func <*> <W: Monoid, A: Sendable, B: Sendable>(
-    _ wf: Writer<W, DeferredTask<@Sendable (A) -> B>>,
-    _ wa: Writer<W, DeferredTask<A>>
-) -> Writer<W, DeferredTask<B>> {
+// (<*>) :: DeferredTask<Writer<w, (a -> b)>> -> DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>>
+public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ wf: DeferredTask<Writer<W, @Sendable (A) -> B>>,
+    _ wa: DeferredTask<Writer<W, A>>
+) -> DeferredTask<Writer<W, B>> {
     applyWriterDeferredTask(wf, wa)
 }
 
-// (*>) :: Writer<w, DeferredTask<a>> -> Writer<w, DeferredTask<b>> -> Writer<w, DeferredTask<b>>
-public func *> <W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredTask<A>>,
-    _ rhs: Writer<W, DeferredTask<B>>
-) -> Writer<W, DeferredTask<B>> {
+// (*>) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, b>>
+public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredTask<Writer<W, A>>,
+    _ rhs: DeferredTask<Writer<W, B>>
+) -> DeferredTask<Writer<W, B>> {
     seqRightWriterDeferredTask(lhs, rhs)
 }
 
-// (<*) :: Writer<w, DeferredTask<a>> -> Writer<w, DeferredTask<b>> -> Writer<w, DeferredTask<a>>
-public func <* <W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredTask<A>>,
-    _ rhs: Writer<W, DeferredTask<B>>
-) -> Writer<W, DeferredTask<A>> {
+// (<*) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, a>>
+public func <* <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredTask<Writer<W, A>>,
+    _ rhs: DeferredTask<Writer<W, B>>
+) -> DeferredTask<Writer<W, A>> {
     seqLeftWriterDeferredTask(lhs, rhs)
 }

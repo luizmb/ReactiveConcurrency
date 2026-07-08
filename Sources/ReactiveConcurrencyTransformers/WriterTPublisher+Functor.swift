@@ -4,33 +4,34 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: outer = Writer, inner = Publisher
-// Type: Writer<W, Publisher<A, F>>
+// WriterTPublisher: the WriterT monad transformer over Publisher.
+// Representation: Publisher<Writer<W, A>, F> — the log is carried INSIDE the effect.
+// (Previously Writer<W, Publisher<A, F>>, which kept the log outside the effect.)
 
-public extension Writer {
-    func mapT<Inner: Sendable, B: Sendable, F: Error>(
+public extension Publisher {
+    func mapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> Writer<W, Publisher<B, F>>
-    where A == Publisher<Inner, F> {
-        Writer<W, Publisher<B, F>>(value.map(fn), log)
+    ) -> Publisher<Writer<W, B>, Failure>
+    where Output == Writer<W, Inner> {
+        map { $0.mapWriter(fn) }
     }
 
-    static func fmapT<Inner: Sendable, B: Sendable, F: Error>(
+    static func fmapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> @Sendable (Writer<W, Publisher<Inner, F>>) -> Writer<W, Publisher<B, F>> {
+    ) -> @Sendable (Publisher<Writer<W, Inner>, Failure>) -> Publisher<Writer<W, B>, Failure> {
         { $0.mapT(fn) }
     }
 }
 
-public func mapTWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
+public func mapTWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B,
-    _ writer: Writer<W, Publisher<A, F>>
-) -> Writer<W, Publisher<B, F>> {
-    Writer<W, Publisher<B, F>>(writer.value.map(fn), writer.log)
+    _ publisher: Publisher<Writer<W, A>, F>
+) -> Publisher<Writer<W, B>, F> {
+    publisher.mapT(fn)
 }
 
-public func fmapTWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
+public func fmapTWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B
-) -> @Sendable (Writer<W, Publisher<A, F>>) -> Writer<W, Publisher<B, F>> {
-    { writer in mapTWriterPublisher(fn, writer) }
+) -> @Sendable (Publisher<Writer<W, A>, F>) -> Publisher<Writer<W, B>, F> {
+    { publisher in mapTWriterPublisher(fn, publisher) }
 }

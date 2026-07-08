@@ -36,7 +36,7 @@ private func drainSentValues() async {
 
 // MARK: - ImmediateClock
 
-@Suite struct ImmediateClockTests {
+@Suite(.timeLimit(.minutes(1))) struct ImmediateClockTests {
     @Test func sleepReturnsImmediately() async {
         let clock = ImmediateClock()
         let start = clock.now
@@ -57,7 +57,7 @@ private func drainSentValues() async {
 
 // MARK: - TestClock
 
-@Suite struct TestClockTests {
+@Suite(.timeLimit(.minutes(1))) struct TestClockTests {
     @Test func initialNowIsZero() {
         let clock = TestClock()
         #expect(clock.now.offset == .zero)
@@ -111,7 +111,7 @@ private func drainSentValues() async {
 
 // MARK: - Timer publisher
 
-@Suite struct TimerPublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct TimerPublisherTests {
     @Test func timerEmitsWithImmediateClock() async {
         var result: [ImmediateClock.Instant] = []
         let stream = Publisher<ImmediateClock.Instant, Never>
@@ -144,7 +144,7 @@ private func drainSentValues() async {
 
 // MARK: - delay with TestClock
 
-@Suite struct DelayWithTestClockTests {
+@Suite(.timeLimit(.minutes(1))) struct DelayWithTestClockTests {
     @Test func delayHoldsValuesUntilClockAdvances() async {
         let clock = TestClock()
         let subject = PassthroughSubject<Int, Never>()
@@ -168,7 +168,7 @@ private func drainSentValues() async {
 
 // MARK: - debounce with TestClock
 
-@Suite struct DebounceWithTestClockTests {
+@Suite(.timeLimit(.minutes(1))) struct DebounceWithTestClockTests {
     @Test func debounceEmitsLastValueAfterQuietPeriod() async {
         let clock = TestClock()
         let subject = PassthroughSubject<Int, Never>()
@@ -217,7 +217,7 @@ private func drainSentValues() async {
 
 // MARK: - collect(every:clock:)
 
-@Suite struct CollectByTimeTests {
+@Suite(.timeLimit(.minutes(1))) struct CollectByTimeTests {
     @Test func collectGroupsValuesIntoWindows() async {
         let clock = TestClock()
         let subject = PassthroughSubject<Int, Never>()
@@ -290,7 +290,7 @@ private func drainSentValues() async {
 
 private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
 
-@Suite struct TimeoutOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct TimeoutOperatorTests {
     @Test func timeoutFiresWhenNoValueArrives() async {
         let clock = TestClock()
         let subject = PassthroughSubject<Int, TimeoutTestError>()
@@ -395,7 +395,7 @@ private enum TimeoutTestError: Error, Equatable { case timedOut, upstreamBoom }
 
 // MARK: - collect(every:orCount:)
 
-@Suite struct CollectByTimeOrCountPublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct CollectByTimeOrCountPublisherTests {
     @Test func flushesByCountBeforeTime() async {
         let clock = TestClock()
         let subject = PassthroughSubject<Int, Never>()

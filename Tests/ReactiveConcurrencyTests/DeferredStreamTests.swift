@@ -6,7 +6,7 @@ import Testing
 
 private enum TestError: Error, Equatable { case err }
 
-@Suite struct DeferredStreamTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredStreamTests {
     // MARK: - Lazy behavior
 
     @Test func doesNotStartUntilIterated() async {

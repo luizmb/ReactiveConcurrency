@@ -4,33 +4,34 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: outer = Writer, inner = DeferredStream
-// Type: Writer<W, DeferredStream<A>>
+// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// Representation: DeferredStream<Writer<W, A>> — the log is carried INSIDE the effect.
+// (Previously Writer<W, DeferredStream<A>>, which kept the log outside the effect.)
 
-public extension Writer {
-    func mapT<Inner: Sendable, B: Sendable>(
+public extension DeferredStream {
+    func mapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> Writer<W, DeferredStream<B>>
-    where A == DeferredStream<Inner> {
-        Writer<W, DeferredStream<B>>(value.map(fn), log)
+    ) -> DeferredStream<Writer<W, B>>
+    where Element == Writer<W, Inner> {
+        map { $0.mapWriter(fn) }
     }
 
-    static func fmapT<Inner: Sendable, B: Sendable>(
+    static func fmapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> @Sendable (Writer<W, DeferredStream<Inner>>) -> Writer<W, DeferredStream<B>> {
+    ) -> @Sendable (DeferredStream<Writer<W, Inner>>) -> DeferredStream<Writer<W, B>> {
         { $0.mapT(fn) }
     }
 }
 
-public func mapTWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
+public func mapTWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
-    _ writer: Writer<W, DeferredStream<A>>
-) -> Writer<W, DeferredStream<B>> {
-    Writer<W, DeferredStream<B>>(writer.value.map(fn), writer.log)
+    _ stream: DeferredStream<Writer<W, A>>
+) -> DeferredStream<Writer<W, B>> {
+    stream.mapT(fn)
 }
 
-public func fmapTWriterDeferredStream<W: Monoid, A: Sendable, B: Sendable>(
+public func fmapTWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
-) -> @Sendable (Writer<W, DeferredStream<A>>) -> Writer<W, DeferredStream<B>> {
-    { writer in mapTWriterDeferredStream(fn, writer) }
+) -> @Sendable (DeferredStream<Writer<W, A>>) -> DeferredStream<Writer<W, B>> {
+    { stream in mapTWriterDeferredStream(fn, stream) }
 }

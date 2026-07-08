@@ -50,6 +50,14 @@ public extension DeferredStream {
         }
     }
 
+    // empty :: DeferredStream a
+    // The identity element for `alt` (concat): a stream that completes immediately with no
+    // elements. `alt(empty, s) == s == alt(s, empty)`, so (DeferredStream, alt, empty) is a
+    // lawful monoid — the identity that `alt` previously lacked.
+    static func empty() -> DeferredStream<Element> {
+        DeferredStream<Element> { AsyncStream { $0.finish() } }
+    }
+
     // join :: DeferredStream (DeferredStream a) -> DeferredStream a
     static func join<A: Sendable>(_ nested: DeferredStream<DeferredStream<A>>) -> DeferredStream<A>
     where Element == DeferredStream<A> {

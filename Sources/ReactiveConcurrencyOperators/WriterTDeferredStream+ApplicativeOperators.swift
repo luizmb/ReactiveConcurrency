@@ -6,26 +6,26 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<*>) :: Writer<w, DeferredStream<(a -> b)>> -> Writer<w, DeferredStream<a>> -> Writer<w, DeferredStream<b>>
-public func <*> <W: Monoid, A: Sendable, B: Sendable>(
-    _ wf: Writer<W, DeferredStream<@Sendable (A) -> B>>,
-    _ wa: Writer<W, DeferredStream<A>>
-) -> Writer<W, DeferredStream<B>> {
+// (<*>) :: DeferredStream<Writer<w, (a -> b)>> -> DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>>
+public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ wf: DeferredStream<Writer<W, @Sendable (A) -> B>>,
+    _ wa: DeferredStream<Writer<W, A>>
+) -> DeferredStream<Writer<W, B>> {
     applyWriterDeferredStream(wf, wa)
 }
 
-// (*>) :: Writer<w, DeferredStream<a>> -> Writer<w, DeferredStream<b>> -> Writer<w, DeferredStream<b>>
-public func *> <W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredStream<A>>,
-    _ rhs: Writer<W, DeferredStream<B>>
-) -> Writer<W, DeferredStream<B>> {
+// (*>) :: DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>> -> DeferredStream<Writer<w, b>>
+public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredStream<Writer<W, A>>,
+    _ rhs: DeferredStream<Writer<W, B>>
+) -> DeferredStream<Writer<W, B>> {
     seqRightWriterDeferredStream(lhs, rhs)
 }
 
-// (<*) :: Writer<w, DeferredStream<a>> -> Writer<w, DeferredStream<b>> -> Writer<w, DeferredStream<a>>
-public func <* <W: Monoid, A: Sendable, B: Sendable>(
-    _ lhs: Writer<W, DeferredStream<A>>,
-    _ rhs: Writer<W, DeferredStream<B>>
-) -> Writer<W, DeferredStream<A>> {
+// (<*) :: DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>> -> DeferredStream<Writer<w, a>>
+public func <* <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ lhs: DeferredStream<Writer<W, A>>,
+    _ rhs: DeferredStream<Writer<W, B>>
+) -> DeferredStream<Writer<W, A>> {
     seqLeftWriterDeferredStream(lhs, rhs)
 }

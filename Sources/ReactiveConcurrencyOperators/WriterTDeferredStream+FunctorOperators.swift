@@ -6,18 +6,18 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<£^>) :: (a -> b) -> Writer<w, DeferredStream<a>> -> Writer<w, DeferredStream<b>>
-public func <£^> <W: Monoid, A: Sendable, B: Sendable>(
+// (<£^>) :: (a -> b) -> DeferredStream<Writer<w, a>> -> DeferredStream<Writer<w, b>>
+public func <£^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
-    _ writer: Writer<W, DeferredStream<A>>
-) -> Writer<W, DeferredStream<B>> {
-    writer.mapT(fn)
+    _ stream: DeferredStream<Writer<W, A>>
+) -> DeferredStream<Writer<W, B>> {
+    stream.mapT(fn)
 }
 
-// (<&^>) :: Writer<w, DeferredStream<a>> -> (a -> b) -> Writer<w, DeferredStream<b>>
-public func <&^> <W: Monoid, A: Sendable, B: Sendable>(
-    _ writer: Writer<W, DeferredStream<A>>,
+// (<&^>) :: DeferredStream<Writer<w, a>> -> (a -> b) -> DeferredStream<Writer<w, b>>
+public func <&^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ stream: DeferredStream<Writer<W, A>>,
     _ fn: @escaping @Sendable (A) -> B
-) -> Writer<W, DeferredStream<B>> {
-    writer.mapT(fn)
+) -> DeferredStream<Writer<W, B>> {
+    stream.mapT(fn)
 }

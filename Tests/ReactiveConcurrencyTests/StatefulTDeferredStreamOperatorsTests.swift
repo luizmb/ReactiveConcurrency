@@ -8,7 +8,7 @@ import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite struct StatefulTDeferredStreamOperatorsTests {
+@Suite(.timeLimit(.minutes(1))) struct StatefulTDeferredStreamOperatorsTests {
     @Test func fmap() async {
         let s = Stateful<Int, DeferredStream<Int>> { _ in
             DeferredStream { AsyncStream { c in

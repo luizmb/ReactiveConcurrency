@@ -22,7 +22,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct ShareTests {
+@Suite(.timeLimit(.minutes(1))) struct ShareTests {
     @Test func shareDeliversToBothSubscribers() async {
         let subject = PassthroughSubject<Int, Never>()
         let shared = subject.eraseToPublisher().share()
@@ -117,9 +117,40 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
         #expect(subscriptionCount.current == 2)
         _ = subject
     }
+
+    // Stress the refcount + upstream-teardown paths under contention (A3 lock hygiene): many
+    // subscribers concurrently subscribe and immediately cancel while one long-lived subscriber
+    // keeps the share connected. Run under --sanitize=thread to catch races in the
+    // subscribe/unsubscribe critical sections and the out-of-lock teardown.
+    @Test func shareSurvivesConcurrentSubscribeCancelChurn() async {
+        let subject = PassthroughSubject<Int, Never>()
+        let shared = subject.eraseToPublisher().share()
+
+        // Long-lived subscriber: refCount never reaches 0, so upstream is never torn down.
+        let values = Collector<Int>()
+        let stable = shared.sink { values.append($0) }
+        await settle()
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<64 {
+                group.addTask {
+                    let c = shared.sink { _ in }
+                    await Task.yield()
+                    c.cancel()
+                }
+            }
+            await group.waitForAll()
+        }
+
+        // The stable subscriber still receives values after the churn.
+        subject.send(42)
+        await poll { values.values.contains(42) }
+        stable.cancel()
+        #expect(values.values.contains(42))
+    }
 }
 
-@Suite struct ConnectablePublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct ConnectablePublisherTests {
     @Test func subscribersReceiveValuesAfterConnect() async {
         let subject = PassthroughSubject<Int, Never>()
         let connectable = subject.eraseToPublisher().makeConnectable()

@@ -20,7 +20,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - PublisherTArray
 
-@Suite struct PublisherTArrayTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTArrayTests {
     @Test func mapT() async {
         #expect(await vals(mapTPublisherArray({ $0 * 2 }, Publisher<[Int], Never>.just([1, 2, 3]))) == [[2, 4, 6]])
         #expect(await vals({ $0 * 2 } <£^> Publisher<[Int], Never>.just([1, 2])) == [[2, 4]])
@@ -41,7 +41,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - PublisherTOptional
 
-@Suite struct PublisherTOptionalTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTOptionalTests {
     @Test func mapT() async {
         #expect(await vals(mapTPublisherOptional({ $0 * 2 }, Publisher<Int?, Never>.just(3))) == [6])
         #expect(await vals(mapTPublisherOptional({ $0 * 2 }, Publisher<Int?, Never>.just(nil))) == [nil])
@@ -62,7 +62,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - PublisherTResult
 
-@Suite struct PublisherTResultTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTResultTests {
     @Test func mapT() async {
         let ok = Publisher<Result<Int, CErr>, Never>.just(.success(5))
         let bad = Publisher<Result<Int, CErr>, Never>.just(.failure(.boom))
@@ -91,7 +91,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 
 // MARK: - PublisherTValidation
 
-@Suite struct PublisherTValidationTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTValidationTests {
     private func tag(_ v: Validation<[String], Int>) -> String {
         switch v {
         case let .success(a): "S\(a)"

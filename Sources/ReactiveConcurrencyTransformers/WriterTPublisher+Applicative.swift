@@ -4,40 +4,37 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: outer = Writer, inner = Publisher
-// Type: Writer<W, Publisher<A, F>>. Logs combine via the Monoid.
+// WriterTPublisher: the WriterT monad transformer over Publisher.
+// Representation: Publisher<Writer<W, A>, F>
+//
+// The publishers are combined via Publisher.zip and the logs via the Writer applicative —
+// so logs accumulate left-to-right inside each paired element.
 
-public func applyWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
-    _ wf: Writer<W, Publisher<@Sendable (A) -> B, F>>,
-    _ wa: Writer<W, Publisher<A, F>>
-) -> Writer<W, Publisher<B, F>> {
-    Writer<W, Publisher<B, F>>(
-        applyPublisher(wf.value, wa.value),
-        W.combine(wf.log, wa.log)
-    )
+public func applyWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+    _ wf: Publisher<Writer<W, @Sendable (A) -> B>, F>,
+    _ wa: Publisher<Writer<W, A>, F>
+) -> Publisher<Writer<W, B>, F> {
+    wf.zip(wa).map { Writer<W, B>.apply($0.0, $0.1) }
 }
 
-public func liftA2WriterPublisher<W: Monoid, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+public func liftA2WriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
-) -> @Sendable (Writer<W, Publisher<A, F>>, Writer<W, Publisher<B, F>>) -> Writer<W, Publisher<C, F>> {
+) -> @Sendable (Publisher<Writer<W, A>, F>, Publisher<Writer<W, B>, F>) -> Publisher<Writer<W, C>, F> {
     { wa, wb in
-        Writer<W, Publisher<C, F>>(
-            wa.value.zip(wb.value).map { fn($0.0, $0.1) },
-            W.combine(wa.log, wb.log)
-        )
+        wa.zip(wb).map { Writer<W, C>(fn($0.0.value, $0.1.value), W.combine($0.0.log, $0.1.log)) }
     }
 }
 
-public func seqRightWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
-    _ lhs: Writer<W, Publisher<A, F>>,
-    _ rhs: Writer<W, Publisher<B, F>>
-) -> Writer<W, Publisher<B, F>> {
-    Writer<W, Publisher<B, F>>(lhs.value.seqRight(rhs.value), W.combine(lhs.log, rhs.log))
+public func seqRightWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+    _ lhs: Publisher<Writer<W, A>, F>,
+    _ rhs: Publisher<Writer<W, B>, F>
+) -> Publisher<Writer<W, B>, F> {
+    lhs.zip(rhs).map { $0.0.seqRight($0.1) }
 }
 
-public func seqLeftWriterPublisher<W: Monoid, A: Sendable, B: Sendable, F: Error>(
-    _ lhs: Writer<W, Publisher<A, F>>,
-    _ rhs: Writer<W, Publisher<B, F>>
-) -> Writer<W, Publisher<A, F>> {
-    Writer<W, Publisher<A, F>>(lhs.value.seqLeft(rhs.value), W.combine(lhs.log, rhs.log))
+public func seqLeftWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+    _ lhs: Publisher<Writer<W, A>, F>,
+    _ rhs: Publisher<Writer<W, B>, F>
+) -> Publisher<Writer<W, A>, F> {
+    lhs.zip(rhs).map { $0.0.seqLeft($0.1) }
 }

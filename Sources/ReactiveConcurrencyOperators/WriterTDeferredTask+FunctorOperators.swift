@@ -6,18 +6,18 @@ import DataStructure
 import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<£^>) :: (a -> b) -> Writer<w, DeferredTask<a>> -> Writer<w, DeferredTask<b>>
-public func <£^> <W: Monoid, A: Sendable, B: Sendable>(
+// (<£^>) :: (a -> b) -> DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>>
+public func <£^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
-    _ writer: Writer<W, DeferredTask<A>>
-) -> Writer<W, DeferredTask<B>> {
-    writer.mapT(fn)
+    _ task: DeferredTask<Writer<W, A>>
+) -> DeferredTask<Writer<W, B>> {
+    task.mapT(fn)
 }
 
-// (<&^>) :: Writer<w, DeferredTask<a>> -> (a -> b) -> Writer<w, DeferredTask<b>>
-public func <&^> <W: Monoid, A: Sendable, B: Sendable>(
-    _ writer: Writer<W, DeferredTask<A>>,
+// (<&^>) :: DeferredTask<Writer<w, a>> -> (a -> b) -> DeferredTask<Writer<w, b>>
+public func <&^> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
+    _ task: DeferredTask<Writer<W, A>>,
     _ fn: @escaping @Sendable (A) -> B
-) -> Writer<W, DeferredTask<B>> {
-    writer.mapT(fn)
+) -> DeferredTask<Writer<W, B>> {
+    task.mapT(fn)
 }

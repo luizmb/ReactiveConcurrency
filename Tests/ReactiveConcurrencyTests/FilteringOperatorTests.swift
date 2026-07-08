@@ -14,7 +14,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct FilteringOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct FilteringOperatorTests {
     // MARK: first / last
 
     @Test func firstEmitsOnlyFirstValue() async {
@@ -207,7 +207,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct ReplaceEmptyTests {
+@Suite(.timeLimit(.minutes(1))) struct ReplaceEmptyTests {
     @Test func replaceEmptyEmitsDefaultWhenStreamIsEmpty() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.empty().replaceEmpty(with: 42)._stream {
@@ -225,7 +225,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct KeyPathMapTests {
+@Suite(.timeLimit(.minutes(1))) struct KeyPathMapTests {
     struct Point: Sendable { let x: Int; let y: Int }
 
     @Test func mapSingleKeyPath() async {
@@ -259,7 +259,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct CountCollectTests {
+@Suite(.timeLimit(.minutes(1))) struct CountCollectTests {
     @Test func countEmitsTotalCount() async {
         var result: [Int] = []
         for await r in Publisher<Int, Never>.sequence(1...7).count()._stream {
@@ -285,7 +285,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct SetFailureTypeTests {
+@Suite(.timeLimit(.minutes(1))) struct SetFailureTypeTests {
     @Test func setFailureTypeWidensInfallible() async {
         enum MyError: Error { case boom }
         var result: [Int] = []
@@ -306,7 +306,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct EncodeDecodeTests {
+@Suite(.timeLimit(.minutes(1))) struct EncodeDecodeTests {
     enum CodecError: Error, Equatable { case encodingFailed; case decodingFailed }
 
     @Test func encodeTransformsValuesToData() async {
@@ -383,7 +383,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct RecordTests {
+@Suite(.timeLimit(.minutes(1))) struct RecordTests {
     @Test func recordReplaysValuesAndCompletion() async {
         let record = Record<Int, Never>(recording: .init(output: [10, 20, 30]))
         var result: [Int] = []
@@ -421,7 +421,7 @@ private func poll(timeoutMs: Int = 2_000, until condition: @Sendable () -> Bool)
     }
 }
 
-@Suite struct TryOperatorTests {
+@Suite(.timeLimit(.minutes(1))) struct TryOperatorTests {
     enum TestError: Error, Equatable { case bad }
 
     @Test func tryFilterPassesMatchingValues() async {

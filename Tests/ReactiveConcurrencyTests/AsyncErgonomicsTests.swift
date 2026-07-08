@@ -5,7 +5,7 @@ import Testing
 
 private enum AErr: Error, Equatable { case boom }
 
-@Suite struct AsyncErgonomicsTests {
+@Suite(.timeLimit(.minutes(1))) struct AsyncErgonomicsTests {
     // MARK: - for-await via .values / .results
 
     @Test func valuesIteratesOutput() async {

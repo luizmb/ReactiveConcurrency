@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: outer = Writer, inner = DeferredTask
-// Type: Writer<W, DeferredTask<A>>
+// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// Representation: DeferredTask<Writer<W, A>> — the log is carried INSIDE the effect.
+// (Previously modelled as Writer<W, DeferredTask<A>>, which kept the log outside the
+// effect and made bind unable to combine the continuation's log — see +Monad.)
 
-public extension Writer {
-    func mapT<Inner: Sendable, B: Sendable>(
+public extension DeferredTask {
+    func mapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> Writer<W, DeferredTask<B>>
-    where A == DeferredTask<Inner> {
-        Writer<W, DeferredTask<B>>(value.map(fn), log)
+    ) -> DeferredTask<Writer<W, B>>
+    where Success == Writer<W, Inner> {
+        map { $0.mapWriter(fn) }
     }
 
-    static func fmapT<Inner: Sendable, B: Sendable>(
+    static func fmapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> B
-    ) -> @Sendable (Writer<W, DeferredTask<Inner>>) -> Writer<W, DeferredTask<B>> {
+    ) -> @Sendable (DeferredTask<Writer<W, Inner>>) -> DeferredTask<Writer<W, B>> {
         { $0.mapT(fn) }
     }
 }

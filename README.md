@@ -12,9 +12,10 @@ If you know Combine, you already know most of the surface — `Publisher`, `sink
 `combineLatest`, subjects — but ReactiveConcurrency is **not** a Combine port. It takes a more
 modern, pragmatic view:
 
-- **Built on Swift Concurrency, not a bespoke runtime.** Every `Publisher` is an `AsyncSequence`
-  under the hood. Delivery, cancellation, and backpressure come from structured concurrency, and
-  thread-safety is enforced by the compiler (`Sendable` everywhere) rather than by convention.
+- **Built on Swift Concurrency, not a bespoke runtime.** A `Publisher` is backed by a lazy
+  `DeferredStream` of `AsyncStream`s; you iterate it as an `AsyncSequence` via `.values` /
+  `.results`. Delivery and cancellation come from structured concurrency, and thread-safety is
+  enforced by the compiler (`Sendable` everywhere) rather than by convention.
 - **Lazy across the board.** Nothing runs at construction. There are **no implicit side effects**
   when you build a pipeline — it only executes when you explicitly *run* it (`sink`, iterate
   `for await`, or `firstValue()`). The same publisher value can be run many times.
@@ -25,9 +26,12 @@ modern, pragmatic view:
 - **Typed errors, no `any Error`.** A `Publisher<Output, Failure>` carries its failure type, and
   the error is surfaced as a *value* (`Result`) at the iteration boundary, never as an untyped
   thrown error.
-- **Founded on functional algebra.** `Publisher` is a lawful Functor / Applicative / Monad /
-  Alternative, with **opt-in symbolic operators** (`<£>`, `>>-`, `<*>`, …) for those who want
-  point-free composition — and ordinary methods for everyone else.
+- **Founded on functional algebra.** `Publisher` is a lawful Functor, Monad, and (concat)
+  Alternative. Its `<*>`/`zip` product is a *zippy* Semigroupal (ZipList-style: it pairs
+  positionally and truncates at the shorter side), not the cartesian Applicative derived from
+  the monad — reach for `flatMap` when you want the monad-consistent product. **Opt-in symbolic
+  operators** (`<£>`, `>>-`, `<*>`, …) are there for point-free composition, ordinary methods for
+  everyone else.
 - **Genuinely cross-platform.** CI builds and runs the full test suite on **macOS, Linux, Android
   (emulator), and Windows**. No `Combine`, `UIKit`, or any Apple-only API in the library.
 
@@ -136,8 +140,11 @@ everything is cold by default.
 There is no fine-grained demand protocol. Instead:
 
 - **Cold** publishers (`just`, `sequence`, `future`, `map`-chains, …) produce their values fresh
-  for *each* subscriber, driven by how fast that subscriber consumes. A slow `for await` loop
-  naturally slows production — backpressure for free, courtesy of `AsyncStream`.
+  for *each* subscriber. Note the interior operator streams are **unbounded** (`.unbounded`
+  `AsyncStream` buffers): a slow consumer at the end of a chain does *not* automatically throttle a
+  cold source — the source can flood its buffer on subscription (`sequence` yields eagerly). Real
+  bounding is opt-in via [`buffer(size:whenFull:)`](#sharing--multicasting); there is no
+  per-element demand propagating up the chain.
 - **Hot** publishers (subjects) are *running already*; they broadcast to whoever is currently
   subscribed. A value sent with no subscribers is gone. Buffering between a hot source and a slow
   consumer is governed by `AsyncStream`'s buffering policy (see [`buffer`](#sharing--multicasting)).
@@ -166,6 +173,10 @@ When `Failure == Never`, use `.values` for a plain `AsyncSequence<Output>`.
 `sink` returns an `AnyCancellable`. Cancelling it (or letting it deinit) tears down the underlying
 `Task` cooperatively. Cancellation never invokes your completion handler — matching Combine's
 contract.
+
+Note that cancellation is **cooperative, not synchronous**: `cancel()` stops *future* deliveries
+promptly (a pre-delivery `Task.isCancelled` guard), but an already-in-flight delivery is not
+interrupted mid-callback — unlike Combine's synchronous teardown.
 
 ---
 
@@ -249,6 +260,8 @@ let first: Int?               = await neverFailing.firstValue()    // Output?
 let firstR: Result<Int, E>?   = await failable.firstResult()       // Result<Output, Failure>?
 
 // 4. assign — write each value to a property via key path.
+// NB: `on:` is captured *weakly* (Combine captures it strongly) — assign won't keep the object
+// alive, so retain it yourself; delivery stops once it's deallocated.
 let c3 = publisher.assign(to: \.title, on: viewModel)             // Root: AnyObject & Sendable
 let c4 = publisher.assignOnMain(to: \.title, on: view)           // ordered, on the main actor
 ```
@@ -566,7 +579,7 @@ By default each subscription re-runs a cold publisher. To share *one* execution 
 subscribers:
 
 ```swift
-let shared = expensive.share()             // multicast via a PassthroughSubject, auto-connect
+let shared = expensive.share()             // ref-counted multicast (starts on 1st sub, tears down on last)
 
 // Explicit control:
 let connectable = expensive.makeConnectable()   // ConnectablePublisher — won't start until…

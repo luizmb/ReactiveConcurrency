@@ -8,7 +8,7 @@ import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite struct ReaderTDeferredStreamOperatorsTests {
+@Suite(.timeLimit(.minutes(1))) struct ReaderTDeferredStreamOperatorsTests {
     struct Env { let value: Int }
 
     @Test func apply() async {
