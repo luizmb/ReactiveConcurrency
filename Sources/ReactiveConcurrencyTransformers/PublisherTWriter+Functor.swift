@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: the WriterT monad transformer over Publisher.
+// PublisherTWriter: the WriterT monad transformer over Publisher.
 // Representation: Publisher<Writer<W, A>, F> — the log is carried INSIDE the effect.
 // (Previously Writer<W, Publisher<A, F>>, which kept the log outside the effect.)
 
@@ -23,15 +23,15 @@ public extension Publisher {
     }
 }
 
-public func mapTWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+public func mapTPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B,
     _ publisher: Publisher<Writer<W, A>, F>
 ) -> Publisher<Writer<W, B>, F> {
     publisher.mapT(fn)
 }
 
-public func fmapTWriterPublisher<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
+public func fmapTPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (Publisher<Writer<W, A>, F>) -> Publisher<Writer<W, B>, F> {
-    { publisher in mapTWriterPublisher(fn, publisher) }
+    { publisher in mapTPublisherWriter(fn, publisher) }
 }

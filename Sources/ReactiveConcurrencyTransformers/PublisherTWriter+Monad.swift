@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTPublisher: the WriterT monad transformer over Publisher.
+// PublisherTWriter: the WriterT monad transformer over Publisher.
 // Representation: Publisher<Writer<W, A>, F>
 //
 // flatMapT flattens sequentially (flatMap maxPublishers: 1 — lawful ordered bind) and combines
@@ -26,4 +26,11 @@ public extension Publisher {
     ) -> @Sendable (Publisher<Writer<W, Inner>, Failure>) -> Publisher<Writer<W, B>, Failure> {
         { $0.flatMapT(fn) }
     }
+}
+
+public func kleisliTPublisherWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
+    _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>
+) -> @Sendable (A) -> Publisher<Writer<W, C>, F> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
 }

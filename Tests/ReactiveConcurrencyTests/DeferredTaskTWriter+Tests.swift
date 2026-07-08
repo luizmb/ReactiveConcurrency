@@ -5,7 +5,7 @@ import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 import Testing
 
-@Suite(.timeLimit(.minutes(1))) struct WriterTDeferredTaskTests {
+@Suite(.timeLimit(.minutes(1))) struct DeferredTaskTWriterTests {
     // MARK: - DeferredTask<Writer<W, A>> — WriterT over DeferredTask (log carried inside the effect)
 
     @Test func mapT() async {
@@ -42,7 +42,7 @@ import Testing
     @Test func applicativeLogsAccumulate() async {
         let wf = DeferredTask { Writer<[String], @Sendable (Int) -> String>({ "\($0)" }, ["fn"]) }
         let wa = DeferredTask { Writer<[String], Int>(42, ["val"]) }
-        let result = applyWriterDeferredTask(wf, wa)
+        let result = applyDeferredTaskWriter(wf, wa)
         let value = await result.run()
         #expect(value.value == "42")
         #expect(value.log == ["fn", "val"])
@@ -51,7 +51,7 @@ import Testing
     @Test func seqRight() async {
         let lhs = DeferredTask { Writer<[String], Int>(1, ["a"]) }
         let rhs = DeferredTask { Writer<[String], String>("hello", ["b"]) }
-        let result = seqRightWriterDeferredTask(lhs, rhs)
+        let result = seqRightDeferredTaskWriter(lhs, rhs)
         let value = await result.run()
         #expect(value.value == "hello")
         #expect(value.log == ["a", "b"])
@@ -60,7 +60,7 @@ import Testing
     @Test func seqLeft() async {
         let lhs = DeferredTask { Writer<[String], Int>(99, ["a"]) }
         let rhs = DeferredTask { Writer<[String], String>("ignored", ["b"]) }
-        let result = seqLeftWriterDeferredTask(lhs, rhs)
+        let result = seqLeftDeferredTaskWriter(lhs, rhs)
         let value = await result.run()
         #expect(value.value == 99)
         #expect(value.log == ["a", "b"])

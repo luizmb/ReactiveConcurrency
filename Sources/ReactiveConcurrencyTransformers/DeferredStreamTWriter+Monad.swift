@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// DeferredStreamTWriter: the WriterT monad transformer over DeferredStream.
 // Representation: DeferredStream<Writer<W, A>>
 //
 // flatMapT concatMaps the stream and combines each element's log with the continuation's log
@@ -25,4 +25,11 @@ public extension DeferredStream {
     ) -> @Sendable (DeferredStream<Writer<W, Inner>>) -> DeferredStream<Writer<W, B>> {
         { $0.flatMapT(fn) }
     }
+}
+
+public func kleisliTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredStream<Writer<W, B>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredStream<Writer<W, C>>
+) -> @Sendable (A) -> DeferredStream<Writer<W, C>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
 }

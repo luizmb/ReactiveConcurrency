@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// DeferredTaskTWriter: the WriterT monad transformer over DeferredTask.
 // Representation: DeferredTask<Writer<W, A>>
 //
 // flatMapT runs the outer effect to obtain (a, w1), runs the continuation fn(a) to obtain
@@ -26,4 +26,11 @@ public extension DeferredTask {
     ) -> @Sendable (DeferredTask<Writer<W, Inner>>) -> DeferredTask<Writer<W, B>> {
         { $0.flatMapT(fn) }
     }
+}
+
+public func kleisliTDeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+    _ fn1: @escaping @Sendable (A) -> DeferredTask<Writer<W, B>>,
+    _ fn2: @escaping @Sendable (B) -> DeferredTask<Writer<W, C>>
+) -> @Sendable (A) -> DeferredTask<Writer<W, C>> {
+    { @Sendable a in fn1(a).flatMapT(fn2) }
 }

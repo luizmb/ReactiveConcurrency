@@ -11,7 +11,7 @@ public func <*> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ wf: DeferredTask<Writer<W, @Sendable (A) -> B>>,
     _ wa: DeferredTask<Writer<W, A>>
 ) -> DeferredTask<Writer<W, B>> {
-    applyWriterDeferredTask(wf, wa)
+    applyDeferredTaskWriter(wf, wa)
 }
 
 // (*>) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, b>>
@@ -19,7 +19,7 @@ public func *> <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>
 ) -> DeferredTask<Writer<W, B>> {
-    seqRightWriterDeferredTask(lhs, rhs)
+    seqRightDeferredTaskWriter(lhs, rhs)
 }
 
 // (<*) :: DeferredTask<Writer<w, a>> -> DeferredTask<Writer<w, b>> -> DeferredTask<Writer<w, a>>
@@ -27,5 +27,5 @@ public func <* <W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>
 ) -> DeferredTask<Writer<W, A>> {
-    seqLeftWriterDeferredTask(lhs, rhs)
+    seqLeftDeferredTaskWriter(lhs, rhs)
 }

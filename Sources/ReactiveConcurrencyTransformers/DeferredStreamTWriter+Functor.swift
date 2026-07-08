@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredStream: the WriterT monad transformer over DeferredStream.
+// DeferredStreamTWriter: the WriterT monad transformer over DeferredStream.
 // Representation: DeferredStream<Writer<W, A>> — the log is carried INSIDE the effect.
 // (Previously Writer<W, DeferredStream<A>>, which kept the log outside the effect.)
 
@@ -23,15 +23,15 @@ public extension DeferredStream {
     }
 }
 
-public func mapTWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func mapTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B,
     _ stream: DeferredStream<Writer<W, A>>
 ) -> DeferredStream<Writer<W, B>> {
     stream.mapT(fn)
 }
 
-public func fmapTWriterDeferredStream<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func fmapTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredStream<Writer<W, A>>) -> DeferredStream<Writer<W, B>> {
-    { stream in mapTWriterDeferredStream(fn, stream) }
+    { stream in mapTDeferredStreamWriter(fn, stream) }
 }

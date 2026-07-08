@@ -27,5 +27,13 @@ public func >=> <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F:
     _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>,
     _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>
 ) -> @Sendable (A) -> Publisher<Writer<W, C>, F> {
-    { a in fn1(a).flatMapT(fn2) }
+    kleisliTPublisherWriter(fn1, fn2)
+}
+
+// (<=<) :: (b -> Publisher<Writer<w, c>, f>) -> (a -> Publisher<Writer<w, b>, f>) -> a -> Publisher<Writer<w, c>, f>
+public func <=< <W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+    _ fn2: @escaping @Sendable (B) -> Publisher<Writer<W, C>, F>,
+    _ fn1: @escaping @Sendable (A) -> Publisher<Writer<W, B>, F>
+) -> @Sendable (A) -> Publisher<Writer<W, C>, F> {
+    fn1 >=> fn2
 }

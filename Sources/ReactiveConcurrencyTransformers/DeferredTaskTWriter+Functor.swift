@@ -4,7 +4,7 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// DeferredTaskTWriter: the WriterT monad transformer over DeferredTask.
 // Representation: DeferredTask<Writer<W, A>> — the log is carried INSIDE the effect.
 // (Previously modelled as Writer<W, DeferredTask<A>>, which kept the log outside the
 // effect and made bind unable to combine the continuation's log — see +Monad.)

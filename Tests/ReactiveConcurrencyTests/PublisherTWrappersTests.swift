@@ -39,10 +39,10 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
     }
 }
 
-// MARK: - WriterTPublisher
+// MARK: - PublisherTWriter
 
 // Representation is now Publisher<Writer<W, A>, F> — the log is carried inside the effect.
-@Suite(.timeLimit(.minutes(1))) struct WriterTPublisherTests {
+@Suite(.timeLimit(.minutes(1))) struct PublisherTWriterTests {
     @Test func mapTPreservesLog() async {
         let writer = Publisher<Writer<[String], Int>, Never>.just(Writer(3, ["start"]))
         let mapped = writer.mapT { $0 * 2 }
@@ -65,7 +65,7 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
     @Test func applyCombinesLogs() async {
         let wf = Publisher<Writer<[String], @Sendable (Int) -> Int>, Never>.just(Writer({ $0 + 1 }, ["f"]))
         let wa = Publisher<Writer<[String], Int>, Never>.just(Writer(10, ["a"]))
-        let result = applyWriterPublisher(wf, wa)
+        let result = applyPublisherWriter(wf, wa)
         let results = await vals(result)
         #expect(results.map(\.value) == [11])
         #expect(results.map(\.log) == [["f", "a"]])

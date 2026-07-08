@@ -4,14 +4,14 @@ import CoreFP
 import DataStructure
 import ReactiveConcurrency
 
-// WriterTDeferredTask: the WriterT monad transformer over DeferredTask.
+// DeferredTaskTWriter: the WriterT monad transformer over DeferredTask.
 // Representation: DeferredTask<Writer<W, A>>
 //
 // The effects run sequentially (DeferredTask applicative) and the logs are combined via the
 // Writer applicative — so logs accumulate left-to-right inside the effect.
 
 /// apply for WriterT over DeferredTask.
-public func applyWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func applyDeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ wf: DeferredTask<Writer<W, @Sendable (A) -> B>>,
     _ wa: DeferredTask<Writer<W, A>>
 ) -> DeferredTask<Writer<W, B>> {
@@ -19,7 +19,7 @@ public func applyWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendab
 }
 
 /// liftA2 for WriterT over DeferredTask.
-public func liftA2WriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+public func liftA2DeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<Writer<W, A>>, DeferredTask<Writer<W, B>>) -> DeferredTask<Writer<W, C>> {
     { wa, wb in
@@ -28,7 +28,7 @@ public func liftA2WriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Senda
 }
 
 /// seqRight for WriterT over DeferredTask.
-public func seqRightWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func seqRightDeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>
 ) -> DeferredTask<Writer<W, B>> {
@@ -36,7 +36,7 @@ public func seqRightWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sen
 }
 
 /// seqLeft for WriterT over DeferredTask.
-public func seqLeftWriterDeferredTask<W: Monoid & Sendable, A: Sendable, B: Sendable>(
+public func seqLeftDeferredTaskWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ lhs: DeferredTask<Writer<W, A>>,
     _ rhs: DeferredTask<Writer<W, B>>
 ) -> DeferredTask<Writer<W, A>> {
