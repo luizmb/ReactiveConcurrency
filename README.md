@@ -1,8 +1,9 @@
 # ReactiveConcurrency
 
 [![CI](https://github.com/luizmb/ReactiveConcurrency/actions/workflows/ci.yml/badge.svg)](https://github.com/luizmb/ReactiveConcurrency/actions/workflows/ci.yml)
-![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue)
+![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue)
 ![Swift](https://img.shields.io/badge/Swift-6.3-orange)
+![Xcode](https://img.shields.io/badge/Xcode-26.5-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
 [![Documentation](https://img.shields.io/badge/docs-DocC-purple)](https://luizmb.github.io/ReactiveConcurrency/documentation/reactiveconcurrency/)
 
@@ -107,8 +108,9 @@ Then depend on the products you need:
 )
 ```
 
-Minimum platforms: macOS 13, iOS 16, tvOS 16, watchOS 9, visionOS 1 — and Linux / Windows / Android
-via the open-source Swift toolchain.
+**Requirements:** the Swift 6.3 toolchain (Xcode 26.5 on Apple platforms). Minimum deployment
+targets: macOS 13, iOS 16, tvOS 16, watchOS 9, visionOS 1 — plus Linux, Windows, and Android via the
+open-source Swift toolchain. Distribution is Swift Package Manager only (no XCFramework).
 
 ---
 

@@ -19,6 +19,7 @@ jobs:
     name: RC - Test & Validate
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: macos-26
+    timeout-minutes: 20
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -55,7 +56,7 @@ jobs:
         run: swift build --build-tests
 
       - name: Test
-        run: swift test
+        run: swift test --no-parallel
 
       - name: Periphery
         run: mint run periphery scan
@@ -72,6 +73,7 @@ jobs:
     name: RC - Test (Linux)
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: rc-test
     steps:
       - uses: actions/checkout@v7
@@ -80,12 +82,13 @@ jobs:
         run: swift build 2>&1
 
       - name: Test
-        run: swift test 2>&1
+        run: swift test --no-parallel 2>&1
 
   rc-test-android:
     name: RC - Test (Android)
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: rc-test
     steps:
       - uses: actions/checkout@v7
@@ -100,6 +103,7 @@ jobs:
     name: RC - Test (Windows)
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: windows-latest
+    timeout-minutes: 25
     needs: rc-test
     steps:
       - uses: compnerd/gha-setup-swift@main
@@ -113,81 +117,13 @@ jobs:
         run: swift build
 
       - name: Test
-        run: swift test
-
-  rc-build-xcframework:
-    name: RC - Build XCFramework
-    if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: macos-26
-    needs: rc-test
-    strategy:
-      matrix:
-        framework: [ReactiveConcurrency, ReactiveConcurrencyOperators, ReactiveConcurrencyTransformers]
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.5.app
-
-      - name: Resolve Package Dependencies
-        run: swift package resolve
-
-      - name: Build Library in Release Configuration
-        run: |
-          set -x
-          swift build -c release --product ${{ matrix.framework }} -v
-          echo "✓ Build succeeded"
-
-      - name: Create XCFramework Structure
-        run: |
-          XCFWK_PATH="build/${{ matrix.framework }}/${{ matrix.framework }}.xcframework"
-          mkdir -p "$XCFWK_PATH"
-
-          # Copy Swift module files
-          for ext in swiftmodule swiftdoc abi.json swiftsourceinfo; do
-            if [ -f ".build/release/Modules/${{ matrix.framework }}.$ext" ]; then
-              cp ".build/release/Modules/${{ matrix.framework }}.$ext" "$XCFWK_PATH/"
-              echo "✓ Copied ${{ matrix.framework }}.$ext"
-            fi
-          done
-
-          echo "✓ XCFramework structure created"
-
-      - name: Verify XCFramework Created
-        run: |
-          XCFWK_PATH="build/${{ matrix.framework }}/${{ matrix.framework }}.xcframework"
-
-          if [ -d "$XCFWK_PATH" ]; then
-            echo "✓ XCFramework structure created"
-            ls -lah "$XCFWK_PATH"
-            find "$XCFWK_PATH" -type f
-          else
-            echo "✗ XCFramework not found"
-            find build -type d -o -type f | head -50
-            exit 1
-          fi
-
-      - name: Archive XCFramework
-        run: |
-          cd build/${{ matrix.framework }}
-          zip -r ${{ matrix.framework }}.xcframework.zip ${{ matrix.framework }}.xcframework
-          cd ../..
-          ls -lh build/${{ matrix.framework }}/${{ matrix.framework }}.xcframework.zip
-
-      - name: Upload XCFramework Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.framework }}-xcframework
-          path: build/${{ matrix.framework }}/${{ matrix.framework }}.xcframework.zip
-          retention-days: 90
+        run: swift test --no-parallel
 
   rc-notify-status:
     name: RC - Notify Status
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: macos-26
-    needs: [rc-test, rc-test-linux, rc-test-android, rc-test-windows, rc-build-xcframework]
+    needs: [rc-test, rc-test-linux, rc-test-android, rc-test-windows]
     steps:
       - name: Extract Version
         id: version
@@ -202,9 +138,8 @@ jobs:
           echo "::notice::Release Candidate ${{ steps.version.outputs.version }} is ready for promotion"
           echo ""
           echo "Next steps:"
-          echo "1. Verify the XCFramework artifacts above"
-          echo "2. Test integration in your projects"
-          echo "3. When ready to promote, create a release tag:"
+          echo "1. Test integration in your projects (via Swift Package Manager)"
+          echo "2. When ready to promote, create a release tag:"
           echo "   git tag v${{ steps.version.outputs.version }}"
           echo "   git push origin v${{ steps.version.outputs.version }}"
           echo ""
@@ -256,31 +191,12 @@ jobs:
     name: Promote - Create Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-26
+    timeout-minutes: 15
     needs: promote-test
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Download RC Artifacts
-        run: |
-          TAG="${{ github.ref_name }}"
-          VERSION=${TAG#v}
-          BRANCH="release/$VERSION"
-
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?branch=${BRANCH}&status=success&per_page=20" \
-            --jq '[.workflow_runs[] | select(.name == "Release")] | first | .id')
-
-          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
-            echo "::error::No successful RC build found for branch $BRANCH"
-            exit 1
-          fi
-
-          echo "::notice::Downloading artifacts from run $RUN_ID (branch: $BRANCH)"
-          mkdir -p artifacts
-          gh run download "$RUN_ID" --dir artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Generate Release Notes
         id: notes
@@ -298,24 +214,22 @@ jobs:
 
           ## Installation
 
-          See [Release Process](../docs/RELEASE_PROCESS.md#using-released-xcframeworks)"
+          Add the package via Swift Package Manager:
+
+          \`\`\`swift
+          .package(url: \"https://github.com/${{ github.repository }}.git\", from: \"${TAG#v}\")
+          \`\`\`"
           fi
 
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: List Artifacts
-        run: |
-          echo "Found artifacts:"
-          find artifacts -name "*.zip" -exec ls -lh {} \;
-
       - name: Create Release
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "Release ${{ github.ref_name }}" \
-            --notes "${{ steps.notes.outputs.body }}" \
-            artifacts/*/*.zip
+            --notes "${{ steps.notes.outputs.body }}"
         env:
           GH_TOKEN: ${{ github.token }}
 

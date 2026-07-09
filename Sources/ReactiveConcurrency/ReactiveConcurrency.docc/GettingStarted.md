@@ -17,8 +17,18 @@ Then add the products you need:
     .product(name: "ReactiveConcurrency", package: "ReactiveConcurrency"),
     // optional operator syntax:
     .product(name: "ReactiveConcurrencyOperators", package: "ReactiveConcurrency"),
+    // optional monad-transformer surface:
+    .product(name: "ReactiveConcurrencyTransformers", package: "ReactiveConcurrency"),
 ])
 ```
+
+## Requirements
+
+- **Swift 6.3** toolchain (Xcode 26.5 on Apple platforms).
+- **Apple platforms:** macOS 13+, iOS 16+, tvOS 16+, watchOS 9+, visionOS 1+.
+- **Also supported (built & tested in CI):** Linux, Windows, and Android via the open-source
+  Swift toolchain.
+- Distribution is **Swift Package Manager only** — there is no XCFramework.
 
 ## Pipelines are values
 
