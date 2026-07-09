@@ -7,7 +7,7 @@ Install ReactiveConcurrency and build your first pipeline.
 Add the package to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "0.5.0")
+.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "1.0.0")
 ```
 
 Then add the products you need:
