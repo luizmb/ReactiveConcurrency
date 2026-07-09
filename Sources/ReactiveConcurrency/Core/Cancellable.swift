@@ -6,10 +6,9 @@ public protocol Cancellable: Sendable {
     func cancel()
 }
 
+/// A type-erased cancellable that runs its cancel closure once, and automatically on `deinit`.
 ///
 /// Dropping the instance (letting it deallocate) cancels; keep it alive to keep the work running.
-
-/// A type-erased cancellable that runs its cancel closure once, and automatically on `deinit`.
 public final class AnyCancellable: Cancellable, Hashable {
     private let _cancel: @Sendable () -> Void
     private let _executed = Locked(false)

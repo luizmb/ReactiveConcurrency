@@ -5,10 +5,9 @@
 // publisher's i-th value, and it completes with the shortest input. A failure from any publisher
 // propagates (via zip). Base case is `last.map { [$0] }` for the same ZipList reason as
 // DeferredStream: a single-shot `pure` zipped against a multi-value publisher would truncate.
+/// Turns an array of publishers into a publisher of arrays by zipping them positionally: the
 /// i-th emission is every publisher's i-th value, completing with the shortest input (zippy, not
 /// cartesian). A failure from any publisher propagates.
-
-/// Turns an array of publishers into a publisher of arrays by zipping them positionally: the
 public func sequencePublisher<A: Sendable, Failure: Error>(
     _ publishers: [Publisher<A, Failure>]
 ) -> Publisher<[A], Failure> {
@@ -19,9 +18,8 @@ public func sequencePublisher<A: Sendable, Failure: Error>(
     }
 }
 
-/// publisher of arrays (see `sequencePublisher`).
-
 /// Maps each element of `xs` to a publisher via `transform`, then zips them positionally into a
+/// publisher of arrays (see `sequencePublisher`).
 public func traversePublisher<A: Sendable, B: Sendable, Failure: Error>(
     _ xs: [A],
     _ transform: @escaping @Sendable (A) -> Publisher<B, Failure>

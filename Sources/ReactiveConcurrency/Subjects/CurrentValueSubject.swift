@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+/// A hot subject that holds a current value, replaying the latest to every new subscriber.
 ///
 /// Each new subscriber immediately receives the current value, then all subsequent sends. The
 /// latest value is also readable synchronously via `value`. Delivery is asynchronous, so
 /// reentrancy anomalies cannot occur.
-
-/// A hot subject that holds a current value, replaying the latest to every new subscriber.
 public final class CurrentValueSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: CurrentValueCore<Output, Failure>
 

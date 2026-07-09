@@ -14,9 +14,8 @@ public func mapTDeferredStreamOptional<A: Sendable, B: Sendable>(
     stream.map { optA in optA.map(fn) }
 }
 
-/// layers intact.
-
 /// Functor map (point-free) for the DeferredStream-over-Optional stack: transforms the innermost value, leaving the DeferredStream and Optional
+/// layers intact.
 public func fmapTDeferredStreamOptional<A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredStream<A?>) -> DeferredStream<B?> {

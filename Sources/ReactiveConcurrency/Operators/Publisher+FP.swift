@@ -76,10 +76,9 @@ public extension Publisher {
     }
 }
 
+/// Applicative apply (`<*>`) for publishers: pairs each function in `fns` with the value in
 /// `values` at the same position and applies it, truncating to the shorter side. This is the
 /// zippy (ZipList-style) product, not the cartesian, monad-consistent one — see the section note.
-
-/// Applicative apply (`<*>`) for publishers: pairs each function in `fns` with the value in
 public func applyPublisher<A: Sendable, B: Sendable, E: Error>(
     _ fns: Publisher<@Sendable (A) -> B, E>,
     _ values: Publisher<A, E>

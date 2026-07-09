@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+/// A hot, imperatively-driven publisher that callers push values and completion into.
 ///
 /// Subjects are hot: values sent while no subscriber is attached are lost. Delivery is
 /// asynchronous, so a subscriber can never re-enter `send` mid-delivery (no reentrancy anomalies).
-
-/// A hot, imperatively-driven publisher that callers push values and completion into.
 public protocol Subject<Output, Failure>: AnyObject, Sendable {
     /// The type of values this subject emits.
     associatedtype Output: Sendable

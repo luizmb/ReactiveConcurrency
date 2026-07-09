@@ -222,9 +222,8 @@ public extension Publisher {
 
 // MARK: - Type erasure
 
-/// value, so `AnyPublisher` exists only for source compatibility.
-
 /// A type alias for ``Publisher``. Unlike Combine, `Publisher` is already a concrete, type-erased
+/// value, so `AnyPublisher` exists only for source compatibility.
 public typealias AnyPublisher<Output: Sendable, Failure: Error> = Publisher<Output, Failure>
 
 public extension Publisher {

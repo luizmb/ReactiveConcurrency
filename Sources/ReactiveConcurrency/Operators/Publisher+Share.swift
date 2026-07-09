@@ -142,9 +142,8 @@ public extension Publisher {
     }
 }
 
-/// fanning values out through a shared subject to all subscribers.
-
 /// A publisher that does not start its upstream until `connect()` (or `autoconnect()`) is called,
+/// fanning values out through a shared subject to all subscribers.
 public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
     private let _upstream: Publisher<Output, Failure>
     private let _subject: AnySubject<Output, Failure>
@@ -172,9 +171,8 @@ public struct ConnectablePublisher<Output: Sendable, Failure: Error>: Sendable {
         return AnyCancellable { task.cancel() }
     }
 
-    /// completes. Unlike `share()`, subscribers cancelling never disconnects the upstream.
-
     /// Connects automatically on the first subscription and stays connected until the source
+    /// completes. Unlike `share()`, subscribers cancelling never disconnects the upstream.
     public func autoconnect() -> Publisher<Output, Failure> {
         let state = AutoconnectState()
         let connectable = self

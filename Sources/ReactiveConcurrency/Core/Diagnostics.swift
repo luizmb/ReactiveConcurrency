@@ -2,14 +2,13 @@
 
 import Foundation
 
+/// Opt-in runtime diagnostics for catching common misuse. Enabled by default in DEBUG builds and
 /// off in release, with a configurable handler (default: stderr).
 ///
 /// Note on reentrancy: unlike RxSwift, subjects here deliver asynchronously via `AsyncStream` —
 /// `send` only buffers into each subscriber's continuation and never invokes subscriber code
 /// synchronously, so synchronous reentrancy (a subscriber re-entering `send` mid-delivery) cannot
 /// occur and needs no detector. These diagnostics focus on lifecycle misuse instead.
-
-/// Opt-in runtime diagnostics for catching common misuse. Enabled by default in DEBUG builds and
 public enum Diagnostics {
     private struct Config: Sendable {
         var isEnabled: Bool

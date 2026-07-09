@@ -3,6 +3,7 @@
 // DeferredStream<Element>: a lazy AsyncSequence whose producer starts only at first iteration.
 // Contrast with AsyncStream: its body/Task runs at init time.
 // DeferredStream defers the factory call to makeAsyncIterator().
+/// A lazy `AsyncSequence` whose producer is created only when iteration begins.
 ///
 /// Unlike `AsyncStream`, whose body closure runs at initialisation time, `DeferredStream`
 /// defers the factory call to `makeAsyncIterator()`. This means:
@@ -49,8 +50,6 @@
 /// ```
 ///
 /// - SeeAlso: ``DeferredTask``, `AsyncStream`
-
-/// A lazy `AsyncSequence` whose producer is created only when iteration begins.
 public struct DeferredStream<Element: Sendable>: AsyncSequence, Sendable {
     public typealias AsyncIterator = AsyncStream<Element>.AsyncIterator
 

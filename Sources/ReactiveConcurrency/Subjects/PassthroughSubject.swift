@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+/// A hot subject that broadcasts each sent value to current subscribers, with no replay.
 ///
 /// Values sent while no subscriber is attached are lost. New subscribers only receive values sent
 /// after they subscribe. Delivery is asynchronous, so reentrancy anomalies cannot occur.
-
-/// A hot subject that broadcasts each sent value to current subscribers, with no replay.
 public final class PassthroughSubject<Output: Sendable, Failure: Error>: Subject {
     private let _core: SubjectCore<Output, Failure>
 

@@ -13,9 +13,8 @@ public func mapTDeferredStreamArray<A: Sendable, B: Sendable>(
     stream.map { arr in arr.map(fn) }
 }
 
-/// intact.
-
 /// Functor map (point-free) for the DeferredStream-over-Array stack: transforms the innermost value, leaving the DeferredStream and Array layers
+/// intact.
 public func fmapTDeferredStreamArray<A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredStream<[A]>) -> DeferredStream<[B]> {

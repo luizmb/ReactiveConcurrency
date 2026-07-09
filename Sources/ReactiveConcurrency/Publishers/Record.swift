@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-/// Mirrors Combine's `Record<Output, Failure>`.
-
 /// Records a fixed list of values plus a completion, replaying them cold on each subscription.
+/// Mirrors Combine's `Record<Output, Failure>`.
 public struct Record<Output: Sendable, Failure: Error>: Sendable {
     /// The captured values and terminating completion to be replayed.
     public struct Recording: Sendable {

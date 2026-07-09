@@ -34,9 +34,8 @@ public func mapTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Senda
     stream.mapT(fn)
 }
 
-/// intact.
-
 /// Functor map (point-free) for the DeferredStream-over-Writer stack: transforms the innermost value, leaving the DeferredStream and Writer layers
+/// intact.
 public func fmapTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredStream<Writer<W, A>>) -> DeferredStream<Writer<W, B>> {

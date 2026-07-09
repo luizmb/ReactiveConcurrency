@@ -5,9 +5,8 @@
 //
 // Combine's `prefetch` is omitted (it's a demand concept; this library is pull-based with no
 // backpressure-demand model), as is `.customError` (AsyncStream exposes no overflow hook).
-/// of undelivered elements is full.
-
 /// Policy for `buffer(size:whenFull:)` deciding which element to discard once the bounded buffer
+/// of undelivered elements is full.
 public enum BufferStrategy: Sendable {
     /// Drop the oldest buffered element to make room for a new one (keep newest `size`).
     case dropOldest
