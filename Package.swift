@@ -3,7 +3,7 @@ import PackageDescription
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/luizmb/FP.git", from: "2.0.0"),
-    .package(url: "https://github.com/luizmb/Hourglass.git", from: "0.7.0"),
+    .package(url: "https://github.com/luizmb/Hourglass.git", from: "1.0.0"),
 ]
 
 // swift-docc-plugin only generates documentation (run on macOS in CI via the Documentation
