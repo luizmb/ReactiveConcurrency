@@ -97,6 +97,7 @@ public extension DeferredStream {
     }
 }
 
+/// Applies a stream of functions to a stream of values, positionally (applicative `<*>`).
 ///
 /// Zippy Semigroupal (ZipList-style): pairs each fn with each value positionally and truncates at
 /// the shorter side. This is the product users want from a stream, but it is NOT the applicative
@@ -104,8 +105,6 @@ public extension DeferredStream {
 /// *identity* law `pure(id) <*> v == v` fails for `|v| > 1` (pure yields one element, zip truncates
 /// `v` to length 1). Use `flatMap` for the cartesian, monad-consistent product.
 /// `pure` / `seqLeft` / `seqRight` are zippy for the same reason.
-
-/// Applies a stream of functions to a stream of values, positionally (applicative `<*>`).
 public func applyDeferredStream<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>

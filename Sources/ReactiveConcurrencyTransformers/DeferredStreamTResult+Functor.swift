@@ -13,9 +13,8 @@ public func mapTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendab
     stream.map { result in result.map(fn) }
 }
 
-/// intact.
-
 /// Functor map (point-free) for the DeferredStream-over-Result stack: transforms the innermost value, leaving the DeferredStream and Result layers
+/// intact.
 public func fmapTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredStream<Result<A, E>>) -> DeferredStream<Result<B, E>> {

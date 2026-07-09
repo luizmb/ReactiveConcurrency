@@ -28,11 +28,10 @@ public extension DeferredTask {
     }
 }
 
+/// Applies a deferred function to a deferred value (applicative `<*>`).
 ///
 /// Sequential and lawful: runs `fns` then `values`, equivalent to
 /// `fns >>= { f in values >>= { a in pure(f(a)) } }`.
-
-/// Applies a deferred function to a deferred value (applicative `<*>`).
 public func applyDeferredTask<A: Sendable, B: Sendable>(
     _ fns: DeferredTask<@Sendable (A) -> B>,
     _ values: DeferredTask<A>

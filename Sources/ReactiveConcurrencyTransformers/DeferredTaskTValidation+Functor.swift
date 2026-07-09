@@ -15,9 +15,8 @@ public func mapTDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: 
     task.map { v in v.mapSuccess(fn) }
 }
 
-/// layers intact.
-
 /// Functor map (point-free) for the DeferredTask-over-Validation stack: transforms the innermost value, leaving the DeferredTask and Validation
+/// layers intact.
 public func fmapTDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredTask<Validation<E, A>>) -> DeferredTask<Validation<E, B>> {

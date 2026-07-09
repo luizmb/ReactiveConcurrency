@@ -13,9 +13,8 @@ public func mapTDeferredTaskResult<A: Sendable, B: Sendable, E: Error & Sendable
     task.map { result in result.map(fn) }
 }
 
-/// intact.
-
 /// Functor map (point-free) for the DeferredTask-over-Result stack: transforms the innermost value, leaving the DeferredTask and Result layers
+/// intact.
 public func fmapTDeferredTaskResult<A: Sendable, B: Sendable, E: Error & Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredTask<Result<A, E>>) -> DeferredTask<Result<B, E>> {

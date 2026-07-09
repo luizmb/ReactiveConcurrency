@@ -13,9 +13,8 @@ public func mapTDeferredTaskOptional<A: Sendable, B: Sendable>(
     task.map { optA in optA.map(fn) }
 }
 
-/// intact.
-
 /// Functor map (point-free) for the DeferredTask-over-Optional stack: transforms the innermost value, leaving the DeferredTask and Optional layers
+/// intact.
 public func fmapTDeferredTaskOptional<A: Sendable, B: Sendable>(
     _ fn: @escaping @Sendable (A) -> B
 ) -> @Sendable (DeferredTask<A?>) -> DeferredTask<B?> {
