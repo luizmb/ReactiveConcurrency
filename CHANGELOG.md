@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- FP dependency bumped to 3.0.0. FP 3 no longer declares `<£^>` / `<&^>`, so
+  `ReactiveConcurrencyOperators` declares them itself (same precedence groups as before): the
+  operator surface is unchanged.
+
 ## [0.3.0] - 2026-07-05
 
 ### Changed
