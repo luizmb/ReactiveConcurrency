@@ -10,7 +10,9 @@ jobs:
   test:
     name: Build & Test
     runs-on: macos-26
-    timeout-minutes: 20
+    # Mint builds SwiftLint/SwiftFormat/Periphery from source on a cache miss, and the Periphery scan
+    # rebuilds the package; together they can pass 20 minutes on their own.
+    timeout-minutes: 30
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"

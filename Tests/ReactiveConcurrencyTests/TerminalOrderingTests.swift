@@ -18,8 +18,16 @@ private func results<A: Sendable>(_ publisher: Publisher<A, OrderingError>) asyn
     return out
 }
 
+// Enough runs to catch the rarest race (about 1 in 2 000 before the fix) on a desktop CPU. The
+// Android CI emulator is far slower, so it runs a smoke-sized batch.
+#if os(Android)
+    private let defaultRuns = 500
+#else
+    private let defaultRuns = 20_000
+#endif
+
 private func lostFailures<A: Sendable>(
-    runs: Int = 20_000,
+    runs: Int = defaultRuns,
     _ make: @escaping @Sendable () -> Publisher<A, OrderingError>
 ) async -> Int {
     await withTaskGroup(of: Bool.self) { group in
