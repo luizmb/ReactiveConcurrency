@@ -95,12 +95,14 @@ extension Publisher {
             let upstream = selfFactory()
             return AsyncStream<Result<T, Failure>> { downstream in
                 let (values, valuesContinuation) = AsyncStream<Output>.makeStream()
+                // Both tasks write downstream: the gate makes the failure the last event, never lost.
+                let gate = TerminalGate(downstream)
 
                 let consumer = Task {
                     for await value in transform(values) {
-                        if case .terminated = downstream.yield(.success(value)) { return }
+                        guard gate.yield(.success(value)) else { return }
                     }
-                    downstream.finish()
+                    gate.finish()
                 }
                 let producer = Task {
                     for await result in upstream {
@@ -108,10 +110,9 @@ extension Publisher {
                         case let .success(value):
                             valuesContinuation.yield(value)
                         case let .failure(error):
+                            gate.finish(with: .failure(error))
                             consumer.cancel()
                             valuesContinuation.finish()
-                            _ = downstream.yield(.failure(error))
-                            downstream.finish()
                             return
                         }
                     }
@@ -147,12 +148,15 @@ public extension Publisher where Failure: Error {
                 let (values, valuesContinuation) = AsyncStream<Output>.makeStream()
 
                 // Hourglass timeout over the success channel emits Result directly downstream.
+                // Both tasks write downstream: the gate makes the first failure the last event.
+                let gate = TerminalGate(downstream)
+
                 let consumer = Task {
                     for await result in values.timeout(interval, clock: clock, error: error) {
-                        if case .terminated = downstream.yield(result) { return }
-                        if case .failure = result { downstream.finish(); return }
+                        if case .failure = result { gate.finish(with: result); return }
+                        guard gate.yield(result) else { return }
                     }
-                    downstream.finish()
+                    gate.finish()
                 }
                 let producer = Task {
                     for await result in upstream {
@@ -160,10 +164,9 @@ public extension Publisher where Failure: Error {
                         case let .success(value):
                             valuesContinuation.yield(value)
                         case let .failure(upstreamError):
+                            gate.finish(with: .failure(upstreamError))
                             consumer.cancel()
                             valuesContinuation.finish()
-                            _ = downstream.yield(.failure(upstreamError))
-                            downstream.finish()
                             return
                         }
                     }

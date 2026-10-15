@@ -16,6 +16,9 @@ public extension Publisher {
         return Publisher<T, Failure>(DeferredStream {
             let upstream = selfFactory()
             return AsyncStream<Result<T, Failure>> { raw in
+                // The outer loop and every inner child write downstream: the gate keeps the first
+                // failure the last event.
+                let gate = TerminalGate(raw)
                 let task = Task {
                     let (slots, slotsCont) = AsyncStream<Void>.makeStream(
                         bufferingPolicy: .bufferingNewest(maxPublishers)
@@ -36,17 +39,17 @@ public extension Publisher {
                                     group.addTask {
                                         defer { slotsCont.yield(()) }
                                         for await r in inner {
-                                            if case .terminated = raw.yield(r) { return }
-                                            if case .failure = r { raw.finish(); return }
+                                            if case .failure = r { gate.finish(with: r); return }
+                                            guard gate.yield(r) else { return }
                                         }
                                     }
                                 case let .failure(e):
-                                    _ = raw.yield(.failure(e)); raw.finish(); break outer
+                                    gate.finish(with: .failure(e)); break outer
                                 }
                             }
                             for await _ in group {}
                         }
-                        raw.finish()
+                        gate.finish()
                     } onCancel: {
                         slotsCont.finish() // unblock any waiting slotsBox.next()
                     }
@@ -70,6 +73,9 @@ public extension Publisher {
         return Publisher<T, Failure>(DeferredStream {
             let upstream = selfFactory()
             return AsyncStream<Result<T, Failure>> { raw in
+                // The outer loop and every inner child write downstream: the gate keeps the first
+                // failure the last event.
+                let gate = TerminalGate(raw)
                 let task = Task {
                     await withTaskGroup(of: Void.self) { group in
                         outer: for await result in upstream {
@@ -78,20 +84,18 @@ public extension Publisher {
                                 let inner = transform(value)
                                 group.addTask {
                                     for await innerResult in inner._stream.factory() {
-                                        let yr = raw.yield(innerResult)
-                                        if case .terminated = yr { return }
-                                        if case .failure = innerResult { raw.finish(); return }
+                                        if case .failure = innerResult { gate.finish(with: innerResult); return }
+                                        guard gate.yield(innerResult) else { return }
                                     }
                                 }
                             case let .failure(error):
-                                _ = raw.yield(Result.failure(error))
-                                raw.finish()
+                                gate.finish(with: .failure(error))
                                 break outer
                             }
                         }
                         for await _ in group {}
                     }
-                    raw.finish()
+                    gate.finish()
                 }
                 raw.onTermination = { _ in task.cancel() }
             }
@@ -105,6 +109,9 @@ public extension Publisher {
     func switchToLatest<T: Sendable>() -> Publisher<T, Failure>
     where Output == Publisher<T, Failure> {
         _operator { raw, upstream in
+            // The outer loop and the current inner task write downstream: the gate keeps the
+            // first failure the last event.
+            let gate = TerminalGate(raw)
             var innerTask: Task<Void, Never>?
             for await result in upstream {
                 switch result {
@@ -113,15 +120,13 @@ public extension Publisher {
                     innerTask = Task {
                         for await innerResult in inner._stream.factory() {
                             guard !Task.isCancelled else { return }
-                            let yr = raw.yield(innerResult)
-                            if case .terminated = yr { return }
-                            if case .failure = innerResult { raw.finish(); return }
+                            if case .failure = innerResult { gate.finish(with: innerResult); return }
+                            guard gate.yield(innerResult) else { return }
                         }
                     }
                 case let .failure(error):
                     innerTask?.cancel()
-                    _ = raw.yield(Result.failure(error))
-                    raw.finish()
+                    gate.finish(with: .failure(error))
                     return
                 }
             }
@@ -129,7 +134,7 @@ public extension Publisher {
             // values before completing (Combine completes only after the outer AND the last inner
             // complete). Cancelling here — as the old code did — silently dropped in-flight values.
             await innerTask?.value
-            raw.finish()
+            gate.finish()
         }
     }
 }

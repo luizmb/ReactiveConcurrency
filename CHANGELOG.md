@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 FP 3 migration. Breaking: the transformer layer moves to FP 3's one-struct-per-stack model, and the
 stream applicatives become lawful.
 
+### Fixed
+- Operators that feed one downstream from several tasks could drop or misorder an upstream
+  failure: `merge`, `Publisher.merge(_:)`, `flatMap` (bounded and unbounded), `switchToLatest`,
+  `timeout`, and the timed operators (`debounce`, `throttle`, `delay`, `collect(every:)`). Two writers
+  raced on the terminal event, so a subscriber could see `.finished` instead of the failure, a value
+  after the failure, or two failures. Every write now goes through a `TerminalGate`, which makes the
+  first failure the last event. `TerminalOrderingTests` reproduce each race (up to 40% of runs
+  under contention before the fix, none after).
+
 ### Changed
 - **BREAKING**: FP dependency bumped to 3.0.0.
 - **BREAKING**: transformer stacks are now generated structs (`DeferredTaskTResult<E, A>`,
