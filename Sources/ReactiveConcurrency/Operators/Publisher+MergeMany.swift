@@ -16,6 +16,8 @@ public extension Publisher {
             // Pre-subscribe all sources synchronously so values sent right after .sink() aren't lost.
             let streams = factories.map { $0() }
             return AsyncStream<Result<Output, Failure>> { raw in
+                // Every child writes downstream: the gate keeps the first failure the last event.
+                let gate = TerminalGate(raw)
                 let task = Task {
                     await withTaskGroup(of: Void.self) { group in
                         for stream in streams {
@@ -23,16 +25,16 @@ public extension Publisher {
                                 for await result in stream {
                                     switch result {
                                     case .success:
-                                        if case .terminated = raw.yield(result) { return }
+                                        guard gate.yield(result) else { return }
                                     case .failure:
-                                        _ = raw.yield(result); raw.finish(); return
+                                        gate.finish(with: result); return
                                     }
                                 }
                             }
                         }
                         await group.waitForAll()
                     }
-                    raw.finish()
+                    gate.finish()
                 }
                 raw.onTermination = { _ in task.cancel() }
             }
