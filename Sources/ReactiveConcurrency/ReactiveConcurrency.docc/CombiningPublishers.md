@@ -47,9 +47,9 @@ nums.zip(tags) { "\($0)\($1)" }               // Publisher<String, Never>       
 ```
 
 Both `combineLatest` and `zip` offer 2-, 3-, and 4-source arities that yield typed tuples, plus a
-transform-closure overload that maps the tuple in place. `zip`'s positional, truncating product is
-the framework's *zippy* applicative — reach for `flatMap` when you want the monad-consistent
-cartesian product instead.
+transform-closure overload that maps the tuple in place. `zip` is positional and truncating; the
+applicative (`<*>`, `liftA2Publisher`) is the cartesian product instead, consistent with `>>-` (see
+<doc:FunctionalAlgebra>).
 
 ### flatMap and maxPublishers
 

@@ -6,7 +6,7 @@ import ReactiveConcurrency
 // ReaderTDeferredTask: outer = Reader, inner = DeferredTask
 // Type: Reader<Env, DeferredTask<A>>
 
-public extension Reader {
+extension Reader {
     /// Monadic bind for the Reader-over-DeferredTask stack: threads the inner value through fn, re-reading the shared environment.
     func flatMapT<A: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (A) -> Reader<Environment, DeferredTask<B>>
@@ -16,20 +16,4 @@ public extension Reader {
             self.runReader(env).flatMap { a in fn(a).runReader(env) }
         }
     }
-}
-
-/// Monadic bind (point-free) for the Reader-over-DeferredTask stack: threads the inner value through fn, re-reading the shared environment.
-public func bindTReaderDeferredTask<Env: Sendable, A: Sendable, B: Sendable>(
-    _ reader: Reader<Env, DeferredTask<A>>,
-    _ fn: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>
-) -> Reader<Env, DeferredTask<B>> {
-    reader.flatMapT(fn)
-}
-
-/// Left-to-right Kleisli composition for the Reader-over-DeferredTask stack.
-public func kleisliTReaderDeferredTask<Env: Sendable, A: Sendable, B: Sendable, C: Sendable>(
-    _ fn1: @escaping @Sendable (A) -> Reader<Env, DeferredTask<B>>,
-    _ fn2: @escaping @Sendable (B) -> Reader<Env, DeferredTask<C>>
-) -> @Sendable (A) -> Reader<Env, DeferredTask<C>> {
-    { @Sendable a in fn1(a).flatMapT(fn2) }
 }

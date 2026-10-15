@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Monad laws for the Publisher transformer stacks. The Publisher's OWN failure channel is Never;
-// the domain error lives in the inner Either/Result. Each suite checks left identity, right
-// identity, associativity, and Kleisli/bind consistency for one stack, comparing collected values.
+// Laws for the Publisher transformer stacks. The Publisher's OWN failure channel is Never; the
+// domain error lives in the inner Either/Result. Monad laws plus `<*>` == `ap` for the monad stacks,
+// applicative laws for the applicative-only PublisherTArray. The stack names are qualified: on Apple,
+// FP declares Combine stacks with the same names.
 
 import CoreFPOperators
 import DataStructure
@@ -22,122 +23,139 @@ private func collectP<A: Sendable>(_ p: Publisher<A, Never>) async -> [A] {
     return out
 }
 
+private func publisherOf<A: Sendable>(_ xs: [A]) -> Publisher<A, Never> {
+    .sequence(xs)
+}
+
 // MARK: - PublisherTEither
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTEitherLawTests {
-    private func pureT(_ a: Int) -> Publisher<Either<LawL, Int>, Never> { .just(.right(a)) }
-    private let f: @Sendable (Int) -> Publisher<Either<LawL, Int>, Never> = { n in .just(.right(n + 1)) }
-    private let g: @Sendable (Int) -> Publisher<Either<LawL, Int>, Never> = { n in .just(.right(n * 3)) }
+    private typealias T = ReactiveConcurrencyTransformers.PublisherTEither<Never, LawL, Int>
+    private let f: @Sendable (Int) -> T = { n in T(publisherOf([.right(n + 1)])) }
+    private let g: @Sendable (Int) -> T = { n in T(publisherOf([.right(n * 3), .left(.e)])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectP(flatMapTPublisherEither(pureT(5), f)) == collectP(f(5)))
+        #expect(await collectP(T.pure(5).flatMap(f).rawValue) == collectP(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectP(flatMapTPublisherEither(m) { n in .just(.right(n)) }) == collectP(m))
+        let m = T(publisherOf([.right(1), .left(.e), .right(2)]))
+        #expect(await collectP(m.flatMap(T.pure).rawValue) == collectP(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTPublisherEither(flatMapTPublisherEither(m, f), g)
-        let rhs = flatMapTPublisherEither(m) { a in flatMapTPublisherEither(f(a), g) }
-        #expect(await collectP(lhs) == collectP(rhs))
+        let m = T(publisherOf([.right(1), .left(.e), .right(2)]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectP(lhs.rawValue) == collectP(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTPublisherEither(f(4), g)
-        #expect(await collectP((f >=> g)(4)) == collectP(viaBind))
-        #expect(await collectP((g <=< f)(4)) == collectP(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectP((f >=> g)(4).rawValue) == collectP(viaBind.rawValue))
+        #expect(await collectP((g <=< f)(4).rawValue) == collectP(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(publisherOf([.right(1), .left(.e), .right(2)])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(publisherOf([.right(1), .left(.e), .right(2)]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectP((fns <*> values).rawValue) == collectP(viaBind.rawValue))
     }
 }
 
 // MARK: - PublisherTResult
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTResultLawTests {
-    private func pureT(_ a: Int) -> Publisher<Result<Int, LawE>, Never> { .just(.success(a)) }
-    private let f: @Sendable (Int) -> Publisher<Result<Int, LawE>, Never> = { n in .just(.success(n + 1)) }
-    private let g: @Sendable (Int) -> Publisher<Result<Int, LawE>, Never> = { n in .just(.success(n * 3)) }
+    private typealias T = ReactiveConcurrencyTransformers.PublisherTResult<Never, LawE, Int>
+    private let f: @Sendable (Int) -> T = { n in T(publisherOf([.success(n + 1)])) }
+    private let g: @Sendable (Int) -> T = { n in T(publisherOf([.success(n * 3), .failure(.boom)])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectP(flatMapTPublisherResult(pureT(5), f)) == collectP(f(5)))
+        #expect(await collectP(T.pure(5).flatMap(f).rawValue) == collectP(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectP(flatMapTPublisherResult(m) { n in .just(.success(n)) }) == collectP(m))
+        let m = T(publisherOf([.success(1), .failure(.boom), .success(2)]))
+        #expect(await collectP(m.flatMap(T.pure).rawValue) == collectP(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTPublisherResult(flatMapTPublisherResult(m, f), g)
-        let rhs = flatMapTPublisherResult(m) { a in flatMapTPublisherResult(f(a), g) }
-        #expect(await collectP(lhs) == collectP(rhs))
+        let m = T(publisherOf([.success(1), .failure(.boom), .success(2)]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectP(lhs.rawValue) == collectP(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTPublisherResult(f(4), g)
-        #expect(await collectP((f >=> g)(4)) == collectP(viaBind))
-        #expect(await collectP((g <=< f)(4)) == collectP(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectP((f >=> g)(4).rawValue) == collectP(viaBind.rawValue))
+        #expect(await collectP((g <=< f)(4).rawValue) == collectP(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(publisherOf([.success(1), .failure(.boom), .success(2)])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(publisherOf([.success(1), .failure(.boom), .success(2)]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectP((fns <*> values).rawValue) == collectP(viaBind.rawValue))
     }
 }
 
 // MARK: - PublisherTOptional
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTOptionalLawTests {
-    private func pureT(_ a: Int) -> Publisher<Int?, Never> { .just(a as Int?) }
-    private let f: @Sendable (Int) -> Publisher<Int?, Never> = { n in .just(n + 1 as Int?) }
-    private let g: @Sendable (Int) -> Publisher<Int?, Never> = { n in .just(n * 3 as Int?) }
+    private typealias T = ReactiveConcurrencyTransformers.PublisherTOptional<Never, Int>
+    private let f: @Sendable (Int) -> T = { n in T(publisherOf([n + 1])) }
+    private let g: @Sendable (Int) -> T = { n in T(publisherOf([n * 3, nil])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectP(flatMapTPublisherOptional(pureT(5), f)) == collectP(f(5)))
+        #expect(await collectP(T.pure(5).flatMap(f).rawValue) == collectP(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectP(flatMapTPublisherOptional(m) { n in .just(n as Int?) }) == collectP(m))
+        let m = T(publisherOf([1, nil, 2]))
+        #expect(await collectP(m.flatMap(T.pure).rawValue) == collectP(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTPublisherOptional(flatMapTPublisherOptional(m, f), g)
-        let rhs = flatMapTPublisherOptional(m) { a in flatMapTPublisherOptional(f(a), g) }
-        #expect(await collectP(lhs) == collectP(rhs))
+        let m = T(publisherOf([1, nil, 2]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectP(lhs.rawValue) == collectP(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTPublisherOptional(f(4), g)
-        #expect(await collectP((f >=> g)(4)) == collectP(viaBind))
-        #expect(await collectP((g <=< f)(4)) == collectP(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectP((f >=> g)(4).rawValue) == collectP(viaBind.rawValue))
+        #expect(await collectP((g <=< f)(4).rawValue) == collectP(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(publisherOf([1, nil, 2])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(publisherOf([1, nil, 2]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectP((fns <*> values).rawValue) == collectP(viaBind.rawValue))
     }
 }
 
-// MARK: - PublisherTArray
+// MARK: - PublisherTArray (applicative only)
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTArrayLawTests {
-    private func pureT(_ a: Int) -> Publisher<[Int], Never> { .just([a]) }
-    private let f: @Sendable (Int) -> Publisher<[Int], Never> = { n in .just([n, n + 1]) }
-    private let g: @Sendable (Int) -> Publisher<[Int], Never> = { n in .just([n * 10]) }
+    private typealias T = ReactiveConcurrencyTransformers.PublisherTArray<Never, Int>
 
-    @Test func leftIdentity() async {
-        #expect(await collectP(flatMapTPublisherArray(pureT(5), f)) == collectP(f(5)))
+    @Test func identity() async {
+        let v = T(publisherOf([[1, 2], [3]]))
+        let id = ReactiveConcurrencyTransformers.PublisherTArray<Never, @Sendable (Int) -> Int>.pure { $0 }
+        #expect(await collectP((id <*> v).rawValue) == [[1, 2], [3]])
     }
 
-    @Test func rightIdentity() async {
-        let m = Publisher<[Int], Never>.just([1, 2, 3])
-        #expect(await collectP(flatMapTPublisherArray(m) { n in .just([n]) }) == collectP(m))
-    }
-
-    @Test func associativity() async {
-        let m = Publisher<[Int], Never>.just([1, 2])
-        let lhs = flatMapTPublisherArray(flatMapTPublisherArray(m, f), g)
-        let rhs = flatMapTPublisherArray(m) { a in flatMapTPublisherArray(f(a), g) }
-        #expect(await collectP(lhs) == collectP(rhs))
-    }
-
-    @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTPublisherArray(f(4), g)
-        #expect(await collectP((f >=> g)(4)) == collectP(viaBind))
-        #expect(await collectP((g <=< f)(4)) == collectP(viaBind))
+    @Test func liftA2IsCartesianTwice() async {
+        let lhs = T(publisherOf([[1, 2], [3]]))
+        let rhs = T(publisherOf([[10], [20, 30]]))
+        let sum = T.liftA2 { (a: Int, b: Int) in a + b }(lhs, rhs)
+        #expect(await collectP(sum.rawValue) == [[11, 12], [21, 31, 22, 32], [13], [23, 33]])
     }
 }

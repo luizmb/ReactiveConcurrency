@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import CoreFPOperators
-import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<|>) :: DeferredTask<A?> -> DeferredTask<A?> -> DeferredTask<A?>
+// (<|>) :: DeferredTaskTOptional a -> DeferredTaskTOptional a -> DeferredTaskTOptional a
 
-/// Alternative — first non-empty/successful of the two, a lawful monoid with `empty` for the DeferredTask-over-Optional stack.
+/// Left-biased choice for the ``DeferredTaskTOptional`` stack: operator form of `alt`.
 public func <|> <A: Sendable>(
-    _ lhs: DeferredTask<A?>,
-    _ rhs: @autoclosure () -> DeferredTask<A?>
-) -> DeferredTask<A?> {
-    altDeferredTaskOptional(lhs, rhs())
+    _ lhs: ReactiveConcurrencyTransformers.DeferredTaskTOptional<A>,
+    _ rhs: @autoclosure () -> ReactiveConcurrencyTransformers.DeferredTaskTOptional<A>
+) -> ReactiveConcurrencyTransformers.DeferredTaskTOptional<A> {
+    lhs.alt(rhs())
 }

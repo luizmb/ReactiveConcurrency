@@ -59,42 +59,39 @@ private func collectP<A: Sendable>(_ publisher: Publisher<A, Never>) async -> [A
         }
     }
 
-    // Zippy: positional pairing, truncates to the shortest stream.
-    @Test func sequenceZipsPositionally() async {
-        let result = await collectS(sequenceDeferredStream([streamOf([1, 2, 3]), streamOf([10, 20, 30])]))
-        #expect(result == [[1, 10], [2, 20], [3, 30]])
+    // `ap`: every combination, the first stream varying slowest.
+    @Test func sequenceIsCartesian() async {
+        let result = await collectS(sequenceDeferredStream([streamOf([1, 2]), streamOf([10, 20])]))
+        #expect(result == [[1, 10], [1, 20], [2, 10], [2, 20]])
     }
 
-    @Test func sequenceTruncatesToShortest() async {
-        let result = await collectS(sequenceDeferredStream([streamOf([1, 2, 3]), streamOf([10])]))
-        #expect(result == [[1, 10]])
+    @Test func sequenceOfEmptyEmitsEmptyArrayOnce() async {
+        let result = await collectS(sequenceDeferredStream([DeferredStream<Int>]()))
+        #expect(result == [[]])
     }
 
     @Test func traverseMapsEach() async {
         let result = await collectS(traverseDeferredStream([1, 2]) { n in streamOf([n, n * 10]) })
-        #expect(result == [[1, 2], [10, 20]])
+        #expect(result == [[1, 2], [1, 20], [10, 2], [10, 20]])
     }
 }
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTraversableTests {
-    @Test func sequenceZipsPositionally() async {
+    // `ap`: every combination, the first publisher varying slowest.
+    @Test func sequenceIsCartesian() async {
         let result = await collectP(sequencePublisher([
-            Publisher<Int, Never>.sequence([1, 2, 3]),
-            Publisher<Int, Never>.sequence([10, 20, 30]),
+            Publisher<Int, Never>.sequence([1, 2]),
+            Publisher<Int, Never>.sequence([10, 20]),
         ]))
-        #expect(result == [[1, 10], [2, 20], [3, 30]])
+        #expect(result == [[1, 10], [1, 20], [2, 10], [2, 20]])
     }
 
-    @Test func sequenceTruncatesToShortest() async {
-        let result = await collectP(sequencePublisher([
-            Publisher<Int, Never>.sequence([1, 2, 3]),
-            Publisher<Int, Never>.sequence([10]),
-        ]))
-        #expect(result == [[1, 10]])
+    @Test func sequenceOfEmptyEmitsEmptyArrayOnce() async {
+        #expect(await collectP(sequencePublisher([Publisher<Int, Never>]())) == [[]])
     }
 
     @Test func traverseMapsEach() async {
         let result = await collectP(traversePublisher([1, 2]) { n in Publisher<Int, Never>.sequence([n, n * 10]) })
-        #expect(result == [[1, 2], [10, 20]])
+        #expect(result == [[1, 2], [1, 20], [10, 2], [10, 20]])
     }
 }

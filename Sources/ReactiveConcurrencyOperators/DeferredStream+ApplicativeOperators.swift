@@ -4,10 +4,9 @@ import CoreFPOperators
 import ReactiveConcurrency
 
 // (<*>) :: DeferredStream (a -> b) -> DeferredStream a -> DeferredStream b
-// Zippy Semigroupal (ZipList-style), NOT the cartesian monad-derived applicative: pairs
-// positionally and truncates at the shorter side. See DeferredStream+Applicative.swift for the caveat.
+// `ap`, derived from the concat bind: the cartesian product in order. Positional pairing is `zip`.
 
-/// Applicative apply — zippy (positional) combination of wrapped functions and values.
+/// Applicative apply (`ap`): for each function, in order, every value (cartesian, agrees with `>>-`).
 public func <*> <A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>

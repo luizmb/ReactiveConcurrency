@@ -11,7 +11,7 @@ import ReactiveConcurrency
 // failure — is returned). Sequential and deterministic, so it is the instance `<|>` maps to.
 // For the concurrent "first success, cancel the loser" behaviour use `raceDeferredTaskResult`.
 /// Left-biased Alternative for the DeferredTask-over-Result stack — lhs wins if .success, else rhs (sequential, lawful; the `<|>` instance).
-public func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
+func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
     _ lhs: DeferredTask<Result<A, E>>,
     _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
 ) -> DeferredTask<Result<A, E>> {
@@ -29,7 +29,7 @@ public func altDeferredTaskResult<A: Sendable, E: Error & Sendable>(
 // returns the last failure. NOT a lawful Alternative — the winner is scheduling-dependent, so it
 // is exposed under `race`, not `<|>`.
 /// Concurrent race for the DeferredTask-over-Result stack — first .success wins, loser cancelled (scheduling-dependent, NOT a lawful Alternative).
-public func raceDeferredTaskResult<A: Sendable, E: Error & Sendable>(
+func raceDeferredTaskResult<A: Sendable, E: Error & Sendable>(
     _ lhs: DeferredTask<Result<A, E>>,
     _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
 ) -> DeferredTask<Result<A, E>> {
@@ -46,5 +46,25 @@ public func raceDeferredTaskResult<A: Sendable, E: Error & Sendable>(
             // Unreachable: the group always has 2 tasks.
             return await lhs.run()
         }
+    }
+}
+
+// MARK: - Stack surface
+
+public extension DeferredTaskTResult {
+    /// Left-biased choice (Alternative `<|>`): runs `self`; if it is .success that value wins and
+    /// `other` never runs, otherwise `other` runs. Sequential and lawful.
+    /// - Parameter other: The fallback, built only when needed.
+    /// - Returns: The first .success result, else `other`'s.
+    func alt(_ other: @autoclosure () -> DeferredTaskTResult<E, A>) -> DeferredTaskTResult<E, A> {
+        DeferredTaskTResult(altDeferredTaskResult(rawValue, other().rawValue))
+    }
+
+    /// Runs `self` and `other` concurrently: the first .success result wins and the loser is
+    /// cancelled. Scheduling-dependent, so NOT a lawful Alternative (not `<|>`).
+    /// - Parameter other: The competitor.
+    /// - Returns: The first .success result, else the last one to finish.
+    func race(_ other: @autoclosure () -> DeferredTaskTResult<E, A>) -> DeferredTaskTResult<E, A> {
+        DeferredTaskTResult(raceDeferredTaskResult(rawValue, other().rawValue))
     }
 }

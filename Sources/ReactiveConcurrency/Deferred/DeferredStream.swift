@@ -16,9 +16,9 @@
 /// It is a full functor (``map(_:)``), applicative (``applyDeferredStream(_:_:)``), and monad
 /// (`flatMap`) — operator forms available in `CoreFPOperators`.
 ///
-/// Note its applicative is *zippy* (ZipList-style, positional, truncating to the shortest input),
-/// so ``applyDeferredStream(_:_:)`` / `liftA2` / `zip` are not the monad-derived product; use
-/// `flatMap` (concatMap) for the cartesian product.
+/// Its applicative is `ap`, derived from the monad: ``applyDeferredStream(_:_:)`` / `liftA2` are the
+/// cartesian product in order, consistent with `flatMap` (concatMap). For positional, truncating
+/// pairing use `zip`.
 ///
 /// ## Creating a DeferredStream
 ///

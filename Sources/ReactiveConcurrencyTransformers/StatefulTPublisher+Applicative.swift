@@ -10,7 +10,7 @@ import ReactiveConcurrency
 // matches StatefulTDeferredStream.)
 
 /// Applicative apply for the Stateful-over-Publisher stack.
-public func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
+func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ sf: Stateful<S, Publisher<@Sendable (A) -> B, F>>,
     _ sa: Stateful<S, Publisher<A, F>>
 ) -> Stateful<S, Publisher<B, F>> {
@@ -22,20 +22,20 @@ public func applyStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
 }
 
 /// Applicative liftA2 for the Stateful-over-Publisher stack: runs both effects and combines their results with fn.
-public func liftA2StatefulPublisher<S, A: Sendable, B: Sendable, C: Sendable, F: Error>(
+func liftA2StatefulPublisher<S, A: Sendable, B: Sendable, C: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Stateful<S, Publisher<A, F>>, Stateful<S, Publisher<B, F>>) -> Stateful<S, Publisher<C, F>> {
     { sa, sb in
         Stateful<S, Publisher<C, F>> { s in
             let pa = sa.run(&s)
             let pb = sb.run(&s)
-            return pa.zip(pb).map { fn($0.0, $0.1) }
+            return liftA2Publisher(fn)(pa, pb)
         }
     }
 }
 
 /// Applicative seqRight for the Stateful-over-Publisher stack: sequences both effects, keeps the right result.
-public func seqRightStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
+func seqRightStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Stateful<S, Publisher<A, F>>,
     _ rhs: Stateful<S, Publisher<B, F>>
 ) -> Stateful<S, Publisher<B, F>> {
@@ -43,7 +43,7 @@ public func seqRightStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
 }
 
 /// Applicative seqLeft for the Stateful-over-Publisher stack: sequences both effects, keeps the left result.
-public func seqLeftStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
+func seqLeftStatefulPublisher<S, A: Sendable, B: Sendable, F: Error>(
     _ lhs: Stateful<S, Publisher<A, F>>,
     _ rhs: Stateful<S, Publisher<B, F>>
 ) -> Stateful<S, Publisher<A, F>> {

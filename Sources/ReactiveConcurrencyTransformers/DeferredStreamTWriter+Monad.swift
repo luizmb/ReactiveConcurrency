@@ -10,7 +10,7 @@ import ReactiveConcurrency
 // flatMapT concatMaps the stream and combines each element's log with the continuation's log
 // INSIDE the effect (w1 <> w2). The previous shape discarded the continuation's log.
 
-public extension DeferredStream {
+extension DeferredStream {
     /// Monadic bind for the DeferredStream-over-Writer stack: threads the value through fn and combines the accumulated logs via the Monoid.
     func flatMapT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
         _ fn: @escaping @Sendable (Inner) -> DeferredStream<Writer<W, B>>
@@ -20,20 +20,4 @@ public extension DeferredStream {
             fn(w1.value).map { w2 in Writer<W, B>(w2.value, W.combine(w1.log, w2.log)) }
         }
     }
-
-    /// Monadic bind (point-free) for the DeferredStream-over-Writer stack: threads the value through fn and combines the accumulated logs via the
-    /// Monoid.
-    static func bindT<W: Monoid & Sendable, Inner: Sendable, B: Sendable>(
-        _ fn: @escaping @Sendable (Inner) -> DeferredStream<Writer<W, B>>
-    ) -> @Sendable (DeferredStream<Writer<W, Inner>>) -> DeferredStream<Writer<W, B>> {
-        { $0.flatMapT(fn) }
-    }
-}
-
-/// Left-to-right Kleisli composition for the DeferredStream-over-Writer stack.
-public func kleisliTDeferredStreamWriter<W: Monoid & Sendable, A: Sendable, B: Sendable, C: Sendable>(
-    _ fn1: @escaping @Sendable (A) -> DeferredStream<Writer<W, B>>,
-    _ fn2: @escaping @Sendable (B) -> DeferredStream<Writer<W, C>>
-) -> @Sendable (A) -> DeferredStream<Writer<W, C>> {
-    { @Sendable a in fn1(a).flatMapT(fn2) }
 }

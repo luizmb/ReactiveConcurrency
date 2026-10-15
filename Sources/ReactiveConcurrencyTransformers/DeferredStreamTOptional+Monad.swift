@@ -8,7 +8,7 @@ import ReactiveConcurrency
 // flatMapT :: DeferredStream<A?> -> (A -> DeferredStream<B?>) -> DeferredStream<B?>
 // nil elements pass through as nil; Some(a) is replaced by all elements of fn(a)
 /// Monadic bind for the DeferredStream-over-Optional stack: nil short-circuits; a present value threads through fn.
-public func flatMapTDeferredStreamOptional<A: Sendable, B: Sendable>(
+func flatMapTDeferredStreamOptional<A: Sendable, B: Sendable>(
     _ stream: DeferredStream<A?>,
     _ fn: @escaping @Sendable (A) -> DeferredStream<B?>
 ) -> DeferredStream<B?> {
@@ -30,20 +30,4 @@ public func flatMapTDeferredStreamOptional<A: Sendable, B: Sendable>(
             continuation.onTermination = { _ in task.cancel() }
         }
     }
-}
-
-/// Monadic bind (point-free) for the DeferredStream-over-Optional stack: nil short-circuits; a present value threads through fn.
-public func bindTDeferredStreamOptional<A: Sendable, B: Sendable>(
-    _ fn: @escaping @Sendable (A) -> DeferredStream<B?>
-) -> @Sendable (DeferredStream<A?>) -> DeferredStream<B?> {
-    { @Sendable stream in flatMapTDeferredStreamOptional(stream, fn) }
-}
-
-// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
-/// Left-to-right Kleisli composition for the DeferredStream-over-Optional stack.
-public func kleisliTDeferredStreamOptional<A: Sendable, B: Sendable, C: Sendable>(
-    _ fn1: @escaping @Sendable (A) -> DeferredStream<B?>,
-    _ fn2: @escaping @Sendable (B) -> DeferredStream<C?>
-) -> @Sendable (A) -> DeferredStream<C?> {
-    { @Sendable a in flatMapTDeferredStreamOptional(fn1(a), fn2) }
 }

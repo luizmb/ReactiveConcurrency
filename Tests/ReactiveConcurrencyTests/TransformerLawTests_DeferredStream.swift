@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Monad laws for the DeferredStream transformer stacks. Each suite checks left identity, right
-// identity, associativity, and Kleisli/bind consistency for one stack, comparing collected values.
+// Laws for the DeferredStream transformer stacks: monad laws plus `<*>` == `ap` for the monad stacks,
+// applicative laws for the applicative-only DeferredStreamTArray (`ListT` has no lawful monad).
 
 import CoreFPOperators
 import DataStructure
@@ -35,119 +35,145 @@ private func collectS<A: Sendable>(_ s: DeferredStream<A>) async -> [A] {
 // MARK: - DeferredStreamTEither
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamTEitherLawTests {
-    private func pureT(_ a: Int) -> DeferredStream<Either<LawL, Int>> { streamOf([.right(a)]) }
-    private let f: @Sendable (Int) -> DeferredStream<Either<LawL, Int>> = { n in streamOf([.right(n + 1)]) }
-    private let g: @Sendable (Int) -> DeferredStream<Either<LawL, Int>> = { n in streamOf([.right(n * 3)]) }
+    private typealias T = DeferredStreamTEither<LawL, Int>
+    private let f: @Sendable (Int) -> T = { n in T(streamOf([.right(n + 1)])) }
+    private let g: @Sendable (Int) -> T = { n in T(streamOf([.right(n * 3), .left(.e)])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectS(flatMapTDeferredStreamEither(pureT(5), f)) == collectS(f(5)))
+        #expect(await collectS(T.pure(5).flatMap(f).rawValue) == collectS(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectS(flatMapTDeferredStreamEither(m) { n in streamOf([.right(n)]) }) == collectS(m))
+        let m = T(streamOf([.right(1), .left(.e), .right(2)]))
+        #expect(await collectS(m.flatMap(T.pure).rawValue) == collectS(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredStreamEither(flatMapTDeferredStreamEither(m, f), g)
-        let rhs = flatMapTDeferredStreamEither(m) { a in flatMapTDeferredStreamEither(f(a), g) }
-        #expect(await collectS(lhs) == collectS(rhs))
+        let m = T(streamOf([.right(1), .left(.e), .right(2)]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectS(lhs.rawValue) == collectS(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredStreamEither(f(4), g)
-        #expect(await collectS((f >=> g)(4)) == collectS(viaBind))
-        #expect(await collectS((g <=< f)(4)) == collectS(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectS((f >=> g)(4).rawValue) == collectS(viaBind.rawValue))
+        #expect(await collectS((g <=< f)(4).rawValue) == collectS(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(streamOf([.right(1), .left(.e), .right(2)])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(streamOf([.right(1), .left(.e), .right(2)]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectS((fns <*> values).rawValue) == collectS(viaBind.rawValue))
     }
 }
 
 // MARK: - DeferredStreamTResult
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamTResultLawTests {
-    private func pureT(_ a: Int) -> DeferredStream<Result<Int, LawE>> { streamOf([.success(a)]) }
-    private let f: @Sendable (Int) -> DeferredStream<Result<Int, LawE>> = { n in streamOf([.success(n + 1)]) }
-    private let g: @Sendable (Int) -> DeferredStream<Result<Int, LawE>> = { n in streamOf([.success(n * 3)]) }
+    private typealias T = DeferredStreamTResult<LawE, Int>
+    private let f: @Sendable (Int) -> T = { n in T(streamOf([.success(n + 1)])) }
+    private let g: @Sendable (Int) -> T = { n in T(streamOf([.success(n * 3), .failure(.boom)])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectS(flatMapTDeferredStreamResult(pureT(5), f)) == collectS(f(5)))
+        #expect(await collectS(T.pure(5).flatMap(f).rawValue) == collectS(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectS(flatMapTDeferredStreamResult(m) { n in streamOf([.success(n)]) }) == collectS(m))
+        let m = T(streamOf([.success(1), .failure(.boom), .success(2)]))
+        #expect(await collectS(m.flatMap(T.pure).rawValue) == collectS(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredStreamResult(flatMapTDeferredStreamResult(m, f), g)
-        let rhs = flatMapTDeferredStreamResult(m) { a in flatMapTDeferredStreamResult(f(a), g) }
-        #expect(await collectS(lhs) == collectS(rhs))
+        let m = T(streamOf([.success(1), .failure(.boom), .success(2)]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectS(lhs.rawValue) == collectS(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredStreamResult(f(4), g)
-        #expect(await collectS((f >=> g)(4)) == collectS(viaBind))
-        #expect(await collectS((g <=< f)(4)) == collectS(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectS((f >=> g)(4).rawValue) == collectS(viaBind.rawValue))
+        #expect(await collectS((g <=< f)(4).rawValue) == collectS(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(streamOf([.success(1), .failure(.boom), .success(2)])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(streamOf([.success(1), .failure(.boom), .success(2)]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectS((fns <*> values).rawValue) == collectS(viaBind.rawValue))
     }
 }
 
 // MARK: - DeferredStreamTOptional
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamTOptionalLawTests {
-    private func pureT(_ a: Int) -> DeferredStream<Int?> { streamOf([Optional(a)]) }
-    private let f: @Sendable (Int) -> DeferredStream<Int?> = { n in streamOf([Optional(n + 1)]) }
-    private let g: @Sendable (Int) -> DeferredStream<Int?> = { n in streamOf([Optional(n * 3)]) }
+    private typealias T = DeferredStreamTOptional<Int>
+    private let f: @Sendable (Int) -> T = { n in T(streamOf([n + 1])) }
+    private let g: @Sendable (Int) -> T = { n in T(streamOf([n * 3, nil])) }
 
     @Test func leftIdentity() async {
-        #expect(await collectS(flatMapTDeferredStreamOptional(pureT(5), f)) == collectS(f(5)))
+        #expect(await collectS(T.pure(5).flatMap(f).rawValue) == collectS(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await collectS(flatMapTDeferredStreamOptional(m) { n in streamOf([Optional(n)]) }) == collectS(m))
+        let m = T(streamOf([1, nil, 2]))
+        #expect(await collectS(m.flatMap(T.pure).rawValue) == collectS(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredStreamOptional(flatMapTDeferredStreamOptional(m, f), g)
-        let rhs = flatMapTDeferredStreamOptional(m) { a in flatMapTDeferredStreamOptional(f(a), g) }
-        #expect(await collectS(lhs) == collectS(rhs))
+        let m = T(streamOf([1, nil, 2]))
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await collectS(lhs.rawValue) == collectS(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredStreamOptional(f(4), g)
-        #expect(await collectS((f >=> g)(4)) == collectS(viaBind))
-        #expect(await collectS((g <=< f)(4)) == collectS(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await collectS((f >=> g)(4).rawValue) == collectS(viaBind.rawValue))
+        #expect(await collectS((g <=< f)(4).rawValue) == collectS(viaBind.rawValue))
+    }
+
+    // `<*>` is `ap`, derived from `>>-`: for each function, in order, every value.
+    @Test func applyIsAp() async {
+        let fns = T(streamOf([1, nil, 2])).map { a in { @Sendable (b: Int) in a * 10 + b } }
+        let values = T(streamOf([1, nil, 2]))
+        let viaBind = fns.flatMap { fn in values.map(fn) }
+        #expect(await collectS((fns <*> values).rawValue) == collectS(viaBind.rawValue))
+    }
+
+    // A nil function short-circuits once; it never re-runs the value stream per element.
+    @Test func nilFunctionEmitsOneNil() async {
+        let fns = T(streamOf([nil, 1])).map { a in { @Sendable (b: Int) in a + b } }
+        let values = T(streamOf([10, 20]))
+        #expect(await collectS((fns <*> values).rawValue) == [nil, 11, 21])
     }
 }
 
-// MARK: - DeferredStreamTArray
+// MARK: - DeferredStreamTArray (applicative only)
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamTArrayLawTests {
-    private func pureT(_ a: Int) -> DeferredStream<[Int]> { streamOf([[a]]) }
-    private let f: @Sendable (Int) -> DeferredStream<[Int]> = { n in streamOf([[n, n + 1]]) }
-    private let g: @Sendable (Int) -> DeferredStream<[Int]> = { n in streamOf([[n * 3]]) }
+    private typealias T = DeferredStreamTArray<Int>
 
-    @Test func leftIdentity() async {
-        #expect(await collectS(flatMapTDeferredStreamArray(pureT(5), f)) == collectS(f(5)))
+    @Test func identity() async {
+        let v = T(streamOf([[1, 2], [3]]))
+        let id = DeferredStreamTArray<@Sendable (Int) -> Int>.pure { $0 }
+        #expect(await collectS((id <*> v).rawValue) == [[1, 2], [3]])
     }
 
-    @Test func rightIdentity() async {
-        let m = streamOf([[1, 2, 3]])
-        #expect(await collectS(flatMapTDeferredStreamArray(m) { n in streamOf([[n]]) }) == collectS(m))
+    // Outer: cartesian over the stream elements; inner: cartesian over each pair of arrays.
+    @Test func liftA2IsCartesianTwice() async {
+        let lhs = T(streamOf([[1, 2], [3]]))
+        let rhs = T(streamOf([[10], [20, 30]]))
+        let sum = T.liftA2 { (a: Int, b: Int) in a + b }(lhs, rhs)
+        #expect(await collectS(sum.rawValue) == [[11, 12], [21, 31, 22, 32], [13], [23, 33]])
     }
 
-    @Test func associativity() async {
-        let m = streamOf([[1, 2]])
-        let lhs = flatMapTDeferredStreamArray(flatMapTDeferredStreamArray(m, f), g)
-        let rhs = flatMapTDeferredStreamArray(m) { a in flatMapTDeferredStreamArray(f(a), g) }
-        #expect(await collectS(lhs) == collectS(rhs))
-    }
-
-    @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredStreamArray(f(4), g)
-        #expect(await collectS((f >=> g)(4)) == collectS(viaBind))
-        #expect(await collectS((g <=< f)(4)) == collectS(viaBind))
+    @Test func liftingProperty() async {
+        let lifted = streamOf([[1, 2]]).deferredStreamT
+        #expect(await collectS((lifted <&> { $0 + 1 }).rawValue) == [[2, 3]])
     }
 }

@@ -10,12 +10,14 @@ public extension DeferredStream {
         }
     }
 
-    /// Zips positionally with `rhs`, keeping only `rhs`'s elements; truncates to the shorter stream.
+    /// Sequences with `rhs`, keeping `rhs`'s elements (`*>`): for each element of `self`, every element
+    /// of `rhs` (the cartesian product, derived from `flatMap`). Use `zip` for positional pairing.
     func seqRight<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<B> {
         liftA2DeferredStream { _, b in b }(self, rhs)
     }
 
-    /// Zips positionally with `rhs`, keeping only `self`'s elements; truncates to the shorter stream.
+    /// Sequences with `rhs`, keeping `self`'s elements (`<*`): each element of `self` repeated once per
+    /// element of `rhs` (the cartesian product, derived from `flatMap`). Use `zip` for positional pairing.
     func seqLeft<B: Sendable>(_ rhs: DeferredStream<B>) -> DeferredStream<Element> {
         liftA2DeferredStream { a, _ in a }(self, rhs)
     }
@@ -97,54 +99,24 @@ public extension DeferredStream {
     }
 }
 
-/// Applies a stream of functions to a stream of values, positionally (applicative `<*>`).
+/// Applies a stream of functions to a stream of values (applicative `<*>`).
 ///
-/// Zippy Semigroupal (ZipList-style): pairs each fn with each value positionally and truncates at
-/// the shorter side. This is the product users want from a stream, but it is NOT the applicative
-/// derived from the monad (`flatMap` = concatMap = cartesian). The applicative
-/// *identity* law `pure(id) <*> v == v` fails for `|v| > 1` (pure yields one element, zip truncates
-/// `v` to length 1). Use `flatMap` for the cartesian, monad-consistent product.
-/// `pure` / `seqLeft` / `seqRight` are zippy for the same reason.
+/// `ap`, derived from the monad: for each function, in order, every value (`fns.flatMap { f in
+/// values.map(f) }`), so `<*>` agrees with `>>-` and the applicative laws hold. `values` is
+/// re-subscribed once per function. For positional, ZipList-style pairing use `zip`.
 public func applyDeferredStream<A: Sendable, B: Sendable>(
     _ fns: DeferredStream<@Sendable (A) -> B>,
     _ values: DeferredStream<A>
 ) -> DeferredStream<B> {
-    DeferredStream<B> {
-        let fnStream = fns.factory()
-        let valStream = values.factory()
-        return AsyncStream<B> { continuation in
-            let task = Task { @Sendable in
-                var fnIter = fnStream.makeAsyncIterator()
-                var valIter = valStream.makeAsyncIterator()
-                while let fn = await fnIter.next(), let val = await valIter.next() {
-                    continuation.yield(fn(val))
-                }
-                continuation.finish()
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
-    }
+    fns.flatMap { fn in values.map(fn) }
 }
 
-/// Combines two streams element-wise with a binary function; truncates to the shorter stream.
+/// Combines two streams with a binary function: for each element of `sa`, in order, every element of
+/// `sb` (the cartesian product, derived from `flatMap`). For positional pairing use `zip`.
 public func liftA2DeferredStream<A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<A>, DeferredStream<B>) -> DeferredStream<C> {
     { @Sendable sa, sb in
-        DeferredStream<C> {
-            let streamA = sa.factory()
-            let streamB = sb.factory()
-            return AsyncStream<C> { continuation in
-                let task = Task { @Sendable in
-                    var ia = streamA.makeAsyncIterator()
-                    var ib = streamB.makeAsyncIterator()
-                    while let a = await ia.next(), let b = await ib.next() {
-                        continuation.yield(fn(a, b))
-                    }
-                    continuation.finish()
-                }
-                continuation.onTermination = { _ in task.cancel() }
-            }
-        }
+        sa.flatMap { a in sb.map { b in fn(a, b) } }
     }
 }

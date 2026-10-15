@@ -9,7 +9,7 @@ import ReactiveConcurrency
 // Applicative accumulates errors (Validation's key property)
 /// Applicative liftA2 for the DeferredStream-over-Validation stack: runs both effects and combines their results with fn; failures accumulate via the
 /// error Semigroup.
-public func liftA2TDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+func liftA2TDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredStream<Validation<E, A>>, DeferredStream<Validation<E, B>>) -> DeferredStream<Validation<E, C>> {
     { @Sendable sa, sb in
@@ -32,7 +32,7 @@ public func liftA2TDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable
 }
 
 /// Applicative apply for the DeferredStream-over-Validation stack; failures accumulate via the error Semigroup.
-public func applyTDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable>(
+func applyTDeferredStreamValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable>(
     _ fns: DeferredStream<Validation<E, @Sendable (A) -> B>>,
     _ values: DeferredStream<Validation<E, A>>
 ) -> DeferredStream<Validation<E, B>> where B: Sendable {

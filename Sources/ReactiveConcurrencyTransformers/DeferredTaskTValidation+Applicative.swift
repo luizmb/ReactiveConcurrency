@@ -9,7 +9,7 @@ import ReactiveConcurrency
 // Applicative accumulates errors (Validation's key property)
 /// Applicative liftA2 for the DeferredTask-over-Validation stack: runs both effects and combines their results with fn; failures accumulate via the
 /// error Semigroup.
-public func liftA2TDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, C: Sendable>(
+func liftA2TDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (DeferredTask<Validation<E, A>>, DeferredTask<Validation<E, B>>) -> DeferredTask<Validation<E, C>> {
     { @Sendable ta, tb in
@@ -22,7 +22,7 @@ public func liftA2TDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, 
 }
 
 /// Applicative apply for the DeferredTask-over-Validation stack; failures accumulate via the error Semigroup.
-public func applyTDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable>(
+func applyTDeferredTaskValidation<E: Semigroup & Sendable, A: Sendable, B: Sendable>(
     _ fns: DeferredTask<Validation<E, @Sendable (A) -> B>>,
     _ values: DeferredTask<Validation<E, A>>
 ) -> DeferredTask<Validation<E, B>> where B: Sendable {

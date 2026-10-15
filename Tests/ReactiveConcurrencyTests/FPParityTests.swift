@@ -67,22 +67,22 @@ private func events<O: Sendable, E: Error>(_ publisher: Publisher<O, E>) async -
     @Test func seqRightAndSeqLeft() async {
         let a = Publisher<Int, Never>.sequence(1...3)
         let b = Publisher<String, Never>.sequence(["a", "b", "c"])
-        #expect(await values(a.seqRight(b)) == ["a", "b", "c"])
-        #expect(await values(a.seqLeft(b)) == [1, 2, 3])
+        #expect(await values(a.seqRight(b)) == ["a", "b", "c", "a", "b", "c", "a", "b", "c"])
+        #expect(await values(a.seqLeft(b)) == [1, 1, 1, 2, 2, 2, 3, 3, 3])
     }
 
     @Test func applyOperator() async {
         let fnList: [@Sendable (Int) -> Int] = [{ $0 + 1 }, { $0 * 2 }]
         let fns = Publisher<@Sendable (Int) -> Int, Never>.sequence(fnList)
         let vals = Publisher<Int, Never>.sequence([10, 20])
-        #expect(await values(fns <*> vals) == [11, 40])
+        #expect(await values(fns <*> vals) == [11, 21, 20, 40]) // `ap`: each function against every value
     }
 
     @Test func seqOperators() async {
         let a = Publisher<Int, Never>.sequence(1...2)
         let b = Publisher<String, Never>.sequence(["x", "y"])
-        #expect(await values(a *> b) == ["x", "y"])
-        #expect(await values(a <* b) == [1, 2])
+        #expect(await values(a *> b) == ["x", "y", "x", "y"])
+        #expect(await values(a <* b) == [1, 1, 2, 2])
     }
 }
 

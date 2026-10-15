@@ -9,16 +9,9 @@ import ReactiveConcurrency
 // short-circuits the transformer.
 
 /// Functor map over the Publisher-over-Either stack: transforms the innermost value, leaving the Publisher and Either layers intact.
-public func mapTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
+func mapTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
     _ fn: @escaping @Sendable (A) -> B,
     _ publisher: Publisher<Either<L, A>, F>
 ) -> Publisher<Either<L, B>, F> {
     publisher.map { either in either.mapRight(fn) }
-}
-
-/// Functor map (point-free) for the Publisher-over-Either stack: transforms the innermost value, leaving the Publisher and Either layers intact.
-public func fmapTPublisherEither<L: Sendable, A: Sendable, B: Sendable, F: Error>(
-    _ fn: @escaping @Sendable (A) -> B
-) -> @Sendable (Publisher<Either<L, A>, F>) -> Publisher<Either<L, B>, F> {
-    { @Sendable publisher in mapTPublisherEither(fn, publisher) }
 }

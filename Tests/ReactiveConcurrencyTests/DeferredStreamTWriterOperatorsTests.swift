@@ -10,20 +10,20 @@ import Testing
 
 private func writerStream<T: Sendable>(
     _ elements: [(T, [String])]
-) -> DeferredStream<Writer<[String], T>> {
-    DeferredStream<Writer<[String], T>> {
+) -> DeferredStreamTWriter<[String], T> {
+    DeferredStreamTWriter(DeferredStream<Writer<[String], T>> {
         AsyncStream { c in
             for (value, log) in elements {
                 c.yield(Writer(value, log))
             }
             c.finish()
         }
-    }
+    })
 }
 
-private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>) async -> [Writer<[String], T>] {
+private func collect<T: Sendable>(_ stack: DeferredStreamTWriter<[String], T>) async -> [Writer<[String], T>] {
     var out: [Writer<[String], T>] = []
-    for await w in stream {
+    for await w in stack.rawValue {
         out.append(w)
     }
     return out
@@ -32,14 +32,14 @@ private func collect<T: Sendable>(_ stream: DeferredStream<Writer<[String], T>>)
 @Suite(.timeLimit(.minutes(1))) struct DeferredStreamTWriterOperatorsTests {
     @Test func fmap() async {
         let w = writerStream([(1, ["log"]), (2, ["log"])])
-        let results = await collect({ $0 * 3 } <£^> w)
+        let results = await collect({ $0 * 3 } <£> w)
         #expect(results.map(\.value) == [3, 6])
         #expect(results.map(\.log) == [["log"], ["log"]])
     }
 
     @Test func flippedFmap() async {
         let w = writerStream([(1, ["log"]), (2, ["log"])])
-        let results = await collect(w <&^> { $0 * 3 })
+        let results = await collect(w <&> { $0 * 3 })
         #expect(results.map(\.value) == [3, 6])
         #expect(results.map(\.log) == [["log"], ["log"]])
     }

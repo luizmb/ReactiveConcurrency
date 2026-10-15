@@ -68,7 +68,7 @@ private enum TestError: Error, Equatable { case err }
         for await v in lhs.seqRight(rhs) {
             results.append(v)
         }
-        #expect(results == ["a", "b"])
+        #expect(results == ["a", "b", "a", "b"]) // `ap`: rhs once per lhs element
     }
 
     @Test func seqLeft() async {
@@ -78,7 +78,7 @@ private enum TestError: Error, Equatable { case err }
         for await v in lhs.seqLeft(rhs) {
             results.append(v)
         }
-        #expect(results == [1, 2])
+        #expect(results == [1, 1, 2, 2]) // `ap`: each lhs element once per rhs element
     }
 
     // MARK: - Monad
@@ -175,7 +175,7 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<Int?> { c in c.yield(1); c.yield(nil); c.yield(3); c.finish() }
         }
         var results: [Int?] = []
-        for await v in mapTDeferredStreamOptional({ $0 * 2 }, stream) {
+        for await v in stream.deferredStreamT.map { $0 * 2 }.rawValue {
             results.append(v)
         }
         #expect(results == [2, nil, 6])
@@ -185,11 +185,11 @@ private enum TestError: Error, Equatable { case err }
         let stream = DeferredStream<Int?> {
             AsyncStream<Int?> { c in c.yield(2); c.yield(nil); c.finish() }
         }
-        let result = flatMapTDeferredStreamOptional(stream) { n in
-            DeferredStream<Int?> { AsyncStream { c in c.yield(n * 10); c.finish() } }
+        let result = stream.deferredStreamT.flatMap { n in
+            DeferredStream<Int?> { AsyncStream { c in c.yield(n * 10); c.finish() } }.deferredStreamT
         }
         var results: [Int?] = []
-        for await v in result {
+        for await v in result.rawValue {
             results.append(v)
         }
         #expect(results == [20, nil])
@@ -202,24 +202,26 @@ private enum TestError: Error, Equatable { case err }
             AsyncStream<[Int]> { c in c.yield([1, 2]); c.yield([3]); c.finish() }
         }
         var results: [[Int]] = []
-        for await v in mapTDeferredStreamArray({ $0 * 2 }, stream) {
+        for await v in stream.deferredStreamT.map { $0 * 2 }.rawValue {
             results.append(v)
         }
         #expect(results == [[2, 4], [6]])
     }
 
-    @Test func tArrayFlatMapT() async {
-        let stream = DeferredStream<[Int]> {
+    // DeferredStreamTArray is applicative-only (no lawful ListT monad): liftA2 is cartesian twice.
+    @Test func tArrayLiftA2() async {
+        let lhs = DeferredStream<[Int]> {
             AsyncStream<[Int]> { c in c.yield([1, 2]); c.finish() }
         }
-        let result = flatMapTDeferredStreamArray(stream) { n in
-            DeferredStream<[Int]> { AsyncStream { c in c.yield([n, n * 10]); c.finish() } }
+        let rhs = DeferredStream<[Int]> {
+            AsyncStream<[Int]> { c in c.yield([10]); c.yield([100]); c.finish() }
         }
+        let result = DeferredStreamTArray.liftA2 { (a: Int, b: Int) in a * b }(lhs.deferredStreamT, rhs.deferredStreamT)
         var results: [[Int]] = []
-        for await v in result {
+        for await v in result.rawValue {
             results.append(v)
         }
-        #expect(results == [[1, 10, 2, 20]])
+        #expect(results == [[10, 20], [100, 200]])
     }
 
     // MARK: - TResult
@@ -233,7 +235,7 @@ private enum TestError: Error, Equatable { case err }
             }
         }
         var results: [Result<Int, TestError>] = []
-        for await v in mapTDeferredStreamResult({ $0 * 2 }, stream) {
+        for await v in stream.deferredStreamT.map { $0 * 2 }.rawValue {
             results.append(v)
         }
         #expect(results == [.success(6), .failure(.err)])
@@ -243,13 +245,13 @@ private enum TestError: Error, Equatable { case err }
         let stream = DeferredStream<Result<Int, TestError>> {
             AsyncStream<Result<Int, TestError>> { c in c.yield(.success(5)); c.finish() }
         }
-        let result = flatMapTDeferredStreamResult(stream) { n in
+        let result = stream.deferredStreamT.flatMap { n in
             DeferredStream<Result<String, TestError>> {
                 AsyncStream { c in c.yield(.success("v\(n)")); c.finish() }
-            }
+            }.deferredStreamT
         }
         var results: [Result<String, TestError>] = []
-        for await v in result {
+        for await v in result.rawValue {
             results.append(v)
         }
         #expect(results == [.success("v5")])

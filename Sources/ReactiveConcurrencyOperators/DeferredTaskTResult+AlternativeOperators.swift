@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import CoreFPOperators
-import ReactiveConcurrency
 import ReactiveConcurrencyTransformers
 
-// (<|>) :: DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>> -> DeferredTask<Result<A,E>>
+// (<|>) :: DeferredTaskTResult a -> DeferredTaskTResult a -> DeferredTaskTResult a
 
-/// Alternative — first non-empty/successful of the two, a lawful monoid with `empty` for the DeferredTask-over-Result stack.
-public func <|> <A: Sendable, E: Error & Sendable>(
-    _ lhs: DeferredTask<Result<A, E>>,
-    _ rhs: @autoclosure () -> DeferredTask<Result<A, E>>
-) -> DeferredTask<Result<A, E>> {
-    altDeferredTaskResult(lhs, rhs())
+/// Left-biased choice for the ``DeferredTaskTResult`` stack: operator form of `alt`.
+public func <|> <E: Error, A: Sendable>(
+    _ lhs: ReactiveConcurrencyTransformers.DeferredTaskTResult<E, A>,
+    _ rhs: @autoclosure () -> ReactiveConcurrencyTransformers.DeferredTaskTResult<E, A>
+) -> ReactiveConcurrencyTransformers.DeferredTaskTResult<E, A> {
+    lhs.alt(rhs())
 }

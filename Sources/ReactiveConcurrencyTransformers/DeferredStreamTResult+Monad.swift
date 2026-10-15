@@ -8,7 +8,7 @@ import ReactiveConcurrency
 // flatMapT :: DeferredStream<Result<A,E>> -> (A -> DeferredStream<Result<B,E>>) -> DeferredStream<Result<B,E>>
 // failure short-circuits (emits failure); success elements proceed through fn
 /// Monadic bind for the DeferredStream-over-Result stack: .failure short-circuits; .success threads through fn.
-public func flatMapTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendable>(
+func flatMapTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendable>(
     _ stream: DeferredStream<Result<A, E>>,
     _ fn: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>
 ) -> DeferredStream<Result<B, E>> {
@@ -31,20 +31,4 @@ public func flatMapTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Se
             continuation.onTermination = { _ in task.cancel() }
         }
     }
-}
-
-/// Monadic bind (point-free) for the DeferredStream-over-Result stack: .failure short-circuits; .success threads through fn.
-public func bindTDeferredStreamResult<A: Sendable, B: Sendable, E: Error & Sendable>(
-    _ fn: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>
-) -> @Sendable (DeferredStream<Result<A, E>>) -> DeferredStream<Result<B, E>> {
-    { @Sendable stream in flatMapTDeferredStreamResult(stream, fn) }
-}
-
-// Kleisli composition (left-to-right): the named function >=>/<=< delegate to.
-/// Left-to-right Kleisli composition for the DeferredStream-over-Result stack.
-public func kleisliTDeferredStreamResult<A: Sendable, B: Sendable, C: Sendable, E: Error & Sendable>(
-    _ fn1: @escaping @Sendable (A) -> DeferredStream<Result<B, E>>,
-    _ fn2: @escaping @Sendable (B) -> DeferredStream<Result<C, E>>
-) -> @Sendable (A) -> DeferredStream<Result<C, E>> {
-    { @Sendable a in flatMapTDeferredStreamResult(fn1(a), fn2) }
 }
