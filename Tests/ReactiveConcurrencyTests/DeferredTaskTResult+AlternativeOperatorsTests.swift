@@ -12,21 +12,21 @@ private enum TestError: Error, Equatable { case err }
     @Test func altOperatorFirstSuccessWins() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
         let rhs = DeferredTask<Result<Int, TestError>> { .success(42) }
-        let result = await (lhs <|> rhs).run()
+        let result = await (lhs.deferredTaskT <|> rhs.deferredTaskT).rawValue.run()
         #expect(result == .success(42))
     }
 
     @Test func altOperatorBothFailReturnsFailure() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
         let rhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await (lhs <|> rhs).run()
+        let result = await (lhs.deferredTaskT <|> rhs.deferredTaskT).rawValue.run()
         #expect(result == .failure(.err))
     }
 
     @Test func altOperatorSuccessBeatsFailure() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .success(7) }
         let rhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await (lhs <|> rhs).run()
+        let result = await (lhs.deferredTaskT <|> rhs.deferredTaskT).rawValue.run()
         #expect(result == .success(7) || result == .failure(.err))
     }
 }

@@ -18,9 +18,9 @@ import Testing
             }
             }
         }
-        let result = { $0 * 10 } <£^> s
+        let result = { $0 * 10 } <£> s.statefulT
         var values: [Int] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == [10, 20])
@@ -35,9 +35,9 @@ import Testing
             }
             }
         }
-        let result = s <&^> { $0 * 10 }
+        let result = s.statefulT <&> { $0 * 10 }
         var values: [Int] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == [10, 20])
@@ -51,9 +51,9 @@ import Testing
             }
             }
         }
-        let result = { $0 + 100 } <£^> s
+        let result = { $0 + 100 } <£> s.statefulT
         var values: [Int] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == [105])
@@ -66,9 +66,9 @@ import Testing
         let sa = Stateful<Int, DeferredStream<Int>> { _ in
             DeferredStream { AsyncStream { c in c.yield(42); c.finish() } }
         }
-        let result = sf <*> sa
+        let result = sf.statefulT <*> sa.statefulT
         var values: [String] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == ["42"])
@@ -81,9 +81,9 @@ import Testing
         let rhs = Stateful<Int, DeferredStream<String>> { _ in
             DeferredStream { AsyncStream { c in c.yield("hello"); c.finish() } }
         }
-        let result = lhs *> rhs
+        let result = lhs.statefulT *> rhs.statefulT
         var values: [String] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == ["hello"])
@@ -96,9 +96,9 @@ import Testing
         let rhs = Stateful<Int, DeferredStream<String>> { _ in
             DeferredStream { AsyncStream { c in c.yield("ignored"); c.finish() } }
         }
-        let result = lhs <* rhs
+        let result = lhs.statefulT <* rhs.statefulT
         var values: [Int] = []
-        for await v in result.eval(0) {
+        for await v in result.rawValue.eval(0) {
             values.append(v)
         }
         #expect(values == [99])

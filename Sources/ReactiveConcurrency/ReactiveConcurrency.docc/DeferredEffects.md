@@ -62,8 +62,9 @@ let data = await fastest.run()
 ### `DeferredStream<A>` — a lazy async sequence, with `alt`/`empty`
 
 ``DeferredStream`` is the multi-value sibling: a lazy `AsyncSequence` whose producer starts only at
-first iteration. Its `flatMap` is a lawful sequential concatMap; its applicative (`zip`,
-`applyDeferredStream`) is **zippy** — positional, truncating to the shortest side. It also forms a
+first iteration. Its `flatMap` is a lawful sequential concatMap, and its applicative
+(`applyDeferredStream`, `liftA2DeferredStream`, `<*>`) is `ap`, derived from it: the cartesian
+product, in order. `zip` pairs positionally, truncating to the shortest side. It also forms a
 monoid under `alt` (concatenation) with `empty` as identity.
 
 ```swift
@@ -75,7 +76,8 @@ let zipped = DeferredStream.zip(xs, ys)                   // DeferredStream<(X, 
 ### `sequence` / `traverse`
 
 Turn a container of effects into an effect of a container. `DeferredTask` runs them **sequentially**
-in order; `DeferredStream` is **zippy** (positional, truncating to the shortest input).
+in order; `DeferredStream` follows its applicative, emitting every combination of one element per
+stream (the first stream varies slowest).
 
 ```swift
 let all: DeferredTask<[User]> = traverseDeferredTask(ids) { id in DeferredTask { await api.getUser(id) } }

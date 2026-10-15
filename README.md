@@ -28,12 +28,11 @@ modern, pragmatic view:
 - **Typed errors, no `any Error`.** A `Publisher<Output, Failure>` carries its failure type, and
   the error is surfaced as a *value* (`Result`) at the iteration boundary, never as an untyped
   thrown error.
-- **Founded on functional algebra.** `Publisher` is a lawful Functor, Monad, and (concat)
-  Alternative. Its `<*>`/`zip` product is a *zippy* Semigroupal (ZipList-style: it pairs
-  positionally and truncates at the shorter side), not the cartesian Applicative derived from
-  the monad — reach for `flatMap` when you want the monad-consistent product. **Opt-in symbolic
-  operators** (`<£>`, `>>-`, `<*>`, …) are there for point-free composition, ordinary methods for
-  everyone else.
+- **Founded on functional algebra.** `Publisher` is a lawful Functor, Applicative, Monad, and
+  (concat) Alternative. The FP algebra binds with ordered concat, and `<*>` is `ap`, derived from it
+  (the cartesian product, in order), so the two always agree; `zip` is there for positional
+  pairing. The `flatMap(_:)` method keeps Combine's merge semantics. **Opt-in symbolic operators**
+  (`<£>`, `>>-`, `<*>`, …) are there for point-free composition, ordinary methods for everyone else.
 - **Genuinely cross-platform.** CI builds and runs the full test suite on **macOS, Linux, Android
   (emulator), and Windows**. No `Combine`, `UIKit`, or any Apple-only API in the library.
 
@@ -691,8 +690,9 @@ deferredTask.eraseToPublisher()                    // DeferredTask<A>           
 publisher.firstValueTask()                         // Publisher<A, Never>          → DeferredTask<A?>  (lazy)
 ```
 
-For an environment-dependent effect, compose `Reader` with `Publisher` — the `ReaderTPublisher`
-transformer (`Reader<Env, Publisher<A, E>>`) provides `mapT` / `flatMapT` and the symbolic operators.
+For an environment-dependent effect, compose `Reader` with `Publisher`: lift a
+`Reader<Env, Publisher<A, E>>` with `.readerT` into the `ReaderTPublisher` stack, which provides
+`map` / `flatMap` and the symbolic operators (see [Monad transformers](#monad-transformers)).
 
 ---
 
@@ -707,9 +707,9 @@ symbolic operators for point-free composition:
 | `<£>` | functor map (function on the left) | `map` |
 | `<&>` | functor map (publisher on the left) | `map` |
 | `£>` / `<£` | replace every value with a constant | `replace(_:)` / `void` |
-| `<*>` | applicative apply | `applyPublisher` |
+| `<*>` | applicative apply (`ap`: each function against every value, in order) | `applyPublisher` |
 | `*>` / `<*` | sequence, keep right / keep left | `seqRight` / `seqLeft` |
-| `>>-` / `-<<` | monadic bind (flatMap) — container / function on the left | `flatMap` |
+| `>>-` / `-<<` | monadic bind, ordered concat — container / function on the left | `Publisher.flatMap(_:)` (static) |
 | `>=>` | Kleisli composition of `A -> Publisher<B>` | `Publisher.kleisli` |
 | `<\|>` | alternative (here: concatenation) | `alt` |
 
@@ -727,12 +727,24 @@ Static FP constructors mirror the algebra too: `Publisher.pure(_:)` (a.k.a. `jus
 
 ### Monad transformers
 
-`ReactiveConcurrencyTransformers` provides transformer stacks layering an inner effect over
-`Publisher` — `PublisherT{Either, Array, Optional, Result, Validation}` and
-`{Reader, Writer, Stateful}TPublisher` — with `map`/`apply`/`flatMap` (`…T…`) free functions and
-their own symbolic operators (`<£^>`, `<&^>`, …). `Validation` accumulates errors via its
-applicative; `Stateful` is applicative-only (state can't thread across `await`). This is a niche
-but powerful layer — reach for it when you're composing effects, not for everyday UI streams.
+`ReactiveConcurrencyTransformers` provides transformer stacks over the three effects, following
+FP 3's model: each stack is its own struct (`DeferredTaskTResult`, `PublisherTEither`,
+`ReaderTPublisher`, …) wrapping the nested value, with `map` / `apply` / `flatMap` and the usual
+operators (`<£>`, `<*>`, `>>-`, …) on the stack type. Lift in with `.deferredTaskT`,
+`.deferredStreamT`, `.publisherT`, `.readerT` or `.statefulT`, and leave with `.rawValue`:
+
+```swift
+let names = api.fetchUsers()          // Publisher<Result<[User], APIError>, Never>
+    .publisherT
+    .map { users in users.map(\.name) }
+    .rawValue
+```
+
+`Validation` accumulates errors via its applicative; the `Array`, `Validation` and `Stateful`
+stacks are applicative-only (no lawful monad). On Apple, FP declares Combine stacks with some of
+the same names: qualify (`ReactiveConcurrencyTransformers.PublisherTResult`) where you spell the
+type. This is a niche but powerful layer — reach for it when you're composing effects, not for
+everyday UI streams. See the [Monad Transformers](https://ios.lu/ReactiveConcurrency/documentation/reactiveconcurrency/monadtransformers) article.
 
 ---
 

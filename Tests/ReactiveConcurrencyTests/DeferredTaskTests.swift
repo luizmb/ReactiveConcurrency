@@ -130,19 +130,19 @@ private enum TestError: Error, Equatable { case err }
 
     @Test func tOptionalMapT() async {
         let task = DeferredTask<Int?> { 3 }
-        let result = await mapTDeferredTaskOptional({ $0 * 2 }, task).run()
+        let result = await task.deferredTaskT.map { $0 * 2 }.rawValue.run()
         #expect(result == 6)
     }
 
     @Test func tOptionalFlatMapTSome() async {
         let task = DeferredTask<Int?> { 5 }
-        let result = await flatMapTDeferredTaskOptional(task) { n in DeferredTask<Int?> { n * 2 } }.run()
+        let result = await task.deferredTaskT.flatMap { n in DeferredTask<Int?> { n * 2 }.deferredTaskT }.rawValue.run()
         #expect(result == 10)
     }
 
     @Test func tOptionalFlatMapTNil() async {
         let task = DeferredTask<Int?> { nil }
-        let result = await flatMapTDeferredTaskOptional(task) { n in DeferredTask<Int?> { n * 2 } }.run()
+        let result = await task.deferredTaskT.flatMap { n in DeferredTask<Int?> { n * 2 }.deferredTaskT }.rawValue.run()
         #expect(result == nil)
     }
 
@@ -150,43 +150,47 @@ private enum TestError: Error, Equatable { case err }
 
     @Test func tArrayMapT() async {
         let task = DeferredTask<[Int]> { [1, 2, 3] }
-        let result = await mapTDeferredTaskArray({ $0 * 2 }, task).run()
+        let result = await task.deferredTaskT.map { $0 * 2 }.rawValue.run()
         #expect(result == [2, 4, 6])
     }
 
-    @Test func tArrayFlatMapT() async {
-        let task = DeferredTask<[Int]> { [1, 2] }
-        let result = await flatMapTDeferredTaskArray(task) { n in DeferredTask<[Int]> { [n, n * 10] } }.run()
-        #expect(result == [1, 10, 2, 20])
+    // DeferredTaskTArray is applicative-only (no lawful ListT monad): liftA2 is the cartesian product.
+    @Test func tArrayLiftA2() async {
+        let lhs = DeferredTask<[Int]> { [1, 2] }.deferredTaskT
+        let rhs = DeferredTask<[Int]> { [10, 20] }.deferredTaskT
+        let result = await DeferredTaskTArray.liftA2 { (a: Int, b: Int) in a * b }(lhs, rhs).rawValue.run()
+        #expect(result == [10, 20, 20, 40])
     }
 
     // MARK: - TResult
 
     @Test func tResultMapTSuccess() async {
         let task = DeferredTask<Result<Int, TestError>> { .success(5) }
-        let result = await mapTDeferredTaskResult({ $0 * 2 }, task).run()
+        let result = await task.deferredTaskT.map { $0 * 2 }.rawValue.run()
         #expect(result == .success(10))
     }
 
     @Test func tResultMapTFailure() async {
         let task = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await mapTDeferredTaskResult({ $0 * 2 }, task).run()
+        let result = await task.deferredTaskT.map { $0 * 2 }.rawValue.run()
         #expect(result == .failure(.err))
     }
 
     @Test func tResultFlatMapTSuccess() async {
         let task = DeferredTask<Result<Int, TestError>> { .success(5) }
-        let result = await flatMapTDeferredTaskResult(task) { n in
-            DeferredTask<Result<String, TestError>> { .success("v\(n)") }
-        }.run()
+        let next: @Sendable (Int) -> DeferredTaskTResult<TestError, String> = { n in
+            DeferredTaskTResult(DeferredTask { .success("v\(n)") })
+        }
+        let result = await task.deferredTaskT.flatMap(next).rawValue.run()
         #expect(result == .success("v5"))
     }
 
     @Test func tResultFlatMapTFailure() async {
         let task = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await flatMapTDeferredTaskResult(task) { n in
-            DeferredTask<Result<String, TestError>> { .success("v\(n)") }
-        }.run()
+        let next: @Sendable (Int) -> DeferredTaskTResult<TestError, String> = { n in
+            DeferredTaskTResult(DeferredTask { .success("v\(n)") })
+        }
+        let result = await task.deferredTaskT.flatMap(next).rawValue.run()
         #expect(result == .failure(.err))
     }
 
@@ -224,21 +228,21 @@ private enum TestError: Error, Equatable { case err }
     @Test func altOptionalFirstNonNilWins() async {
         let lhs = DeferredTask<Int?> { nil }
         let rhs = DeferredTask<Int?> { 42 }
-        let result = await altDeferredTaskOptional(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == 42)
     }
 
     @Test func altOptionalFirstSomeBeatsNil() async {
         let lhs = DeferredTask<Int?> { 7 }
         let rhs = DeferredTask<Int?> { nil }
-        let result = await altDeferredTaskOptional(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == 7)
     }
 
     @Test func altOptionalBothNilReturnsNil() async {
         let lhs = DeferredTask<Int?> { nil }
         let rhs = DeferredTask<Int?> { nil }
-        let result = await altDeferredTaskOptional(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == nil)
     }
 
@@ -249,7 +253,7 @@ private enum TestError: Error, Equatable { case err }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             return 1
         }
-        let result = await raceDeferredTaskOptional(fast, slow).run()
+        let result = await fast.deferredTaskT.race(slow.deferredTaskT).rawValue.run()
         #expect(result == 99)
     }
 
@@ -258,7 +262,7 @@ private enum TestError: Error, Equatable { case err }
         nonisolated(unsafe) var rhsRan = false
         let lhs = DeferredTask<Int?> { 1 }
         let rhs = DeferredTask<Int?> { rhsRan = true; return 2 }
-        let result = await altDeferredTaskOptional(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == 1)
         #expect(!rhsRan)
     }
@@ -267,7 +271,7 @@ private enum TestError: Error, Equatable { case err }
         nonisolated(unsafe) var ran = false
         let lhs = DeferredTask<Int?> { ran = true; return 1 }
         let rhs = DeferredTask<Int?> { nil }
-        let combined = altDeferredTaskOptional(lhs, rhs)
+        let combined = lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue
         #expect(!ran)
         _ = await combined.run()
         #expect(ran)
@@ -278,21 +282,21 @@ private enum TestError: Error, Equatable { case err }
     @Test func altResultFirstSuccessWins() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
         let rhs = DeferredTask<Result<Int, TestError>> { .success(42) }
-        let result = await altDeferredTaskResult(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == .success(42))
     }
 
     @Test func altResultSuccessBeatsFailure() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .success(7) }
         let rhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await altDeferredTaskResult(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == .success(7))
     }
 
     @Test func altResultBothFailReturnsLastFailure() async {
         let lhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
         let rhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let result = await altDeferredTaskResult(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == .failure(.err))
     }
 
@@ -303,7 +307,7 @@ private enum TestError: Error, Equatable { case err }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             return .success(1)
         }
-        let result = await raceDeferredTaskResult(fast, slow).run()
+        let result = await fast.deferredTaskT.race(slow.deferredTaskT).rawValue.run()
         #expect(result == .success(99))
     }
 
@@ -312,7 +316,7 @@ private enum TestError: Error, Equatable { case err }
         nonisolated(unsafe) var rhsRan = false
         let lhs = DeferredTask<Result<Int, TestError>> { .success(7) }
         let rhs = DeferredTask<Result<Int, TestError>> { rhsRan = true; return .success(9) }
-        let result = await altDeferredTaskResult(lhs, rhs).run()
+        let result = await lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue.run()
         #expect(result == .success(7))
         #expect(!rhsRan)
     }
@@ -321,7 +325,7 @@ private enum TestError: Error, Equatable { case err }
         nonisolated(unsafe) var ran = false
         let lhs = DeferredTask<Result<Int, TestError>> { ran = true; return .success(1) }
         let rhs = DeferredTask<Result<Int, TestError>> { .failure(.err) }
-        let combined = altDeferredTaskResult(lhs, rhs)
+        let combined = lhs.deferredTaskT.alt(rhs.deferredTaskT).rawValue
         #expect(!ran)
         _ = await combined.run()
         #expect(ran)

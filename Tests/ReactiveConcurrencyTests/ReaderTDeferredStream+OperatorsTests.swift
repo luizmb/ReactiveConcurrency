@@ -9,7 +9,7 @@ import ReactiveConcurrencyTransformers
 import Testing
 
 @Suite(.timeLimit(.minutes(1))) struct ReaderTDeferredStreamOperatorsTests {
-    struct Env { let value: Int }
+    struct Env: Sendable { let value: Int }
 
     @Test func apply() async {
         let rf: Reader<Env, DeferredStream<@Sendable (Int) -> String>> = Reader { _ in
@@ -18,9 +18,9 @@ import Testing
         let ra: Reader<Env, DeferredStream<Int>> = Reader { env in
             DeferredStream { AsyncStream { c in c.yield(env.value); c.finish() } }
         }
-        let result = rf <*> ra
+        let result = rf.readerT <*> ra.readerT
         var values: [String] = []
-        for await v in result(Env(value: 7)) {
+        for await v in result.rawValue(Env(value: 7)) {
             values.append(v)
         }
         #expect(values == ["7"])
@@ -33,9 +33,9 @@ import Testing
         let rhs: Reader<Env, DeferredStream<String>> = Reader { _ in
             DeferredStream { AsyncStream { c in c.yield("hello"); c.finish() } }
         }
-        let result = lhs *> rhs
+        let result = lhs.readerT *> rhs.readerT
         var values: [String] = []
-        for await v in result(Env(value: 0)) {
+        for await v in result.rawValue(Env(value: 0)) {
             values.append(v)
         }
         #expect(values == ["hello"])
@@ -48,9 +48,9 @@ import Testing
         let rhs: Reader<Env, DeferredStream<String>> = Reader { _ in
             DeferredStream { AsyncStream { c in c.yield("ignored"); c.finish() } }
         }
-        let result = lhs <* rhs
+        let result = lhs.readerT <* rhs.readerT
         var values: [Int] = []
-        for await v in result(Env(value: 0)) {
+        for await v in result.rawValue(Env(value: 0)) {
             values.append(v)
         }
         #expect(values == [99])

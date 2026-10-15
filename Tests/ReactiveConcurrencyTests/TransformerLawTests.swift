@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Monad laws for the transformer stacks (proves the FP 2.0 alignment is lawful, and exercises the
-// newly-symmetric >=> / <=< Kleisli operators). Each suite checks left identity, right identity,
-// associativity, and Kleisli/bind consistency for one stack, comparing collected values.
+// Laws for the DeferredTask transformer stacks. The monad stacks check left identity, right
+// identity, associativity, Kleisli/bind consistency, short-circuiting, and that `<*>` agrees with
+// `>>-` (`ap`). The applicative-only stack (DeferredTaskTArray, `ListT` has no lawful monad) checks the
+// applicative laws.
 
 import CoreFPOperators
 import DataStructure
@@ -19,146 +20,176 @@ private func runT<A: Sendable>(_ task: DeferredTask<A>) async -> A { await task.
 // MARK: - DeferredTaskTEither
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredTaskTEitherLawTests {
-    private func pureT(_ a: Int) -> DeferredTask<Either<LawL, Int>> { DeferredTask { .right(a) } }
-    private let f: @Sendable (Int) -> DeferredTask<Either<LawL, Int>> = { n in DeferredTask { .right(n + 1) } }
-    private let g: @Sendable (Int) -> DeferredTask<Either<LawL, Int>> = { n in DeferredTask { .right(n * 3) } }
+    private typealias T = DeferredTaskTEither<LawL, Int>
+    private let f: @Sendable (Int) -> T = { n in T(DeferredTask { .right(n + 1) }) }
+    private let g: @Sendable (Int) -> T = { n in T(DeferredTask { .right(n * 3) }) }
+
+    @Test func pureIsRight() async {
+        #expect(await runT(T.pure(5).rawValue) == .right(5))
+    }
 
     @Test func leftIdentity() async {
-        #expect(await runT(flatMapTDeferredTaskEither(pureT(5), f)) == runT(f(5)))
+        #expect(await runT(T.pure(5).flatMap(f).rawValue) == runT(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await runT(flatMapTDeferredTaskEither(m) { n in DeferredTask { .right(n) } }) == runT(m))
+        let m = T.pure(9)
+        #expect(await runT(m.flatMap(T.pure).rawValue) == runT(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredTaskEither(flatMapTDeferredTaskEither(m, f), g)
-        let rhs = flatMapTDeferredTaskEither(m) { a in flatMapTDeferredTaskEither(f(a), g) }
-        #expect(await runT(lhs) == runT(rhs))
+        let m = T.pure(2)
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await runT(lhs.rawValue) == runT(rhs.rawValue))
     }
 
     // (f >=> g)(a) == f(a) >>- g, and <=< is its flip.
     @Test func kleisliMatchesBind() async {
-        let viaKleisli = (f >=> g)(4)
-        let viaBind = flatMapTDeferredTaskEither(f(4), g)
-        #expect(await runT(viaKleisli) == runT(viaBind))
-        #expect(await runT((g <=< f)(4)) == runT(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await runT((f >=> g)(4).rawValue) == runT(viaBind.rawValue))
+        #expect(await runT((g <=< f)(4).rawValue) == runT(viaBind.rawValue))
     }
 
     // Short-circuit: a .left never runs the continuation.
     @Test func leftShortCircuits() async {
         nonisolated(unsafe) var ran = false
-        let m = DeferredTask<Either<LawL, Int>> { .left(.e) }
-        let result = await runT(flatMapTDeferredTaskEither(m) { n in DeferredTask { ran = true; return .right(n) } })
+        let m = T(DeferredTask { .left(.e) })
+        let result = await runT(m.flatMap { n in T(DeferredTask { ran = true; return .right(n) }) }.rawValue)
         #expect(result == .left(.e))
         #expect(!ran)
+    }
+
+    // `<*>` is `ap`: a .left on the left never runs the right effect.
+    @Test func applyAgreesWithBind() async {
+        nonisolated(unsafe) var ran = false
+        let fns = T(DeferredTask { .left(.e) }).map { (_: Int) -> @Sendable (Int) -> Int in { $0 } }
+        let values = T(DeferredTask { ran = true; return .right(1) })
+        #expect(await runT((fns <*> values).rawValue) == .left(.e))
+        #expect(!ran)
+        let plus = T.pure(10).map { a in { @Sendable b in a + b } }
+        #expect(await runT((plus <*> T.pure(5)).rawValue) == .right(15))
     }
 }
 
 // MARK: - DeferredTaskTResult
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredTaskTResultLawTests {
-    private func pureT(_ a: Int) -> DeferredTask<Result<Int, LawE>> { DeferredTask { .success(a) } }
-    private let f: @Sendable (Int) -> DeferredTask<Result<Int, LawE>> = { n in DeferredTask { .success(n + 1) } }
-    private let g: @Sendable (Int) -> DeferredTask<Result<Int, LawE>> = { n in DeferredTask { .success(n * 3) } }
+    private typealias T = DeferredTaskTResult<LawE, Int>
+    private let f: @Sendable (Int) -> T = { n in T(DeferredTask { .success(n + 1) }) }
+    private let g: @Sendable (Int) -> T = { n in T(DeferredTask { .success(n * 3) }) }
 
     @Test func leftIdentity() async {
-        #expect(await runT(flatMapTDeferredTaskResult(pureT(5), f)) == runT(f(5)))
+        #expect(await runT(T.pure(5).flatMap(f).rawValue) == runT(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await runT(flatMapTDeferredTaskResult(m) { n in DeferredTask { .success(n) } }) == runT(m))
+        let m = T.pure(9)
+        #expect(await runT(m.flatMap(T.pure).rawValue) == runT(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredTaskResult(flatMapTDeferredTaskResult(m, f), g)
-        let rhs = flatMapTDeferredTaskResult(m) { a in flatMapTDeferredTaskResult(f(a), g) }
-        #expect(await runT(lhs) == runT(rhs))
+        let m = T.pure(2)
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await runT(lhs.rawValue) == runT(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredTaskResult(f(4), g)
-        #expect(await runT((f >=> g)(4)) == runT(viaBind))
-        #expect(await runT((g <=< f)(4)) == runT(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await runT((f >=> g)(4).rawValue) == runT(viaBind.rawValue))
+        #expect(await runT((g <=< f)(4).rawValue) == runT(viaBind.rawValue))
     }
 
     @Test func failureShortCircuits() async {
         nonisolated(unsafe) var ran = false
-        let m = DeferredTask<Result<Int, LawE>> { .failure(.boom) }
-        let result = await runT(flatMapTDeferredTaskResult(m) { n in DeferredTask { ran = true; return .success(n) } })
+        let m = T(DeferredTask { .failure(.boom) })
+        let result = await runT(m.flatMap { n in T(DeferredTask { ran = true; return .success(n) }) }.rawValue)
         #expect(result == .failure(.boom))
         #expect(!ran)
+    }
+
+    @Test func liftA2ShortCircuits() async {
+        nonisolated(unsafe) var ran = false
+        let failing = T(DeferredTask { .failure(.boom) })
+        let other = T(DeferredTask { ran = true; return .success(1) })
+        #expect(await runT(T.liftA2 { (a: Int, b: Int) in a + b }(failing, other).rawValue) == .failure(.boom))
+        #expect(!ran)
+        #expect(await runT((T.pure(1) *> T.pure(2)).rawValue) == .success(2))
+        #expect(await runT((T.pure(1) <* T.pure(2)).rawValue) == .success(1))
     }
 }
 
 // MARK: - DeferredTaskTOptional
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredTaskTOptionalLawTests {
-    private func pureT(_ a: Int) -> DeferredTask<Int?> { DeferredTask { a } }
-    private let f: @Sendable (Int) -> DeferredTask<Int?> = { n in DeferredTask { n + 1 } }
-    private let g: @Sendable (Int) -> DeferredTask<Int?> = { n in DeferredTask { n * 3 } }
+    private typealias T = DeferredTaskTOptional<Int>
+    private let f: @Sendable (Int) -> T = { n in T(DeferredTask { n + 1 }) }
+    private let g: @Sendable (Int) -> T = { n in T(DeferredTask { n * 3 }) }
 
     @Test func leftIdentity() async {
-        #expect(await runT(flatMapTDeferredTaskOptional(pureT(5), f)) == runT(f(5)))
+        #expect(await runT(T.pure(5).flatMap(f).rawValue) == runT(f(5).rawValue))
     }
 
     @Test func rightIdentity() async {
-        let m = pureT(9)
-        #expect(await runT(flatMapTDeferredTaskOptional(m) { n in DeferredTask { n } }) == runT(m))
+        let m = T.pure(9)
+        #expect(await runT(m.flatMap(T.pure).rawValue) == runT(m.rawValue))
     }
 
     @Test func associativity() async {
-        let m = pureT(2)
-        let lhs = flatMapTDeferredTaskOptional(flatMapTDeferredTaskOptional(m, f), g)
-        let rhs = flatMapTDeferredTaskOptional(m) { a in flatMapTDeferredTaskOptional(f(a), g) }
-        #expect(await runT(lhs) == runT(rhs))
+        let m = T.pure(2)
+        let lhs = m.flatMap(f).flatMap(g)
+        let rhs = m.flatMap { a in f(a).flatMap(g) }
+        #expect(await runT(lhs.rawValue) == runT(rhs.rawValue))
     }
 
     @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredTaskOptional(f(4), g)
-        #expect(await runT((f >=> g)(4)) == runT(viaBind))
-        #expect(await runT((g <=< f)(4)) == runT(viaBind))
+        let viaBind = f(4) >>- g
+        #expect(await runT((f >=> g)(4).rawValue) == runT(viaBind.rawValue))
+        #expect(await runT((g <=< f)(4).rawValue) == runT(viaBind.rawValue))
     }
 
     @Test func nilShortCircuits() async {
         nonisolated(unsafe) var ran = false
-        let m = DeferredTask<Int?> { nil }
-        let result = await runT(flatMapTDeferredTaskOptional(m) { n in DeferredTask { ran = true; return n } })
+        let m = T(DeferredTask { nil })
+        let result = await runT(m.flatMap { n in T(DeferredTask { ran = true; return n }) }.rawValue)
         #expect(result == nil)
         #expect(!ran)
     }
+
+    @Test func liftingProperty() async {
+        let lifted = DeferredTask<Int?> { 4 }.deferredTaskT
+        #expect(await runT((lifted <&> { $0 * 2 }).rawValue) == 8)
+    }
 }
 
-// MARK: - DeferredTaskTArray
+// MARK: - DeferredTaskTArray (applicative only)
 
 @Suite(.timeLimit(.minutes(1))) struct DeferredTaskTArrayLawTests {
-    private func pureT(_ a: Int) -> DeferredTask<[Int]> { DeferredTask { [a] } }
-    private let f: @Sendable (Int) -> DeferredTask<[Int]> = { n in DeferredTask { [n, n + 1] } }
-    private let g: @Sendable (Int) -> DeferredTask<[Int]> = { n in DeferredTask { [n * 10] } }
+    private typealias T = DeferredTaskTArray<Int>
 
-    @Test func leftIdentity() async {
-        #expect(await runT(flatMapTDeferredTaskArray(pureT(5), f)) == runT(f(5)))
+    @Test func identity() async {
+        let v = T(DeferredTask { [1, 2, 3] })
+        let id = DeferredTaskTArray<@Sendable (Int) -> Int>.pure { $0 }
+        #expect(await runT((id <*> v).rawValue) == [1, 2, 3])
     }
 
-    @Test func rightIdentity() async {
-        let m = DeferredTask { [1, 2, 3] }
-        #expect(await runT(flatMapTDeferredTaskArray(m) { n in DeferredTask { [n] } }) == runT(m))
+    @Test func homomorphism() async {
+        let fn: @Sendable (Int) -> Int = { $0 + 1 }
+        let lhs = DeferredTaskTArray.pure(fn) <*> T.pure(4)
+        #expect(await runT(lhs.rawValue) == [5])
     }
 
-    @Test func associativity() async {
-        let m = DeferredTask { [1, 2] }
-        let lhs = flatMapTDeferredTaskArray(flatMapTDeferredTaskArray(m, f), g)
-        let rhs = flatMapTDeferredTaskArray(m) { a in flatMapTDeferredTaskArray(f(a), g) }
-        #expect(await runT(lhs) == runT(rhs))
+    // liftA2 over the inner arrays is the cartesian product, left-major.
+    @Test func liftA2IsCartesian() async {
+        let lhs = T(DeferredTask { [1, 2] })
+        let rhs = T(DeferredTask { [10, 20] })
+        #expect(await runT(T.liftA2 { (a: Int, b: Int) in a + b }(lhs, rhs).rawValue) == [11, 21, 12, 22])
     }
 
-    @Test func kleisliMatchesBind() async {
-        let viaBind = flatMapTDeferredTaskArray(f(4), g)
-        #expect(await runT((f >=> g)(4)) == runT(viaBind))
-        #expect(await runT((g <=< f)(4)) == runT(viaBind))
+    @Test func functorMap() async {
+        let v = T(DeferredTask { [1, 2] })
+        #expect(await runT(({ $0 * 3 } <£> v).rawValue) == [3, 6])
+        #expect(await runT((v £> 7).rawValue) == [7, 7])
     }
 }

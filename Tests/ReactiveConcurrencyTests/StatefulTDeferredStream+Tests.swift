@@ -8,9 +8,9 @@ import Testing
 @Suite(.timeLimit(.minutes(1))) struct StatefulTDeferredStreamTests {
     // MARK: - Stateful<S, DeferredStream<A>> — State as outer, DeferredStream as inner
 
-    // Note: flatMapT is not implementable for this stack.
+    // Applicative-only: the state is threaded outside the effect, so there is no lawful monad.
 
-    @Test func mapTTransformsValues() async {
+    @Test func mapTransformsValues() async {
         let s = Stateful<Int, DeferredStream<Int>> { _ in
             DeferredStream { AsyncStream { c in
                 c.yield(1)
@@ -20,15 +20,15 @@ import Testing
             }
             }
         }
-        let mapped = s.mapT { $0 * 10 }
+        let mapped = s.statefulT.map { $0 * 10 }
         var results: [Int] = []
-        for await value in mapped.eval(0) {
+        for await value in mapped.rawValue.eval(0) {
             results.append(value)
         }
         #expect(results == [10, 20, 30])
     }
 
-    @Test func mapTPreservesState() async {
+    @Test func mapPreservesState() async {
         let s = Stateful<Int, DeferredStream<Int>> { state in
             let v = state
             state += 1
@@ -38,8 +38,8 @@ import Testing
             }
             }
         }
-        let mapped = s.mapT { $0 + 100 }
-        let (stream, finalState) = mapped.runStateful(7)
+        let mapped = s.statefulT.map { $0 + 100 }
+        let (stream, finalState) = mapped.rawValue.runStateful(7)
         var results: [Int] = []
         for await value in stream {
             results.append(value)
@@ -63,9 +63,9 @@ import Testing
             }
             }
         }
-        let result = applyStatefulDeferredStream(sf, sa)
+        let result = StatefulTDeferredStream.apply(sf.statefulT, sa.statefulT)
         var results: [String] = []
-        for await value in result.eval(0) {
+        for await value in result.rawValue.eval(0) {
             results.append(value)
         }
         #expect(results == ["42"])
@@ -78,9 +78,9 @@ import Testing
         let rhs = Stateful<Int, DeferredStream<String>> { _ in
             DeferredStream { AsyncStream { c in c.yield("hello"); c.finish() } }
         }
-        let result = seqRightStatefulDeferredStream(lhs, rhs)
+        let result = lhs.statefulT.seqRight(rhs.statefulT)
         var results: [String] = []
-        for await value in result.eval(0) {
+        for await value in result.rawValue.eval(0) {
             results.append(value)
         }
         #expect(results == ["hello"])
@@ -93,9 +93,9 @@ import Testing
         let rhs = Stateful<Int, DeferredStream<String>> { _ in
             DeferredStream { AsyncStream { c in c.yield("ignored"); c.finish() } }
         }
-        let result = seqLeftStatefulDeferredStream(lhs, rhs)
+        let result = lhs.statefulT.seqLeft(rhs.statefulT)
         var results: [Int] = []
-        for await value in result.eval(0) {
+        for await value in result.rawValue.eval(0) {
             results.append(value)
         }
         #expect(results == [99])

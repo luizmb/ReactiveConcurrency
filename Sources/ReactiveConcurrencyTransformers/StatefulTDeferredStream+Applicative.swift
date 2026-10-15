@@ -9,7 +9,7 @@ import ReactiveConcurrency
 // State is threaded synchronously; streaming happens later when iterated.
 
 /// apply for StatefulTDeferredStream
-public func applyStatefulDeferredStream<S, A: Sendable, B: Sendable>(
+func applyStatefulDeferredStream<S, A: Sendable, B: Sendable>(
     _ sf: Stateful<S, DeferredStream<@Sendable (A) -> B>>,
     _ sa: Stateful<S, DeferredStream<A>>
 ) -> Stateful<S, DeferredStream<B>> {
@@ -21,7 +21,7 @@ public func applyStatefulDeferredStream<S, A: Sendable, B: Sendable>(
 }
 
 /// liftA2 for StatefulTDeferredStream
-public func liftA2StatefulDeferredStream<S, A: Sendable, B: Sendable, C: Sendable>(
+func liftA2StatefulDeferredStream<S, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Stateful<S, DeferredStream<A>>, Stateful<S, DeferredStream<B>>) -> Stateful<S, DeferredStream<C>> {
     { sa, sb in
@@ -34,7 +34,7 @@ public func liftA2StatefulDeferredStream<S, A: Sendable, B: Sendable, C: Sendabl
 }
 
 /// seqRight for StatefulTDeferredStream
-public func seqRightStatefulDeferredStream<S, A: Sendable, B: Sendable>(
+func seqRightStatefulDeferredStream<S, A: Sendable, B: Sendable>(
     _ lhs: Stateful<S, DeferredStream<A>>,
     _ rhs: Stateful<S, DeferredStream<B>>
 ) -> Stateful<S, DeferredStream<B>> {
@@ -42,7 +42,7 @@ public func seqRightStatefulDeferredStream<S, A: Sendable, B: Sendable>(
 }
 
 /// seqLeft for StatefulTDeferredStream
-public func seqLeftStatefulDeferredStream<S, A: Sendable, B: Sendable>(
+func seqLeftStatefulDeferredStream<S, A: Sendable, B: Sendable>(
     _ lhs: Stateful<S, DeferredStream<A>>,
     _ rhs: Stateful<S, DeferredStream<B>>
 ) -> Stateful<S, DeferredStream<A>> {

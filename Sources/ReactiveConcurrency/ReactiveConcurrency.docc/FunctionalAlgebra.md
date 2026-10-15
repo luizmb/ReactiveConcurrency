@@ -17,28 +17,30 @@ let chained = [1, 2].publisher.flatMap { n in [n, -n].publisher } // Monad → 1
 let either  = Publisher<Int, E>.alt(primary, fallback)           // Alternative (concat)
 ```
 
-### The applicative is *zippy* — mind the identity law
+### `<*>` is `ap`, derived from the monad
 
-Here is the one sharp edge. The `<*>` / `zip` product on ``Publisher`` and ``DeferredStream`` is a
-**zippy Semigroupal** (ZipList-style): it pairs elements *positionally* and truncates at the shorter
-side. That is the product you actually want from a stream — but it is **not** the cartesian
-Applicative derived from the monad. Concretely, the identity law `pure(id) <*> v == v` **fails** for
-`v` with more than one element, because `pure` yields a single element and the zip truncates `v` to
-length 1.
+The FP algebra on ``Publisher`` and ``DeferredStream`` binds with **ordered concat**: each inner
+stream completes before the next starts, so results are deterministic and the monad laws hold. Their
+applicative is `ap`, derived from that bind: `fs <*> xs` applies each function, in order, to every
+value (the cartesian product). So `<*>` always agrees with `>>-`, and the applicative laws hold for
+streams of any length.
 
 ```swift
 let xs = [1, 2, 3].publisher
 
-// Zippy: pairs positionally, truncates to the shorter side.
-let zipped = xs.zip(["a", "b"].publisher)      // → (1,"a"), (2,"b")   — the "3" is dropped
-
-// Want the cartesian, monad-consistent product? Use flatMap, not <*>.
-let cartesian = xs.flatMap { x in ["a", "b"].publisher.map { (x, $0) } }
+// `ap`: each left value against every right value, in order.
+let pairs = liftA2Publisher { (x: Int, s: String) in (x, s) }(xs, ["a", "b"].publisher)
 // → (1,"a"),(1,"b"),(2,"a"),(2,"b"),(3,"a"),(3,"b")
+
+// Positional pairing is `zip`: it truncates to the shorter side.
+let zipped = xs.zip(["a", "b"].publisher)      // → (1,"a"), (2,"b")   — the "3" is dropped
 ```
 
-``DeferredTask`` is the exception: its single value means its `apply` is sequential and fully
-lawful — no zippy caveat.
+The `flatMap(_:)` *method* on ``Publisher`` keeps Combine's semantics: it merges, running inner
+publishers concurrently and emitting in arrival order. `>>-`, the static `Publisher.flatMap(_:)`,
+`join` and `kleisli` are the concat bind.
+
+``DeferredTask`` holds a single value, so its `apply` is simply sequential: left, then right.
 
 ### The symbolic vocabulary
 
@@ -49,9 +51,9 @@ FP uses everywhere, so pipelines read uniformly. Method equivalents always exist
 |---|---|---|
 | `<£>` / `<&>` | functor map — function left / container left | `map` |
 | `£>` / `<£` | replace every value with a constant | `replace(_:)` |
-| `<*>` | applicative apply (zippy) | `applyPublisher` |
+| `<*>` | applicative apply (`ap`: cartesian, in order) | `applyPublisher` |
 | `*>` / `<*` | sequence, keep right / keep left | `seqRight` / `seqLeft` |
-| `>>-` / `-<<` | monadic bind — container left / function left | `flatMap` |
+| `>>-` / `-<<` | monadic bind (ordered concat) — container left / function left | static `flatMap` |
 | `>=>` / `<=<` | Kleisli composition — left-to-right / right-to-left | `kleisli` / `kleisliBack` |
 | `<\|>` | alternative (here: concatenation) | `alt` |
 

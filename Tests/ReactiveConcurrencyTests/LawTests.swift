@@ -144,13 +144,21 @@ private func intStream(_ xs: [Int]) -> DeferredStream<Int> {
         #expect(await collect(lhs) == collect(rhs))
     }
 
-    // NOT lawful: the zippy applicative truncates at the shorter side, so the Applicative identity
-    // law fails for |v| > 1. Pin the actual behaviour (this is what B1 documented).
-    @Test func zippyApplicativeIdentityTruncates() async {
+    // The applicative is `ap` (derived from the concat bind), so the identity law holds for any |v|.
+    @Test func applicativeIdentity() async {
         let v = from([1, 2, 3])
-        let idFns = DeferredStream<@Sendable (Int) -> Int> { AsyncStream { c in c.yield { $0 }; c.finish() } }
-        // pure(id) has one element → zip truncates v to length 1.
-        #expect(await collect(applyDeferredStream(idFns, v)) == [1])
+        let idFns = DeferredStream<@Sendable (Int) -> Int>.pure { $0 }
+        #expect(await collect(applyDeferredStream(idFns, v)) == [1, 2, 3])
+    }
+
+    // `<*>` agrees with `>>-`: apply == fns.flatMap { f in values.map(f) }.
+    @Test func applyAgreesWithBind() async {
+        let fns = DeferredStream<@Sendable (Int) -> Int> {
+            AsyncStream { c in c.yield { $0 + 1 }; c.yield { $0 * 10 }; c.finish() }
+        }
+        let v = from([1, 2])
+        #expect(await collect(applyDeferredStream(fns, v)) == collect(fns.flatMap { f in v.map(f) }))
+        #expect(await collect(applyDeferredStream(fns, v)) == [2, 3, 10, 20])
     }
 
     // Concat-alt monoid with the new empty identity: left/right identity + associativity.
@@ -230,32 +238,36 @@ private func intStream(_ xs: [Int]) -> DeferredStream<Int> {
 
 @Suite(.timeLimit(.minutes(1))) struct WriterTLawTests {
     // pure for WriterT: the effect of a value with the empty (mempty) log.
-    private func pureW(_ a: Int) -> DeferredTask<Writer<[String], Int>> {
-        DeferredTask { Writer(a, []) }
+    private func pureW(_ a: Int) -> DeferredTaskTWriter<[String], Int> {
+        .pure(a)
+    }
+
+    private func runW(_ stack: DeferredTaskTWriter<[String], Int>) async -> Writer<[String], Int> {
+        await run(stack.rawValue)
     }
 
     @Test func monadLeftIdentity() async {
         let a = 5
-        let f: @Sendable (Int) -> DeferredTask<Writer<[String], Int>> = { n in DeferredTask { Writer(n * 2, ["f"]) } }
-        let lhs = await run(pureW(a).flatMapT(f))
-        let rhs = await run(f(a))
+        let f: @Sendable (Int) -> DeferredTaskTWriter<[String], Int> = { n in DeferredTask { Writer(n * 2, ["f"]) }.deferredTaskT }
+        let lhs = await runW(pureW(a).flatMap(f))
+        let rhs = await runW(f(a))
         #expect(lhs.value == rhs.value)
         #expect(lhs.log == rhs.log) // empty <> ["f"] == ["f"] — the fix: continuation's log is kept
     }
 
     @Test func monadRightIdentity() async {
-        let m = DeferredTask { Writer<[String], Int>(9, ["m"]) }
-        let result = await run(m.flatMapT { (n: Int) in DeferredTask { Writer<[String], Int>(n, []) } })
+        let m = DeferredTask { Writer<[String], Int>(9, ["m"]) }.deferredTaskT
+        let result = await runW(m.flatMap(DeferredTaskTWriter.pure))
         #expect(result.value == 9)
         #expect(result.log == ["m"]) // ["m"] <> empty == ["m"]
     }
 
     @Test func monadAssociativityCombinesAllLogs() async {
-        let m = DeferredTask { Writer<[String], Int>(1, ["m"]) }
-        let f: @Sendable (Int) -> DeferredTask<Writer<[String], Int>> = { n in DeferredTask { Writer(n + 1, ["f"]) } }
-        let g: @Sendable (Int) -> DeferredTask<Writer<[String], Int>> = { n in DeferredTask { Writer(n * 3, ["g"]) } }
-        let lhs = await run(m.flatMapT(f).flatMapT(g))
-        let rhs = await run(m.flatMapT { a in f(a).flatMapT(g) })
+        let m = DeferredTask { Writer<[String], Int>(1, ["m"]) }.deferredTaskT
+        let f: @Sendable (Int) -> DeferredTaskTWriter<[String], Int> = { n in DeferredTask { Writer(n + 1, ["f"]) }.deferredTaskT }
+        let g: @Sendable (Int) -> DeferredTaskTWriter<[String], Int> = { n in DeferredTask { Writer(n * 3, ["g"]) }.deferredTaskT }
+        let lhs = await runW(m.flatMap(f).flatMap(g))
+        let rhs = await runW(m.flatMap { a in f(a).flatMap(g) })
         #expect(lhs.value == rhs.value)
         #expect(lhs.log == rhs.log)
         #expect(lhs.log == ["m", "f", "g"]) // all three logs accumulated in order
@@ -271,14 +283,14 @@ private enum LawErr: Error, Equatable, Sendable { case a, b }
     @Test func doubleFailureCombinesInOrder() async {
         let fns = DeferredTask<Validation<[LawErr], @Sendable (Int) -> Int>> { .failure([.a]) }
         let vals = DeferredTask<Validation<[LawErr], Int>> { .failure([.b]) }
-        let result = await run(applyTDeferredTaskValidation(fns, vals))
+        let result = await run(DeferredTaskTValidation.apply(fns.deferredTaskT, vals.deferredTaskT).rawValue)
         #expect(result == .failure([.a, .b]))
     }
 
     @Test func successThreadsValue() async {
         let fns = DeferredTask<Validation<[LawErr], @Sendable (Int) -> Int>> { .success(inc) }
         let vals = DeferredTask<Validation<[LawErr], Int>> { .success(41) }
-        let result = await run(applyTDeferredTaskValidation(fns, vals))
+        let result = await run(DeferredTaskTValidation.apply(fns.deferredTaskT, vals.deferredTaskT).rawValue)
         #expect(result == .success(42))
     }
 }

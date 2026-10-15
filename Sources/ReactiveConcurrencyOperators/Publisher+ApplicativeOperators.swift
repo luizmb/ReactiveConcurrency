@@ -4,10 +4,9 @@ import CoreFPOperators
 import ReactiveConcurrency
 
 // (<*>) :: Publisher (a -> b) e -> Publisher a e -> Publisher b e
-// Zippy Semigroupal (ZipList-style), NOT the cartesian monad-derived applicative: pairs
-// positionally and truncates at the shorter side. See Publisher+FP.swift for the law caveat.
+// `ap`, derived from the concat bind: the cartesian product in order. Positional pairing is `zip`.
 
-/// Applicative apply — zippy (positional) combination of wrapped functions and values.
+/// Applicative apply (`ap`): for each function, in order, every value (cartesian, agrees with `>>-`).
 public func <*> <A: Sendable, B: Sendable, E: Error>(
     _ fns: Publisher<@Sendable (A) -> B, E>,
     _ values: Publisher<A, E>

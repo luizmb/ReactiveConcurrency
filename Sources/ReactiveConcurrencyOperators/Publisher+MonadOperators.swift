@@ -5,12 +5,13 @@ import ReactiveConcurrency
 
 // (>>-) :: Publisher a e -> (a -> Publisher b e) -> Publisher b e
 
-/// Monadic bind — sequences a dependent effect (container on the left). Operator form of `flatMap`.
+/// Monadic bind — sequences a dependent effect (container on the left). Ordered concat: operator form
+/// of the free-function `Publisher.flatMap(_:)` (not the merging instance method).
 public func >>- <A: Sendable, B: Sendable, E: Error>(
     _ publisher: Publisher<A, E>,
     _ fn: @escaping @Sendable (A) -> Publisher<B, E>
 ) -> Publisher<B, E> {
-    publisher.flatMap(fn)
+    Publisher<A, E>.flatMap(fn)(publisher)
 }
 
 // (-<<) :: (a -> Publisher b e) -> Publisher a e -> Publisher b e

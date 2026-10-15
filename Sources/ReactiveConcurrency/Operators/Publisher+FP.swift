@@ -36,34 +36,30 @@ public extension Publisher {
     }
 }
 
-// MARK: - Zippy Semigroupal (ZipList-style)
+// MARK: - Applicative
 
 //
-// `apply`/`seqLeft`/`seqRight` here form a *zippy* product: they pair elements positionally
-// (like ZipList) and truncate at the shorter side. This is the product users want from a
-// stream — but it is NOT the Applicative derived from the monad (`flatMap`, which is a
-// cartesian merge). In particular the Applicative *identity* law `pure(id) <*> v == v` fails
-// for |v| > 1, because `pure` yields a single element and the zip truncates `v` to length 1.
-// Treat these as a zippy Semigroupal (`zip`/`zipWith`), not a lawful Applicative; reach for
-// `flatMap` when you want the cartesian, monad-consistent product.
+// `apply` / `liftA2` / `seqLeft` / `seqRight` are `ap`, derived from the monad: the cartesian
+// product in order (for each left value, every right value), built on the ordered, concat bind
+// (`flatMap(maxPublishers: 1)`). So `<*>` agrees with `>>-` and the applicative laws hold. The right
+// publisher is subscribed once per left value. For positional, ZipList-style pairing use `zip`.
 
 public extension Publisher {
-    /// Lifts a single value into a one-element publisher (Applicative `pure`). Note this is a
-    /// single-shot element, so it acts as the zippy product's identity only up to length 1.
+    /// Lifts a single value into a one-element publisher (Applicative `pure`).
     static func pure(_ value: Output) -> Publisher<Output, Failure> {
         just(value)
     }
 
-    /// Zips positionally with `rhs` and keeps the right value at each position (`*>`); truncates
-    /// to the shorter side.
+    /// Sequences with `rhs`, keeping `rhs`'s values (`*>`): for each value of `self`, every value of
+    /// `rhs`.
     func seqRight<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<B, Failure> {
-        zip(rhs).map { _, b in b }
+        liftA2Publisher { (_: Output, right: B) in right }(self, rhs)
     }
 
-    /// Zips positionally with `rhs` and keeps the left value at each position (`<*`); truncates
-    /// to the shorter side.
+    /// Sequences with `rhs`, keeping `self`'s values (`<*`): each value of `self` once per value of
+    /// `rhs`.
     func seqLeft<B: Sendable>(_ rhs: Publisher<B, Failure>) -> Publisher<Output, Failure> {
-        zip(rhs).map { a, _ in a }
+        liftA2Publisher { (left: Output, _: B) in left }(self, rhs)
     }
 
     /// Free-function form of the instance `zip`: pairs `pa` and `pb` positionally into a publisher
@@ -76,17 +72,32 @@ public extension Publisher {
     }
 }
 
-/// Applicative apply (`<*>`) for publishers: pairs each function in `fns` with the value in
-/// `values` at the same position and applies it, truncating to the shorter side. This is the
-/// zippy (ZipList-style) product, not the cartesian, monad-consistent one — see the section note.
+/// Applicative apply (`<*>`) for publishers: for each function in `fns`, in order, every value of
+/// `values` (`ap`, derived from the concat bind). See the section note.
 public func applyPublisher<A: Sendable, B: Sendable, E: Error>(
     _ fns: Publisher<@Sendable (A) -> B, E>,
     _ values: Publisher<A, E>
 ) -> Publisher<B, E> {
-    fns.zip(values).map { pair in pair.0(pair.1) }
+    fns.flatMap(maxPublishers: 1) { fn in values.map(fn) }
+}
+
+/// Combines two publishers with a binary function: for each value of `pa`, in order, every value of
+/// `pb` (`liftA2`, derived from the concat bind). For positional pairing use `zip`.
+public func liftA2Publisher<A: Sendable, B: Sendable, C: Sendable, E: Error>(
+    _ fn: @escaping @Sendable (A, B) -> C
+) -> @Sendable (Publisher<A, E>, Publisher<B, E>) -> Publisher<C, E> {
+    { @Sendable pa, pb in
+        pa.flatMap(maxPublishers: 1) { a in pb.map { b in fn(a, b) } }
+    }
 }
 
 // MARK: - Monad
+
+//
+// The FP algebra (`flatMap(_:)` as a free function, `join`, `kleisli`, `>>-`) binds with ordered
+// concat (`flatMap(maxPublishers: 1)`): each inner publisher completes before the next starts, so
+// the result order is deterministic and the monad laws hold. The instance method `flatMap(_:)`
+// keeps Combine's merge semantics (unbounded concurrency, arrival order).
 
 public extension Publisher {
     /// Curried, free-function form of `flatMap`: lifts `transform` into a function on publishers
@@ -94,19 +105,19 @@ public extension Publisher {
     static func flatMap<T: Sendable>(
         _ transform: @escaping @Sendable (Output) -> Publisher<T, Failure>
     ) -> @Sendable (Publisher<Output, Failure>) -> Publisher<T, Failure> {
-        { @Sendable publisher in publisher.flatMap(transform) }
+        { @Sendable publisher in publisher.flatMap(maxPublishers: 1, transform) }
     }
 
     /// Flattens a publisher of publishers by one level (Monad `join`).
     func join<A: Sendable>() -> Publisher<A, Failure> where Output == Publisher<A, Failure> {
-        flatMap { $0 }
+        flatMap(maxPublishers: 1) { $0 }
     }
 
     /// Free-function form of `join`: flattens `nested` by one level.
     static func join<A: Sendable>(
         _ nested: Publisher<Publisher<A, Failure>, Failure>
     ) -> Publisher<A, Failure> where Output == Publisher<A, Failure> {
-        nested.flatMap { $0 }
+        nested.flatMap(maxPublishers: 1) { $0 }
     }
 
     /// Left-to-right Kleisli composition (`>=>`): composes two publisher-returning functions
@@ -115,7 +126,7 @@ public extension Publisher {
         _ f: @escaping @Sendable (Output) -> Publisher<B, Failure>,
         _ g: @escaping @Sendable (B) -> Publisher<C, Failure>
     ) -> @Sendable (Output) -> Publisher<C, Failure> {
-        { @Sendable a in f(a).flatMap(g) }
+        { @Sendable a in f(a).flatMap(maxPublishers: 1, g) }
     }
 
     /// Right-to-left Kleisli composition (`<=<`): composes two publisher-returning functions,
@@ -124,7 +135,7 @@ public extension Publisher {
         _ g: @escaping @Sendable (Output) -> Publisher<B, Failure>,
         _ f: @escaping @Sendable (X) -> Publisher<Output, Failure>
     ) -> @Sendable (X) -> Publisher<B, Failure> {
-        { @Sendable x in f(x).flatMap(g) }
+        { @Sendable x in f(x).flatMap(maxPublishers: 1, g) }
     }
 }
 

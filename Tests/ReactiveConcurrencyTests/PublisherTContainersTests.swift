@@ -8,6 +8,12 @@ import ReactiveConcurrencyOperators
 import ReactiveConcurrencyTransformers
 import Testing
 
+// The stack names are qualified: on Apple, FP declares Combine stacks with the same names.
+private typealias PArray<A: Sendable> = ReactiveConcurrencyTransformers.PublisherTArray<Never, A>
+private typealias POptional<A: Sendable> = ReactiveConcurrencyTransformers.PublisherTOptional<Never, A>
+private typealias PResult<A: Sendable> = ReactiveConcurrencyTransformers.PublisherTResult<Never, CErr, A>
+private typealias PValidation<A: Sendable> = ReactiveConcurrencyTransformers.PublisherTValidation<Never, [String], A>
+
 private enum CErr: Error, Equatable { case boom }
 
 private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> [O] {
@@ -21,71 +27,57 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
 // MARK: - PublisherTArray
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTArrayTests {
-    @Test func mapT() async {
-        #expect(await vals(mapTPublisherArray({ $0 * 2 }, Publisher<[Int], Never>.just([1, 2, 3]))) == [[2, 4, 6]])
-        #expect(await vals({ $0 * 2 } <£^> Publisher<[Int], Never>.just([1, 2])) == [[2, 4]])
+    @Test func map() async {
+        #expect(await vals(PArray(.just([1, 2, 3])).map { $0 * 2 }.rawValue) == [[2, 4, 6]])
+        #expect(await vals(({ $0 * 2 } <£> Publisher<[Int], Never>.just([1, 2]).publisherT).rawValue) == [[2, 4]])
     }
 
-    @Test func applyTCartesian() async {
-        let fns = Publisher<[@Sendable (Int) -> Int], Never>.just([{ $0 + 1 }, { $0 * 10 }])
-        let vs = Publisher<[Int], Never>.just([1, 2])
-        #expect(await vals(applyTPublisherArray(fns, vs)) == [[2, 3, 10, 20]])
-    }
-
-    @Test func flatMapTConcat() async {
-        let p = Publisher<[Int], Never>.just([1, 2])
-        let chained = p >>- { n in Publisher<[Int], Never>.just([n, n * 10]) }
-        #expect(await vals(chained) == [[1, 10, 2, 20]])
+    @Test func applyCartesian() async {
+        let fns = PArray<@Sendable (Int) -> Int>(.just([{ $0 + 1 }, { $0 * 10 }]))
+        let vs = PArray(.just([1, 2]))
+        #expect(await vals((fns <*> vs).rawValue) == [[2, 3, 10, 20]])
     }
 }
 
 // MARK: - PublisherTOptional
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTOptionalTests {
-    @Test func mapT() async {
-        #expect(await vals(mapTPublisherOptional({ $0 * 2 }, Publisher<Int?, Never>.just(3))) == [6])
-        #expect(await vals(mapTPublisherOptional({ $0 * 2 }, Publisher<Int?, Never>.just(nil))) == [nil])
+    @Test func map() async {
+        #expect(await vals(POptional(.just(3)).map { $0 * 2 }.rawValue) == [6])
+        #expect(await vals(POptional(.just(nil)).map { $0 * 2 }.rawValue) == [nil])
     }
 
-    @Test func flatMapT() async {
-        let some = Publisher<Int?, Never>.just(5) >>- { n in Publisher<Int?, Never>.just(n * 2) }
-        let none = Publisher<Int?, Never>.just(nil) >>- { n in Publisher<Int?, Never>.just(n * 2) }
-        #expect(await vals(some) == [10])
-        #expect(await vals(none) == [nil])
+    @Test func flatMap() async {
+        let some = POptional(.just(5)) >>- { n in POptional(.just(n * 2)) }
+        let none = POptional(.just(nil)) >>- { n in POptional(.just(n * 2)) }
+        #expect(await vals(some.rawValue) == [10])
+        #expect(await vals(none.rawValue) == [nil])
     }
 
-    @Test func alternativeFirstNonNil() async {
-        #expect(await vals(altPublisherOptional(Publisher<Int?, Never>.just(nil), Publisher<Int?, Never>.just(7))) == [7])
-        #expect(await vals(altPublisherOptional(Publisher<Int?, Never>.just(3), Publisher<Int?, Never>.just(9))) == [3])
+    @Test func zipAltFirstNonNil() async {
+        #expect(await vals(POptional(.just(nil)).zipAlt(POptional(.just(7))).rawValue) == [7])
+        #expect(await vals(POptional(.just(3)).zipAlt(POptional(.just(9))).rawValue) == [3])
     }
 }
 
 // MARK: - PublisherTResult
 
 @Suite(.timeLimit(.minutes(1))) struct PublisherTResultTests {
-    @Test func mapT() async {
-        let ok = Publisher<Result<Int, CErr>, Never>.just(.success(5))
-        let bad = Publisher<Result<Int, CErr>, Never>.just(.failure(.boom))
-        #expect(await vals(mapTPublisherResult({ $0 * 2 }, ok)) == [.success(10)])
-        #expect(await vals(mapTPublisherResult({ $0 * 2 }, bad)) == [.failure(.boom)])
+    @Test func map() async {
+        #expect(await vals(PResult(.just(.success(5))).map { $0 * 2 }.rawValue) == [.success(10)])
+        #expect(await vals(PResult(.just(.failure(.boom))).map { $0 * 2 }.rawValue) == [.failure(.boom)])
     }
 
-    @Test func flatMapTShortCircuits() async {
-        let ok = Publisher<Result<Int, CErr>, Never>.just(.success(5))
-        let chained = ok >>- { n in Publisher<Result<Int, CErr>, Never>.just(.success(n + 1)) }
-        let bad = Publisher<Result<Int, CErr>, Never>.just(.failure(.boom))
-        let chainedBad = bad >>- { n in Publisher<Result<Int, CErr>, Never>.just(.success(n + 1)) }
-        #expect(await vals(chained) == [.success(6)])
-        #expect(await vals(chainedBad) == [.failure(.boom)])
+    @Test func flatMapShortCircuits() async {
+        let chained = PResult(.just(.success(5))) >>- { n in PResult(.just(.success(n + 1))) }
+        let chainedBad = PResult(.just(.failure(.boom))) >>- { n in PResult(.just(.success(n + 1))) }
+        #expect(await vals(chained.rawValue) == [.success(6)])
+        #expect(await vals(chainedBad.rawValue) == [.failure(.boom)])
     }
 
-    @Test func alternativeFirstSuccess() async {
-        let bad = Publisher<Result<Int, CErr>, Never>.just(.failure(.boom))
-        let ok7 = Publisher<Result<Int, CErr>, Never>.just(.success(7))
-        let ok3 = Publisher<Result<Int, CErr>, Never>.just(.success(3))
-        let ok9 = Publisher<Result<Int, CErr>, Never>.just(.success(9))
-        #expect(await vals(altPublisherResult(bad, ok7)) == [.success(7)])
-        #expect(await vals(altPublisherResult(ok3, ok9)) == [.success(3)])
+    @Test func zipAltFirstSuccess() async {
+        #expect(await vals(PResult(.just(.failure(.boom))).zipAlt(PResult(.just(.success(7)))).rawValue) == [.success(7)])
+        #expect(await vals(PResult(.just(.success(3))).zipAlt(PResult(.just(.success(9)))).rawValue) == [.success(3)])
     }
 }
 
@@ -99,16 +91,14 @@ private func vals<O: Sendable, F: Error>(_ publisher: Publisher<O, F>) async -> 
         }
     }
 
-    @Test func mapTOverSuccess() async {
-        let p = Publisher<Validation<[String], Int>, Never>.just(.success(3))
-        let mapped = await vals(mapTPublisherValidation({ $0 * 2 }, p)).map(tag)
+    @Test func mapOverSuccess() async {
+        let mapped = await vals(PValidation(.just(.success(3))).map { $0 * 2 }.rawValue).map(tag)
         #expect(mapped == ["S6"])
     }
 
-    @Test func applyTAccumulatesErrors() async {
-        let fns = Publisher<Validation<[String], @Sendable (Int) -> Int>, Never>.just(.failure(["e1"]))
-        let vs = Publisher<Validation<[String], Int>, Never>.just(.failure(["e2"]))
-        let result = await vals(applyTPublisherValidation(fns, vs)).map(tag)
-        #expect(result == ["Fe1,e2"])
+    @Test func applyAccumulatesErrors() async {
+        let fns = PValidation<@Sendable (Int) -> Int>(.just(.failure(["e1"])))
+        let vs = PValidation<Int>(.just(.failure(["e2"])))
+        #expect(await vals((fns <*> vs).rawValue).map(tag) == ["Fe1,e2"])
     }
 }

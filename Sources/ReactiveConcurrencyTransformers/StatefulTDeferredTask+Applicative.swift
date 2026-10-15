@@ -10,7 +10,7 @@ import ReactiveConcurrency
 // No `inout` crossing an async boundary.
 
 /// apply for StatefulTDeferredTask
-public func applyStatefulDeferredTask<S, A: Sendable, B: Sendable>(
+func applyStatefulDeferredTask<S, A: Sendable, B: Sendable>(
     _ sf: Stateful<S, DeferredTask<@Sendable (A) -> B>>,
     _ sa: Stateful<S, DeferredTask<A>>
 ) -> Stateful<S, DeferredTask<B>> {
@@ -22,7 +22,7 @@ public func applyStatefulDeferredTask<S, A: Sendable, B: Sendable>(
 }
 
 /// liftA2 for StatefulTDeferredTask
-public func liftA2StatefulDeferredTask<S, A: Sendable, B: Sendable, C: Sendable>(
+func liftA2StatefulDeferredTask<S, A: Sendable, B: Sendable, C: Sendable>(
     _ fn: @escaping @Sendable (A, B) -> C
 ) -> @Sendable (Stateful<S, DeferredTask<A>>, Stateful<S, DeferredTask<B>>) -> Stateful<S, DeferredTask<C>> {
     { sa, sb in
@@ -35,7 +35,7 @@ public func liftA2StatefulDeferredTask<S, A: Sendable, B: Sendable, C: Sendable>
 }
 
 /// seqRight for StatefulTDeferredTask
-public func seqRightStatefulDeferredTask<S, A: Sendable, B: Sendable>(
+func seqRightStatefulDeferredTask<S, A: Sendable, B: Sendable>(
     _ lhs: Stateful<S, DeferredTask<A>>,
     _ rhs: Stateful<S, DeferredTask<B>>
 ) -> Stateful<S, DeferredTask<B>> {
@@ -43,7 +43,7 @@ public func seqRightStatefulDeferredTask<S, A: Sendable, B: Sendable>(
 }
 
 /// seqLeft for StatefulTDeferredTask
-public func seqLeftStatefulDeferredTask<S, A: Sendable, B: Sendable>(
+func seqLeftStatefulDeferredTask<S, A: Sendable, B: Sendable>(
     _ lhs: Stateful<S, DeferredTask<A>>,
     _ rhs: Stateful<S, DeferredTask<B>>
 ) -> Stateful<S, DeferredTask<A>> {
