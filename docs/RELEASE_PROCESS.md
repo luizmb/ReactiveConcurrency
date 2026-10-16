@@ -88,7 +88,7 @@ Add the package with Swift Package Manager and depend on the products you need:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "1.1.0"),
+    .package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "2.0.0"),
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
