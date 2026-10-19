@@ -26,15 +26,6 @@ private func number(_ notification: Notification) -> Int {
     notification.userInfo?["n"] as? Int ?? -1
 }
 
-/// Counts the observers taken off it, to see a subscription's end remove its own.
-private final class CountingCenter: NotificationCenter, @unchecked Sendable {
-    let removed = AtomicCounter()
-    override func removeObserver(_ observer: Any) {
-        removed.increment()
-        super.removeObserver(observer)
-    }
-}
-
 private final class Sender: Sendable {}
 
 @Suite(.timeLimit(.minutes(1))) struct NotificationCenterTests {
@@ -102,15 +93,27 @@ private final class Sender: Sendable {}
     }
 
     @Test func endingTheSubscriptionRemovesItsObserver() async {
-        let center = CountingCenter()
+        // The transform runs inside the observer, as each notification is posted, whether or not
+        // anyone is still reading: counting its calls is counting what the observer still hears.
+        let center = NotificationCenter()
+        let heard = AtomicCounter()
         let values = Collector<Int>()
-        let sub = center.notifications(named: ping, number).sink { values.append($0) }
+        let sub = center.notifications(named: ping) { notification in
+            heard.increment()
+            return number(notification)
+        }
+        .sink { values.append($0) }
         await primed(center, values)
-        #expect(center.removed.current == 0)
 
         sub.cancel()
-        await poll { center.removed.current == 1 }
+        await poll {
+            let before = heard.current
+            center.post(name: ping, object: nil, userInfo: ["n": 1])
+            return heard.current == before
+        }
+        let settled = heard.current
+        center.post(name: ping, object: nil, userInfo: ["n": 2])
 
-        #expect(center.removed.current == 1)
+        #expect(heard.current == settled)
     }
 }
