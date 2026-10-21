@@ -89,7 +89,7 @@ Start here:
 Add the package to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "2.0.0")
+.package(url: "https://github.com/luizmb/ReactiveConcurrency.git", from: "2.1.0")
 ```
 
 Then depend on the products you need:
