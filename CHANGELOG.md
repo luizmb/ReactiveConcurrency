@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `NotificationCenter.notifications(named:object:_:)`: a center's notifications as a cold
+  `Publisher`, of what a transform reads off each one (`Notification` is not `Sendable`, so it never
+  leaves the observer), and `notifications(named:object:)` for the bare fact. The observer is
+  registered when a subscription starts and removed when it ends. Named apart from Foundation's
+  Combine `publisher(for:object:)` on Apple platforms.
+
+## [2.0.0] - 2026-10-16
+
 FP 3 migration. Breaking: the transformer layer moves to FP 3's one-struct-per-stack model, and the
 stream applicatives become lawful.
 
